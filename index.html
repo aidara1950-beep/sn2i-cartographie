@@ -326,15 +326,16 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
   <button class="btn btn-principal" id="btn_nouvelle">＋ Nouvelle fiche client</button>
   <div class="titre-section">Fiches enregistrées<span class="filet"></span></div>
   <div id="liste"></div>
-  <div class="titre-section">Transmettre la tournée<span class="filet"></span></div>
-  <div class="carte">
+  <div id="avis_attente" class="avis avis-info" style="display:none"></div>
+  <div class="titre-section" data-export="oui">Transmettre la tournée<span class="filet"></span></div>
+  <div class="carte" data-export="oui">
     <p style="margin:0 0 12px;font-size:13.5px;color:#7A6A5B">
       L'export produit une archive contenant le classeur Excel des fiches, les photos de
       devanture et la synthèse. C'est ce fichier qui alimente le CRM.
     </p>
-    <button class="btn btn-jaune" id="btn_partager">📤 Exporter et envoyer (WhatsApp)</button>
-    <button class="btn btn-secondaire" id="btn_export">💾 Exporter l'archive sur le téléphone</button>
-    <button class="btn btn-discret" id="btn_csv">Exporter en CSV (secours)</button>
+    <button class="btn btn-accent" id="btn_partager" data-export="oui">📤 Exporter et envoyer (WhatsApp)</button>
+    <button class="btn btn-secondaire" id="btn_export" data-export="oui">💾 Exporter l'archive sur le téléphone</button>
+    <button class="btn btn-discret" id="btn_csv" data-export="oui">Exporter en CSV (secours)</button>
   </div>
 </section>
 
@@ -395,7 +396,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
   <div class="titre-section"><span class="num">4</span> Catégorie du client<span class="filet"></span></div>
   <div class="carte">
     <div id="f_categorie"></div>
-    <span class="aide-champ">Appréciation de terrain : <b>Petite</b> (boutique de quartier), <b>Moyenne</b> (demi-grossiste), <b>Grande</b> (grossiste, plusieurs dépôts).</span>
+    <span class="aide-champ" id="aide_categories">Petite : moins de 2 t par mois · Moyenne : de 2 à 10 t · Grande : plus de 10 t.</span>
     <div class="champ" style="margin-top:14px">
       <label class="intitule" for="f_type_pdv">Type de point de vente</label>
       <select id="f_type_pdv"><option value="">— non précisé —</option></select>
@@ -486,13 +487,13 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 
   <div class="titre-section">Sécurité des données<span class="filet"></span></div>
   <div class="carte">
-    <p style="margin:0 0 12px;font-size:13.5px;color:#7A6A5B">
+    <p id="texte_securite" style="margin:0 0 12px;font-size:13.5px;color:#7A6A5B">
       Les fiches sont conservées sur ce téléphone uniquement. Exportez et envoyez la tournée
       régulièrement : chaque envoi est une sauvegarde.
     </p>
-    <button class="btn btn-secondaire" id="btn_sauvegarde">Créer une sauvegarde complète</button>
-    <button class="btn btn-secondaire" id="btn_restaurer">Restaurer une sauvegarde</button>
-    <input type="file" id="f_restauration" accept="application/json,.json,.zip" style="display:none">
+    <button class="btn btn-secondaire" id="btn_sauvegarde" data-export="oui">Créer une sauvegarde complète</button>
+    <button class="btn btn-secondaire" id="btn_restaurer" data-export="oui">Restaurer une sauvegarde</button>
+    <input type="file" id="f_restauration" accept="application/json,.json,.zip" style="display:none" data-export="oui">
     <button class="btn btn-danger" id="btn_purger">Effacer toutes les fiches du téléphone</button>
   </div>
 
@@ -926,14 +927,23 @@ var DICTIONNAIRE = [
   ['Horodatage_ISO', 'Date et heure exactes de l\'enregistrement.', 'AAAA-MM-JJTHH:MM:SS']
 ];
 
-/* Seuils de segmentation — PROPOSITION à valider par la direction.
-   Modifiables en un seul endroit ; le CRM lit les mêmes valeurs. */
+/* Échelle de taille — UNE SEULE échelle, celle affichée à l'enquêteur.
+   Bornes validées par la direction le 21/09/2026 :
+   Petite < 2 t/mois · Moyenne 2 à 10 t · Grande > 10 t. */
 var SEUILS = [
-  { max: 2000,   nom: 'Micro' },
-  { max: 10000,  nom: 'Petit' },
-  { max: 30000,  nom: 'Moyen' },
-  { max: Infinity, nom: 'Grand compte' }
+  { max: 2000, nom: 'Petite' },
+  { max: 10000, nom: 'Moyenne' },
+  { max: Infinity, nom: 'Grande' }
 ];
+
+/* Texte affiché sous les boutons de catégorie : l'enquêteur doit savoir
+   où se situe la boutique qu'il a sous les yeux. */
+var TEXTE_CATEGORIES = 'Petite : moins de 2 t par mois · Moyenne : de 2 à 10 t · Grande : plus de 10 t.';
+
+/* La version publiée sur le lien public ne produit aucun fichier :
+   les fiches sont conservées sur le téléphone et remontées automatiquement.
+   build.py remplace ce marqueur selon la version fabriquée. */
+var MODE_PUBLIE = /*--MODE_PUBLIE--*/true;
 
 /* ------------------------------------------------------------- utilitaires */
 
@@ -1496,6 +1506,17 @@ function rendreListe() {
   var dujour = fiches.filter(function (f) { return f.date_visite === aujourdhui; });
   var totalKg = fiches.reduce(function (n, f) { return n + totalFiche(f); }, 0);
 
+  if (MODE_PUBLIE) {
+    var avis = $('#avis_attente');
+    avis.style.display = 'block';
+    avis.innerHTML = fiches.length
+      ? '<b>' + fiches.length + ' fiche(s) enregistrée(s) sur ce téléphone.</b> ' +
+        'Elles remontent automatiquement vers le suivi SN2I : vous n\'avez rien à envoyer. ' +
+        'Ne supprimez pas l\'application avant que le bureau vous confirme leur réception.'
+      : 'Chaque fiche que vous enregistrez est conservée ici, puis remontée automatiquement ' +
+        'vers le suivi SN2I. Vous n\'avez aucun fichier à envoyer.';
+  }
+
   $('#stats').innerHTML =
     '<div class="stat"><div class="n">' + fiches.length + '</div><div class="l">Fiches</div></div>' +
     '<div class="stat"><div class="n">' + dujour.length + '</div><div class="l">Aujourd\'hui</div></div>' +
@@ -2053,9 +2074,24 @@ function brancherEvenements() {
   });
 }
 
+/* Mode publié : la page installée sur le lien ne produit aucun fichier.
+   Les fiches restent sur le téléphone et remontent par le canal automatique.
+   Le mode enquêteur (fichier HTML remis en main propre) garde les exports. */
+function appliquerMode() {
+  if (!MODE_PUBLIE) { return; }
+  $$('[data-export]').forEach(function (el) { el.style.display = 'none'; });
+  var texte = $('#texte_securite');
+  if (texte) {
+    texte.innerHTML = 'Les fiches sont conservées sur ce téléphone, puis remontées automatiquement ' +
+      'vers le suivi SN2I. Vous n\'avez aucun fichier à produire ni à envoyer. ' +
+      '<b>Ne supprimez pas l\'application</b> tant que le bureau ne vous a pas confirmé la réception.';
+  }
+}
+
 function demarrer() {
   brancherEvenements();
   surveillerReseau();
+  appliquerMode();
 
   Promise.all([
     DB.lireMeta('enqueteur', ''),
@@ -2071,6 +2107,8 @@ function demarrer() {
     $('#f_type_pdv').innerHTML = '<option value="">— non précisé —</option>' +
       TYPES_PDV.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
     $('#version').textContent = 'Version ' + VERSION_APP;
+    var aideCat = $('#aide_categories');
+    if (aideCat) { aideCat.textContent = TEXTE_CATEGORIES; }
     return rafraichirListe();
   }).then(function () {
     majBandeau();

@@ -459,8 +459,11 @@ select.mini, input.mini {
     <div class="erreur" id="erreur_connexion" style="display:none"></div>
 
     <div class="champ">
-      <label class="intitule" for="courriel">Adresse électronique</label>
-      <input type="text" id="courriel" autocomplete="username" placeholder="prenom.nom@sn2isenegal.com">
+      <label class="intitule" for="courriel">Identifiant</label>
+      <input type="text" id="courriel" autocomplete="username" placeholder="mohamed">
+      <span class="aide-champ" style="display:block;margin-top:5px;font-size:12px;color:#7A6A5B">
+        Votre identifiant court suffit (par exemple <b>mohamed</b>). L'adresse complète fonctionne aussi.
+      </span>
     </div>
     <div class="champ">
       <label class="intitule" for="motdepasse">Mot de passe</label>
@@ -1079,9 +1082,11 @@ function brancher() {
     var erreur = $('#erreur_connexion');
     erreur.style.display = 'none';
     if (!courriel || !motdepasse) {
-      erreur.textContent = 'Renseignez votre adresse et votre mot de passe.';
+      erreur.textContent = 'Renseignez votre identifiant et votre mot de passe.';
       erreur.style.display = 'block'; return;
     }
+    // On accepte l'identifiant court : « mohamed » vaut « mohamed@sn2isenegal.com ».
+    if (courriel.indexOf('@') === -1) { courriel = courriel + '@sn2isenegal.com'; }
     $('#btn_connexion').disabled = true;
     $('#btn_connexion').textContent = 'Connexion…';
     seConnecter(courriel, motdepasse)

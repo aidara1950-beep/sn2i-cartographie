@@ -11,9 +11,14 @@
    SN2I — Cartographie clients · aliments de bétail
    Feuille de style unique. Aucune ressource externe : tout doit fonctionner
    hors ligne, sur un téléphone d'entrée de gamme, en plein soleil.
+
+   Cette feuille porte la charte commune aux trois outils (formulaire de
+   terrain, poste de phoning, console de pilotage). Les deux autres feuilles
+   sont chargées APRÈS celle-ci et ne font que la compléter.
    ========================================================================== */
 
 :root {
+  /* ---- couleurs de marque ------------------------------------------- */
   --principal:        #442A19;
   --principal-clair:  #5C3A22;
   --principal-pale:   #F4EDE5;
@@ -24,10 +29,47 @@
   --texte:       #2B1C10;
   --gris:        #7A6A5B;
   --bord:        #E6DCCF;
+
+  /* ---- couleurs d'état, communes aux trois outils -------------------- */
   --rouge:       #B3261E;
   --rouge-pale:  #FCEBEA;
-  --rayon:       14px;
+  --rouge-bord:  #E9BDB9;
+  --vert:        #1F5A38;
+  --vert-pale:   #E8F3EC;
+  --vert-bord:   #BFDCCB;
+  --bleu:        #1B4F8A;
+  --bleu-pale:   #E7F0FB;
+  --ambre:       #6B4A22;
+  --ambre-pale:  #FEF6E4;
+
+  /* ---- échelle d'espacement -----------------------------------------
+     Une seule échelle pour les trois outils : 4 · 8 · 12 · 16 · 24 · 32.
+     Toute marge ou tout écart doit se prendre dans cette liste.          */
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 12px;
+  --e4: 16px;
+  --e6: 24px;
+  --e8: 32px;
+
+  /* ---- rayons -------------------------------------------------------- */
+  --rayon:    14px;  /* cartes et blocs                                   */
+  --rayon-m:  12px;  /* boutons, zones de saisie hautes                   */
+  --rayon-s:  10px;  /* contrôles courts, vignettes, encarts              */
+
+  /* ---- hauteurs de contrôle -----------------------------------------
+     48 px est le minimum confortable pour un pouce sur téléphone.        */
+  --h-champ: 48px;   /* champ de saisie, bouton de choix                  */
+  --h-btn:   52px;   /* bouton d'action pleine largeur                    */
+  --h-mini:  40px;   /* contrôle secondaire, de tableau ou de barre       */
+  --h-barre: 84px;   /* barre d'onglets inférieure du formulaire          */
+
+  /* ---- ombres et anneaux de focus ------------------------------------ */
   --ombre:       0 1px 3px rgba(68,42,25,.10), 0 4px 14px rgba(68,42,25,.06);
+  --ombre-forte: 0 4px 10px rgba(68,42,25,.14), 0 12px 28px rgba(68,42,25,.10);
+  --ombre-basse: 0 1px 2px rgba(68,42,25,.08);
+  --anneau:       0 0 0 3px rgba(199,157,103,.55);
+  --anneau-rouge: 0 0 0 3px rgba(179,38,30,.22);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -42,24 +84,33 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-body { padding-bottom: 84px; }
+/* Aucun outil ne doit déborder latéralement, même sur un écran de 320 px.
+   On ne met pas « overflow-x: hidden » sur html/body : cela désactiverait le
+   maintien en haut (position: sticky) de l'en-tête. Le débordement est traité
+   là où il naît — les tableaux, qui défilent dans leur propre cadre. */
+html, body { max-width: 100%; }
+
+body { padding-bottom: calc(var(--h-barre) + env(safe-area-inset-bottom)); }
+
+/* Un seul anneau de focus pour les trois outils. */
+:focus-visible { outline: none; box-shadow: var(--anneau); }
 
 /* ------------------------------------------------------------- en-tête */
 
 .entete {
   background: linear-gradient(135deg, var(--principal) 0%, var(--principal-clair) 100%);
   color: #fff;
-  padding: 14px 16px 16px;
+  padding: var(--e3) var(--e4) var(--e4);
   position: sticky; top: 0; z-index: 20;
   box-shadow: 0 2px 12px rgba(68,42,25,.22);
 }
 
-.entete-ligne { display: flex; align-items: center; gap: 12px; }
+.entete-ligne { display: flex; align-items: center; gap: var(--e3); }
 
 .bloc-marque {
-  background: #fff; border-radius: 10px; padding: 6px 10px;
+  background: #fff; border-radius: var(--rayon-s); padding: var(--e1) var(--e2);
   display: flex; align-items: center; justify-content: center;
-  min-width: 74px; height: 44px; flex: 0 0 auto;
+  min-width: 76px; height: 44px; flex: 0 0 auto;
 }
 .bloc-marque img { max-height: 32px; max-width: 116px; display: block; }
 .bloc-marque .marque-texte {
@@ -68,33 +119,37 @@ body { padding-bottom: 84px; }
 .bloc-marque .marque-texte span { color: var(--accent); }
 
 .entete-titres { min-width: 0; }
-.entete h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .2px; }
-.entete p { margin: 2px 0 0; font-size: 12px; color: #E8DCCB; }
+.entete h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .2px; line-height: 1.3; }
+.entete p { margin: var(--e1) 0 0; font-size: 12px; color: #E8DCCB; line-height: 1.35; }
 
-.entete-bandeau {
-  margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;
-}
+.entete-bandeau { margin-top: var(--e3); display: flex; gap: var(--e2); flex-wrap: wrap; }
+
 .puce {
   background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.20);
-  border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600;
-  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; padding: var(--e1) var(--e3); font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: var(--e1);
+  min-height: 26px; line-height: 1.4;
 }
 .puce b { color: var(--accent); }
 .puce.hors-ligne { background: rgba(247,174,23,.22); border-color: rgba(247,174,23,.5); }
 
 /* --------------------------------------------------------------- écrans */
 
-.ecran { display: none; padding: 14px 14px 20px; max-width: 720px; margin: 0 auto; }
+.ecran {
+  display: none;
+  padding: var(--e4) var(--e4) var(--e6);
+  max-width: 720px; margin: 0 auto;
+}
 .ecran.actif { display: block; }
 
 .titre-section {
-  display: flex; align-items: center; gap: 10px;
-  margin: 20px 2px 10px; font-size: 13px; font-weight: 800;
+  display: flex; align-items: center; gap: var(--e2);
+  margin: var(--e6) 0 var(--e3); font-size: 13px; font-weight: 800;
   text-transform: uppercase; letter-spacing: .7px; color: var(--principal);
 }
-.titre-section:first-child { margin-top: 4px; }
+.titre-section:first-child { margin-top: var(--e1); }
 .titre-section .num {
-  width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+  width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
   color: var(--principal); font-size: 12px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
 }
@@ -102,203 +157,337 @@ body { padding-bottom: 84px; }
 
 .carte {
   background: var(--carte); border: 1px solid var(--bord);
-  border-radius: var(--rayon); padding: 14px; box-shadow: var(--ombre);
-  margin-bottom: 12px;
+  border-radius: var(--rayon); padding: var(--e4); box-shadow: var(--ombre);
+  margin-bottom: var(--e3);
 }
-.carte.aide { background: var(--accent-pale); border-color: #E8D3B4; font-size: 13px; color: #6B4A22; }
+.carte:last-child { margin-bottom: 0; }
+.carte.aide { background: var(--accent-pale); border-color: #E8D3B4; font-size: 13px; color: var(--ambre); }
+
+/* ------------------------------------------------- titres et textes courants
+   Ces trois classes remplacent les styles écrits dans les balises : un seul
+   endroit décide de la taille, de la couleur et de la marge, pour les trois
+   outils à la fois. */
+
+/* 18 px : c'est la taille de titre d'écran des trois outils. */
+.titre-ecran {
+  margin: 0 0 var(--e1); font-size: 18px; line-height: 1.3;
+  font-weight: 700; color: var(--principal);
+}
+.sous-ecran {
+  margin: 0 0 var(--e4); font-size: 12.5px; color: var(--gris); line-height: 1.5;
+}
+.texte-bloc {
+  margin: 0 0 var(--e3); font-size: 13.5px; color: var(--gris); line-height: 1.55;
+}
+.texte-bloc:last-child { margin-bottom: 0; }
+
+/* Écart d'un cran, pris dans l'échelle, quand un bloc doit se détacher. */
+.espace { margin-top: var(--e4); }
 
 /* ---------------------------------------------------------------- champs */
 
-.champ { margin-bottom: 14px; }
+.champ { margin-bottom: var(--e4); }
 .champ:last-child { margin-bottom: 0; }
 
 label.intitule {
   display: block; font-size: 13px; font-weight: 700;
-  margin-bottom: 6px; color: var(--principal); letter-spacing: .2px;
+  margin-bottom: var(--e2); color: var(--principal); letter-spacing: .2px;
 }
-label.intitule .req { color: var(--rouge); margin-left: 2px; }
-.aide-champ { font-size: 12px; color: var(--gris); margin-top: 5px; display: block; }
+.req { color: var(--rouge); font-weight: 700; }
+label.intitule .req { margin-left: 2px; }
+.aide-champ {
+  font-size: 12px; color: var(--gris); margin-top: var(--e2);
+  display: block; line-height: 1.45;
+}
 
-input[type="text"], input[type="tel"], input[type="number"], input[type="date"], textarea, select {
-  width: 100%; padding: 13px 14px; font-size: 16px; font-family: inherit;
+input[type="text"], input[type="tel"], input[type="number"], input[type="date"],
+input[type="password"], input[type="search"], textarea, select {
+  width: 100%; padding: var(--e3) var(--e3); font-size: 16px; font-family: inherit;
   color: var(--texte); background: #fff;
-  border: 1.5px solid var(--bord); border-radius: 11px;
-  outline: none; transition: border-color .15s, box-shadow .15s;
-  min-height: 50px;
+  border: 1.5px solid var(--bord); border-radius: var(--rayon-m);
+  outline: none; transition: border-color .15s, box-shadow .15s, background-color .15s;
+  min-height: var(--h-champ);
+}
+input:hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) {
+  border-color: #D8C9B4;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--principal); box-shadow: 0 0 0 3px rgba(21,70,61,.12);
+  border-color: var(--principal); box-shadow: var(--anneau);
 }
-input.erreur, textarea.erreur { border-color: var(--rouge); background: var(--rouge-pale); }
+input:disabled, textarea:disabled, select:disabled {
+  background: var(--principal-pale); color: var(--gris); cursor: not-allowed;
+}
+input.erreur, textarea.erreur, select.erreur {
+  border-color: var(--rouge); background: var(--rouge-pale);
+}
+input.erreur:focus, textarea.erreur:focus, select.erreur:focus {
+  border-color: var(--rouge); box-shadow: var(--anneau-rouge);
+}
 textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); background-image:
+  linear-gradient(45deg, transparent 50%, var(--gris) 50%),
+  linear-gradient(135deg, var(--gris) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
 
-.ligne-champs { display: flex; gap: 10px; }
+.ligne-champs { display: flex; gap: var(--e3); }
 .ligne-champs > * { flex: 1; min-width: 0; }
+.ligne-champs > .large { flex: 2; }
 
 /* boutons de choix (zone, catégorie, oui/non) */
-.choix { display: flex; gap: 8px; flex-wrap: wrap; }
+.choix { display: flex; gap: var(--e2); flex-wrap: wrap; }
 .choix input { position: absolute; opacity: 0; pointer-events: none; }
 .choix label {
-  flex: 1 1 88px; text-align: center; padding: 13px 8px; cursor: pointer;
-  border: 1.5px solid var(--bord); border-radius: 11px; background: #fff;
+  flex: 1 1 88px; text-align: center; padding: var(--e3) var(--e2); cursor: pointer;
+  border: 1.5px solid var(--bord); border-radius: var(--rayon-m); background: #fff;
   font-size: 15px; font-weight: 600; color: var(--gris);
-  min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: var(--h-champ); display: flex; align-items: center; justify-content: center;
+  gap: var(--e1); transition: border-color .15s, background-color .15s, color .15s;
 }
 .choix input:checked + label {
   border-color: var(--principal); background: var(--principal); color: #fff;
-  box-shadow: 0 2px 8px rgba(21,70,61,.25);
+  box-shadow: 0 2px 8px rgba(68,42,25,.25);
 }
-.choix input:focus-visible + label { box-shadow: 0 0 0 3px rgba(21,70,61,.2); }
+.choix input:focus-visible + label { box-shadow: var(--anneau); }
 
 /* produits */
 .produit {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px dashed var(--bord);
+  display: flex; align-items: center; gap: var(--e3);
+  padding: var(--e3) 0; border-bottom: 1px dashed var(--bord);
 }
 .produit:last-of-type { border-bottom: none; }
 .produit .nom-produit { flex: 1; font-size: 15px; font-weight: 600; min-width: 0; }
-.produit .nom-produit small { display: block; font-weight: 400; font-size: 11.5px; color: var(--gris); }
+.produit .nom-produit small {
+  display: block; font-weight: 400; font-size: 12px; color: var(--gris);
+  margin-top: 2px; line-height: 1.35;
+}
 .produit .saisie-kg { flex: 0 0 116px; position: relative; }
-.produit .saisie-kg input { padding-right: 34px; text-align: right; font-weight: 700; }
+.produit .saisie-kg input { padding-right: var(--e8); text-align: right; font-weight: 700; }
 .produit .saisie-kg::after {
-  content: "kg"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  content: "kg"; position: absolute; right: var(--e3); top: 50%; transform: translateY(-50%);
   font-size: 12px; color: var(--gris); font-weight: 700; pointer-events: none;
 }
-.produit.mieux { background: var(--accent-pale); border-radius: 10px; padding: 10px; margin: 0 -10px; }
+.produit.mieux {
+  background: var(--accent-pale); border-radius: var(--rayon-s);
+  padding: var(--e3); margin: 0 calc(-1 * var(--e3));
+}
 .etoile {
   flex: 0 0 auto; border: 1.5px solid var(--bord); background: #fff; color: var(--gris);
-  border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: 700; cursor: pointer;
-  min-height: 42px;
+  border-radius: var(--rayon-s); padding: 0 var(--e3); font-size: 14px; font-weight: 700;
+  cursor: pointer; min-height: var(--h-mini); min-width: var(--h-mini);
+  transition: background-color .15s, border-color .15s, color .15s;
 }
 .etoile.actif { background: var(--accent); border-color: var(--accent); color: var(--principal); }
 
 .total-kg {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-top: 12px; padding: 12px 14px; background: var(--principal-pale);
-  border-radius: 11px; font-weight: 800; color: var(--principal);
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e3);
+  margin-top: var(--e4); padding: var(--e3) var(--e4); background: var(--principal-pale);
+  border-radius: var(--rayon-m); font-weight: 800; color: var(--principal);
+  min-height: var(--h-champ);
 }
-.total-kg .valeur { font-size: 20px; }
+.total-kg .valeur { font-size: 20px; font-variant-numeric: tabular-nums; }
 .total-kg .valeur small { font-size: 12px; font-weight: 600; }
 
 /* photo */
 .zone-photo {
-  border: 2px dashed var(--bord); border-radius: 12px; padding: 18px;
+  border: 2px dashed var(--bord); border-radius: var(--rayon-m); padding: var(--e6) var(--e4);
   text-align: center; background: #FDFBF8; cursor: pointer; display: block;
+  transition: border-color .15s, background-color .15s;
 }
 .zone-photo:active { background: var(--principal-pale); }
 .zone-photo .icone { font-size: 30px; line-height: 1; }
-.zone-photo .libelle { font-weight: 700; color: var(--principal); margin-top: 6px; font-size: 14px; }
-.zone-photo .sous { font-size: 12px; color: var(--gris); margin-top: 2px; }
-.apercu-photo { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--bord); }
+.zone-photo .libelle { font-weight: 700; color: var(--principal); margin-top: var(--e2); font-size: 14px; }
+.zone-photo .sous { font-size: 12px; color: var(--gris); margin-top: var(--e1); }
+.apercu-photo {
+  position: relative; border-radius: var(--rayon-m); overflow: hidden; border: 1px solid var(--bord);
+}
 .apercu-photo img { width: 100%; display: block; max-height: 300px; object-fit: cover; }
 .apercu-photo .retirer {
-  position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.66); color: #fff;
-  border: none; border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+  position: absolute; top: var(--e2); right: var(--e2); background: rgba(0,0,0,.66); color: #fff;
+  border: none; border-radius: 999px; padding: var(--e2) var(--e3); font-size: 12px;
+  font-weight: 700; cursor: pointer; min-height: 36px; font-family: inherit;
 }
 
 /* --------------------------------------------------------------- boutons */
 
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 15px 16px; font-size: 16px; font-weight: 700; font-family: inherit;
-  border-radius: 12px; border: 1.5px solid transparent; cursor: pointer;
-  min-height: 52px; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--e2);
+  width: 100%; padding: var(--e3) var(--e4); font-size: 16px; font-weight: 700; font-family: inherit;
+  border-radius: var(--rayon-m); border: 1.5px solid transparent; cursor: pointer;
+  min-height: var(--h-btn); text-decoration: none; line-height: 1.25;
+  transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
 }
-.btn-principal { background: var(--principal); color: #fff; box-shadow: 0 3px 10px rgba(21,70,61,.24); }
-.btn-principal:active { background: var(--principal-clair); }
-.btn-accent { background: var(--accent); color: var(--principal); }
+.btn-principal { background: var(--principal); color: #fff; box-shadow: 0 3px 10px rgba(68,42,25,.24); }
+.btn-principal:active { background: var(--principal-clair); box-shadow: var(--ombre-basse); }
+.btn-accent { background: var(--accent); color: var(--principal); box-shadow: 0 3px 10px rgba(199,157,103,.32); }
+.btn-accent:active { background: #B98D57; box-shadow: var(--ombre-basse); }
 .btn-secondaire { background: #fff; color: var(--principal); border-color: var(--principal); }
+.btn-secondaire:active { background: var(--principal-pale); }
 .btn-discret { background: transparent; color: var(--gris); border-color: var(--bord); }
-.btn-danger { background: transparent; color: var(--rouge); border-color: #E9BDB9; }
-.btn:disabled { opacity: .5; }
-.btn + .btn { margin-top: 10px; }
-.duo { display: flex; gap: 10px; }
+.btn-discret:active { background: var(--principal-pale); }
+.btn-danger { background: transparent; color: var(--rouge); border-color: var(--rouge-bord); }
+.btn-danger:active { background: var(--rouge-pale); }
+
+.btn:disabled, .btn[disabled] {
+  opacity: .45; cursor: not-allowed; box-shadow: none; filter: grayscale(.2);
+}
+.btn + .btn { margin-top: var(--e2); }
+.duo { display: flex; gap: var(--e3); }
 .duo .btn { margin-top: 0; }
+
+@media (hover: hover) {
+  .btn-principal:hover:not(:disabled) { background: var(--principal-clair); box-shadow: var(--ombre-forte); }
+  .btn-accent:hover:not(:disabled) { background: #D3AC7C; }
+  .btn-secondaire:hover:not(:disabled) { background: var(--principal-pale); }
+  .btn-discret:hover:not(:disabled) { border-color: var(--accent); color: var(--principal); }
+  .btn-danger:hover:not(:disabled) { background: var(--rouge-pale); }
+  .choix label:hover { border-color: var(--accent); color: var(--principal); }
+  .etoile:hover { border-color: var(--accent); color: var(--principal); }
+  .zone-photo:hover { border-color: var(--accent); background: var(--accent-pale); }
+}
 
 /* ------------------------------------------------------------ barre basse */
 
 .barre-basse {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   background: #fff; border-top: 1px solid var(--bord);
-  display: flex; padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  display: flex; padding: var(--e2) var(--e2) calc(var(--e2) + env(safe-area-inset-bottom));
   box-shadow: 0 -2px 14px rgba(68,42,25,.08);
 }
 .onglet {
   flex: 1; background: none; border: none; font-family: inherit; cursor: pointer;
-  padding: 8px 4px; color: var(--gris); font-size: 11px; font-weight: 700;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: var(--e2) var(--e1); color: var(--gris); font-size: 11px; font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--e1); position: relative; min-height: var(--h-champ);
+  border-radius: var(--rayon-s); transition: color .15s, background-color .15s;
 }
-.onglet .picto { font-size: 19px; line-height: 1; }
-.onglet.actif { color: var(--principal); }
-.onglet.actif .picto { transform: translateY(-1px); }
+.onglet .picto { font-size: 20px; line-height: 1; }
+.onglet.actif { color: var(--principal); background: var(--principal-pale); }
 .onglet .pastille {
-  position: absolute; transform: translate(16px, -6px);
+  position: absolute; top: var(--e1); left: 58%;
   background: var(--accent); color: var(--principal); border-radius: 999px;
   font-size: 10px; padding: 1px 6px; font-weight: 800;
 }
 
 /* ------------------------------------------------------------ liste fiches */
 
-.stats { display: flex; gap: 8px; margin-bottom: 12px; }
+.stats { display: flex; gap: var(--e2); margin-bottom: var(--e3); }
 .stat {
-  flex: 1; background: #fff; border: 1px solid var(--bord); border-radius: 12px;
-  padding: 10px; text-align: center; box-shadow: var(--ombre);
+  flex: 1; min-width: 0; background: #fff; border: 1px solid var(--bord);
+  border-radius: var(--rayon-m); padding: var(--e3) var(--e2);
+  text-align: center; box-shadow: var(--ombre);
 }
-.stat .n { font-size: 20px; font-weight: 800; color: var(--principal); line-height: 1.1; }
-.stat .l { font-size: 11px; color: var(--gris); text-transform: uppercase; letter-spacing: .4px; }
+.stat .n {
+  font-size: 20px; font-weight: 800; color: var(--principal);
+  line-height: 1.15; font-variant-numeric: tabular-nums;
+}
+.stat .l {
+  font-size: 11px; color: var(--gris); text-transform: uppercase;
+  letter-spacing: .4px; margin-top: var(--e1);
+}
 
 .fiche {
-  display: flex; gap: 12px; align-items: center;
+  display: flex; gap: var(--e3); align-items: center;
   background: #fff; border: 1px solid var(--bord); border-radius: var(--rayon);
-  padding: 10px; margin-bottom: 10px; box-shadow: var(--ombre); cursor: pointer;
+  padding: var(--e3); margin-bottom: var(--e2); box-shadow: var(--ombre); cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
 }
+.fiche:active { border-color: var(--accent); }
 .fiche .vignette {
-  width: 62px; height: 62px; border-radius: 10px; flex: 0 0 auto;
+  width: 60px; height: 60px; border-radius: var(--rayon-s); flex: 0 0 auto;
   background: var(--principal-pale) center/cover no-repeat;
   display: flex; align-items: center; justify-content: center; color: var(--principal); font-size: 22px;
 }
 .fiche .corps { flex: 1; min-width: 0; }
 .fiche .nom { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fiche .meta { font-size: 12.5px; color: var(--gris); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fiche .tags { margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; }
-.tag {
-  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
-  background: var(--principal-pale); color: var(--principal);
+.fiche .meta {
+  font-size: 12.5px; color: var(--gris); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tag.grande { background: #F0E4D4; color: #6B4A22; }
-.tag.moyenne { background: var(--accent-pale); color: #6B4A22; }
+.fiche .tags { margin-top: var(--e2); display: flex; gap: var(--e1); flex-wrap: wrap; }
+.tag {
+  font-size: 11px; font-weight: 700; padding: 3px var(--e2); border-radius: 999px;
+  background: var(--principal-pale); color: var(--principal); line-height: 1.4;
+}
+.tag.grande { background: #F0E4D4; color: var(--ambre); }
+.tag.moyenne { background: var(--accent-pale); color: var(--ambre); }
 .tag.petite { background: #F0EDE9; color: var(--gris); }
 
-.vide { text-align: center; padding: 40px 20px; color: var(--gris); }
-.vide .icone { font-size: 44px; margin-bottom: 10px; }
+@media (hover: hover) {
+  .fiche:hover { border-color: var(--accent); box-shadow: var(--ombre-forte); }
+}
+
+.vide { text-align: center; padding: var(--e8) var(--e6); color: var(--gris); font-size: 14px; }
+.vide .icone { font-size: 44px; margin-bottom: var(--e3); line-height: 1; }
 
 /* ----------------------------------------------------- détail / divers */
 
-.filet-detail { border-top: 1px solid var(--bord); margin: 12px 0; }
-.detail-ligne { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 14.5px; }
+.filet-detail { border-top: 1px solid var(--bord); margin: var(--e3) 0; }
+.detail-ligne {
+  display: flex; justify-content: space-between; gap: var(--e3);
+  padding: var(--e2) 0; font-size: 14.5px; border-bottom: 1px solid #F2EBE1;
+}
+.detail-ligne:last-child { border-bottom: none; }
 .detail-ligne .cle { color: var(--gris); flex: 0 0 42%; }
 .detail-ligne .val { font-weight: 600; text-align: right; word-break: break-word; }
 
 .avis {
-  border-radius: 11px; padding: 12px 14px; font-size: 13.5px; margin-bottom: 12px;
-  border: 1px solid;
+  border-radius: var(--rayon-m); padding: var(--e3) var(--e4); font-size: 13.5px;
+  margin-bottom: var(--e3); border: 1px solid; line-height: 1.5;
 }
 .avis-info { background: var(--principal-pale); border-color: #E3D5C4; color: var(--principal); }
-.avis-alerte { background: var(--rouge-pale); border-color: #E9BDB9; color: var(--rouge); }
+.avis-alerte { background: var(--rouge-pale); border-color: var(--rouge-bord); color: var(--rouge); }
+.avis-ok { background: var(--vert-pale); border-color: var(--vert-bord); color: var(--vert); }
 
 .bascule-toast {
-  position: fixed; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 60;
-  background: var(--principal); color: #fff; padding: 12px 20px; border-radius: 999px;
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--h-barre) + var(--e3)); z-index: 60;
+  background: var(--principal); color: #fff; padding: var(--e3) var(--e6); border-radius: 999px;
   font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(68,42,25,.3);
-  opacity: 0; pointer-events: none; transition: opacity .25s, bottom .25s; max-width: 90vw; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity .25s, bottom .25s;
+  max-width: calc(100vw - var(--e8)); text-align: center;
 }
-.bascule-toast.visible { opacity: 1; bottom: 104px; }
+.bascule-toast.visible { opacity: 1; bottom: calc(var(--h-barre) + var(--e6)); }
+
+/* ------------------------------------------------------- grands écrans */
 
 @media (min-width: 620px) {
-  .ecran { padding: 18px 22px 24px; }
+  .ecran { padding: var(--e6) var(--e6) var(--e8); }
   .choix label { flex: 1 1 auto; }
 }
-@media print { .barre-basse, .entete { display: none; } }
+
+/* Sur ordinateur, la colonne de 720 px — juste pour un téléphone — paraît
+   étroite au milieu d'un écran vide. On l'élargit d'un cran, sans aller plus
+   loin : au-delà, les intitulés s'éloignent trop de leur champ et le
+   formulaire devient moins sûr à remplir. Le poste de phoning ne suit pas
+   cette règle, il la surcharge avec « .poste .ecran ». */
+@media (min-width: 900px) {
+  .ecran { max-width: 860px; padding: var(--e8) var(--e8); }
+  .produit .saisie-kg { flex: 0 0 140px; }
+  .stats { gap: var(--e3); }
+}
+
+/* ------------------------------------------------------------ très petits */
+
+@media (max-width: 360px) {
+  .ecran { padding: var(--e3) var(--e3) var(--e6); }
+  .carte { padding: var(--e3); }
+  .stats { gap: var(--e1); }
+  .produit .saisie-kg { flex: 0 0 96px; }
+}
+
+/* ------------------------------------------------------------ impression */
+
+@media print {
+  :root { --ombre: none; --ombre-forte: none; --ombre-basse: none; }
+  html, body { background: #fff; overflow: visible; }
+  body { padding-bottom: 0; }
+  .barre-basse, .entete, .bascule-toast { display: none !important; }
+  .carte { box-shadow: none; border: 1px solid #C9BCA9; break-inside: avoid; }
+  .ecran { max-width: none; padding: 0; }
+  a[href^="tel:"] { color: inherit; text-decoration: none; }
+}
 </style>
 </head>
 <body>
@@ -330,7 +519,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
   <div id="avis_attente" class="avis avis-info" style="display:none"></div>
   <div class="titre-section" data-export="oui">Transmettre la tournée<span class="filet"></span></div>
   <div class="carte" data-export="oui">
-    <p style="margin:0 0 12px;font-size:13.5px;color:#7A6A5B">
+    <p class="texte-bloc">
       L'export produit une archive contenant le classeur Excel des fiches, les photos de
       devanture et la synthèse. C'est ce fichier qui alimente le CRM.
     </p>
@@ -342,8 +531,8 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 
 <!-- ============================================== écran : formulaire === -->
 <section class="ecran" data-ecran="formulaire" id="ecran_formulaire">
-  <h2 id="titre-formulaire" style="font-size:17px;margin:0 0 4px;color:#442A19">Nouvelle fiche client</h2>
-  <p style="font-size:12.5px;color:#7A6A5B;margin:0 0 8px">Les champs marqués <span style="color:#B3261E">*</span> sont obligatoires.</p>
+  <h2 id="titre-formulaire" class="titre-ecran">Nouvelle fiche client</h2>
+  <p class="sous-ecran">Les champs marqués <span class="req">*</span> sont obligatoires.</p>
 
   <div class="titre-section"><span class="num">1</span> Zone et localisation<span class="filet"></span></div>
   <div class="carte">
@@ -398,7 +587,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
   <div class="carte">
     <div id="f_categorie"></div>
     <span class="aide-champ" id="aide_categories">Petite : moins de 2 t par mois · Moyenne : de 2 à 10 t · Grande : plus de 10 t.</span>
-    <div class="champ" style="margin-top:14px">
+    <div class="champ espace">
       <label class="intitule" for="f_type_pdv">Type de point de vente</label>
       <select id="f_type_pdv"><option value="">— non précisé —</option></select>
       <span class="aide-champ">Typologie déjà utilisée par SN2I dans son suivi commercial.</span>
@@ -413,7 +602,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
       <span class="valeur"><span id="total_kg">0</span> <small>kg · <span id="total_segment">—</span></small></span>
     </div>
     <span class="aide-champ">Indiquez les quantités en kilogrammes. Laissez vide ce que le client ne vend pas. Le bouton ★ marque le produit qui se vend le mieux.</span>
-    <div class="champ" style="margin-top:16px">
+    <div class="champ espace">
       <label class="intitule">Produit qui se vend le mieux</label>
       <div id="f_meilleure"></div>
     </div>
@@ -443,7 +632,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
           <label class="intitule" for="f_nb_magasins">Combien ?</label>
           <input type="number" id="f_nb_magasins" inputmode="numeric" min="1" step="1" placeholder="2">
         </div>
-        <div class="champ" style="flex:2">
+        <div class="champ large">
           <label class="intitule" for="f_ou_magasins">Où ?</label>
           <input type="text" id="f_ou_magasins" placeholder="Quartiers ou villes">
         </div>
@@ -456,7 +645,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
     <textarea id="f_commentaire" placeholder="Crédit accordé, concurrence, saisonnalité, qualité de la relation, conditionnement…"></textarea>
   </div>
 
-  <div class="carte" style="margin-top:16px">
+  <div class="carte espace">
     <button class="btn btn-principal" id="btn_enregistrer">✔ Enregistrer la fiche</button>
     <button class="btn btn-discret" id="btn_retour_form">Annuler</button>
   </div>
@@ -465,7 +654,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 <!-- ================================================ écran : détail ===== -->
 <section class="ecran" data-ecran="detail">
   <div id="detail"></div>
-  <button class="btn btn-discret" onclick="afficherEcran('liste')" style="margin-top:12px">← Retour à la liste</button>
+  <button class="btn btn-discret espace" onclick="afficherEcran('liste')">← Retour à la liste</button>
 </section>
 
 <!-- ============================================== écran : réglages ===== -->
@@ -488,7 +677,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 
   <div class="titre-section">Sécurité des données<span class="filet"></span></div>
   <div class="carte">
-    <p id="texte_securite" style="margin:0 0 12px;font-size:13.5px;color:#7A6A5B">
+    <p id="texte_securite" class="texte-bloc">
       Les fiches sont conservées sur ce téléphone uniquement. Exportez et envoyez la tournée
       régulièrement : chaque envoi est une sauvegarde.
     </p>
@@ -500,7 +689,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 
   <div class="titre-section">À propos<span class="filet"></span></div>
   <div class="carte">
-    <p style="margin:0;font-size:13.5px;color:#7A6A5B">
+    <p class="texte-bloc">
       Formulaire de cartographie SN2I — aliments de bétail.<br>
       Zone Dakar · Mbour · Thiès.<br>
       <span id="version">Version 1.0</span> — fonctionne sans réseau et sans compte.

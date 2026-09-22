@@ -1998,16 +1998,20 @@ function ficheVersLigne(f) {
 }
 
 function envoyerFiche(f) {
-  return fetch(SYNCHRO.url + '/rest/v1/fiches_cartographie?on_conflict=id_client', {
+  /* Insertion pure, sans upsert : la clé publique n'a le droit que d'INSÉRER,
+     jamais de modifier une ligne. Si la fiche est déjà en base — cas d'un renvoi
+     après une coupure réseau — la base répond 409, ce qui est un succès. */
+  return fetch(SYNCHRO.url + '/rest/v1/fiches_cartographie', {
     method: 'POST',
     headers: {
       'apikey': SYNCHRO.cle,
       'Authorization': 'Bearer ' + SYNCHRO.cle,
       'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
+      'Prefer': 'return=minimal'
     },
     body: JSON.stringify([ficheVersLigne(f)])
   }).then(function (r) {
+    if (r.status === 409) { return true; }
     if (!r.ok) { throw new Error('HTTP ' + r.status); }
     return true;
   });

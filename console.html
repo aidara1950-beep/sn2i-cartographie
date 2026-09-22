@@ -944,29 +944,111 @@ function chargerLivraisons() {
       return;
     }
     var totalReste = 0;
+    var peutPhotographier = ['dga', 'logistique'].indexOf(SESSION.profil.role) !== -1;
     var corps = lignes.map(function (l) {
       var reste = Math.max(0, nombre(l.montant) - nombre(l.encaissement));
       totalReste += reste;
+      var preuve = '<span style="color:#B3261E">manquante</span>';
+      if (peutPhotographier) {
+        preuve =
+          (l.bl_photo_url
+            ? '<span class="etiquette-statut fini">BL ✓</span> '
+            : '<button class="btn-mini discret" data-photo="' + l.id + '" data-type="bl">Photo BL</button> ') +
+          (l.facture_photo_url
+            ? '<span class="etiquette-statut fini">Facture ✓</span>'
+            : '<button class="btn-mini discret" data-photo="' + l.id + '" data-type="facture">Photo facture</button>');
+      } else if (l.bl_photo_url || l.facture_photo_url) {
+        preuve = (l.bl_photo_url ? '<span class="etiquette-statut fini">BL ✓</span> ' : '') +
+                 (l.facture_photo_url ? '<span class="etiquette-statut fini">Facture ✓</span>' : '');
+      }
       return '<tr><td class="num">' + esc(l.numero) + '</td>' +
         '<td class="num">' + dateCourte(l.date_livraison) + '</td>' +
-        '<td>' + esc((l.destination || '—').slice(0, 30)) + '</td>' +
+        '<td>' + esc((l.destination || '—').slice(0, 26)) + '</td>' +
         '<td class="num">' + formater(l.qte_commandee) + '</td>' +
         '<td class="num">' + formater(l.qte_livree) + '</td>' +
         '<td class="num"><b>' + formater(l.restant) + '</b></td>' +
         '<td>' + esc(l.chauffeur_nom || '—') + '</td>' +
         '<td class="num">' + esc(l.camion || '—') + '</td>' +
-        '<td class="num">' + esc(l.bl || '—') + '</td>' +
+        '<td>' + preuve + '</td>' +
         '<td class="num">' + (l.encaissement ? formater(l.encaissement) : '<span style="color:#B3261E">à encaisser</span>') + '</td>' +
         '<td><span class="etiquette-statut ' + classeStatut(l.statut) + '">' + esc(l.statut) + '</span></td></tr>';
     }).join('');
     $('#livraisons_tableau').innerHTML =
       '<table class="tablo"><thead><tr><th>Numéro</th><th>Date</th><th>Destination</th><th>Qté com.</th>' +
-      '<th>Qté livrée</th><th>Restant</th><th>Chauffeur</th><th>Camion</th><th>BL</th><th>Encaissement</th><th>Statut</th>' +
-      '</tr></thead><tbody>' + corps + '</tbody></table>' +
+      '<th>Qté livrée</th><th>Restant</th><th>Chauffeur</th><th>Camion</th><th>Preuve (BL · facture)</th>' +
+      '<th>Encaissement</th><th>Statut</th></tr></thead><tbody>' + corps + '</tbody></table>' +
       '<p style="margin:12px 0 0;font-size:13.5px;color:#442A19"><b>Reste à encaisser : ' +
-      formater(totalReste) + ' F</b></p>';
+      formater(totalReste) + ' F</b></p>' +
+      '<p style="margin:6px 0 0;font-size:12.5px;color:#7A6A5B">' +
+      'La photo du bon de livraison signé et celle de la facture sont horodatées et rattachées ' +
+      'à votre nom. Elles constituent la preuve de la remise.</p>';
+
+    $$('[data-photo]').forEach(function (b) {
+      b.onclick = function () { prendrePhoto(b.dataset.photo, b.dataset.type); };
+    });
   }).catch(function (e) {
     $('#livraisons_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
+  });
+}
+
+/* ------------------------------------------- preuve de livraison (photo) */
+
+function prendrePhoto(id, type) {
+  var champ = document.createElement('input');
+  champ.type = 'file';
+  champ.accept = 'image/*';
+  // Sur un téléphone, cela ouvre directement l'appareil photo.
+  champ.setAttribute('capture', 'environment');
+  champ.onchange = function () {
+    var fichier = champ.files && champ.files[0];
+    if (!fichier) { return; }
+    message('Préparation de la photo…', 'info');
+    var lecteur = new FileReader();
+    lecteur.onload = function () {
+      var image = new Image();
+      image.onload = function () {
+        var max = 1600, l = image.width, h = image.height;
+        if (l > max) { h = Math.round(h * max / l); l = max; }
+        var toile = document.createElement('canvas');
+        toile.width = l; toile.height = h;
+        toile.getContext('2d').drawImage(image, 0, 0, l, h);
+        toile.toBlob(function (blob) { televerserPhoto(id, type, blob); }, 'image/jpeg', 0.75);
+      };
+      image.onerror = function () { message('Photo illisible.', 'ko'); };
+      image.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  };
+  champ.click();
+}
+
+function televerserPhoto(id, type, blob) {
+  var nom = type + '-' + id + '-' + Date.now() + '.jpg';
+  fetch(CONFIG.url + '/storage/v1/object/bl-factures/' + nom, {
+    method: 'POST',
+    headers: {
+      'apikey': CONFIG.cle,
+      'Authorization': 'Bearer ' + SESSION.jeton,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: blob
+  }).then(function (r) {
+    if (!r.ok) { throw new Error('téléversement refusé (HTTP ' + r.status + ')'); }
+    var champs = { photo_prise_par: SESSION.profil.nom };
+    if (type === 'bl') {
+      champs.bl_photo_url = nom;
+      champs.bl_photo_le = new Date().toISOString();
+    } else {
+      champs.facture_photo_url = nom;
+      champs.facture_photo_le = new Date().toISOString();
+    }
+    return requete('/livraisons?id=eq.' + id, { methode: 'PATCH', donnees: champs });
+  }).then(function () {
+    message('Photo enregistrée sous votre nom. La preuve est conservée.', 'ok');
+    chargerLivraisons();
+  }).catch(function (e) {
+    message('Photo non enregistrée : ' + esc(e.message), 'ko');
   });
 }
 

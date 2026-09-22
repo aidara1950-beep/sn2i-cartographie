@@ -600,13 +600,13 @@ body { padding-bottom: var(--e6); }
 /* Le nombre de colonnes est décidé ici, pas laissé au navigateur.
    « auto-fit » donnait six cartes sur la première ligne et la septième seule
    sur la deuxième, avec un grand vide à sa droite. Le tableau de bord porte
-   désormais HUIT indicateurs, et la grille n'a que deux paliers — 4 colonnes
+   désormais DIX indicateurs, et la grille n'a que deux paliers — 5 colonnes
    sur écran large, 2 en dessous : les rangées sont donc toujours complètes. */
 .cartes-console {
   display: grid; grid-template-columns: repeat(2, 1fr);
   gap: var(--e3); margin-bottom: var(--e6);
 }
-@media (min-width: 1080px) { .cartes-console { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1280px) { .cartes-console { grid-template-columns: repeat(5, 1fr); } }
 .cartes-console .chargement { grid-column: 1 / -1; }
 
 /* Hauteur minimale identique pour toutes les cartes, et contenu réparti :
@@ -954,6 +954,11 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
     </div>
     <div class="cartes-console" id="bord_chiffres"></div>
     <div class="bloc-console">
+      <h3>Activité de phoning <span class="compte" id="bord_phoning_compte"></span></h3>
+      <div id="bord_phoning" class="chargement">Chargement…</div>
+    </div>
+
+    <div class="bloc-console">
       <h3>Ce qui attend une action</h3>
       <div id="bord_actions" class="chargement">Chargement…</div>
     </div>
@@ -1252,21 +1257,27 @@ function chargerBord() {
   Promise.all([
     compter('/boutiques?select=id'),
     requete('/commandes?select=id&date_commande=gte.' + aujourdhui),
-    requete('/demandes_transport?select=id,statut,nb_unites&statut=eq.a_dispatcher'),
+    requete('/demandes_transport?select=id,statut,nb_unites,date_demande'),
     requete('/livraisons?select=id,statut,restant,montant,encaissement'),
-    requete('/seances_phoning?select=id,nb_appels,nb_commandes&order=date_seance.desc&limit=30')
+    requete('/seances_phoning?select=id,date_seance,operateur_nom,nb_appels,nb_commandes,fin_le&order=date_seance.desc&limit=60'),
+    compter('/fiches_cartographie?select=id'),
+    compteurFichesJour(aujourdhui)
   ]).then(function (r) {
     var nbBoutiques = r[0] || 0;
     var commandesJour = (r[1] || []).length;
     var aDispatcher = (r[2] || []);
     var livraisons = (r[3] || []);
     var seances = (r[4] || []);
+    var nbFiches = r[5] || 0;
+    var fichesJour = r[6] || 0;
 
     var enCours = livraisons.filter(function (l) { return ['programmee', 'en_route'].indexOf(l.statut) !== -1; });
     var resteDu = livraisons.reduce(function (n, l) { return n + Math.max(0, nombre(l.montant) - nombre(l.encaissement)); }, 0);
     var restant = livraisons.reduce(function (n, l) { return n + nombre(l.restant); }, 0);
     var appels = seances.reduce(function (n, s) { return n + nombre(s.nb_appels); }, 0);
     var commandesPhoning = seances.reduce(function (n, s) { return n + nombre(s.nb_commandes); }, 0);
+    // Ce que les transports représentent : montant livré, et unités en attente.
+    var montantTransports = livraisons.reduce(function (n, l) { return n + nombre(l.montant); }, 0);
 
     /* Huit indicateurs : la grille étant paire (4 puis 2 colonnes), les rangées
        sont toujours complètes, quel que soit l'écran. */
@@ -1278,7 +1289,48 @@ function chargerBord() {
       carte('Reste à encaisser', formater(resteDu) + ' <small>F</small>', resteDu > 0 ? 'alerte' : '') +
       carte('Appels de phoning', appels, '') +
       carte('Commandes du phoning', commandesPhoning, '') +
+      carte('Montant des transports', formater(montantTransports) + ' <small>F</small>', '') +
+      carte('Fiches de superviseur', formater(nbFiches) + ' <small>dont ' + fichesJour + ' auj.</small>', '') +
       carte('Boutiques au fichier', formater(nbBoutiques), '');
+
+    /* Qui appelle, et où il en est. Le score est le taux de conversion de la
+       séance, comparé à l'objectif de 15 % retenu côté phoning. */
+    var parOperateur = {};
+    seances.forEach(function (s) {
+      var nom = s.operateur_nom || '(sans nom)';
+      var o = parOperateur[nom] || { nom: nom, appels: 0, commandes: 0, seances: 0, dernier: null };
+      o.appels += nombre(s.nb_appels);
+      o.commandes += nombre(s.nb_commandes);
+      o.seances += 1;
+      if (!o.dernier || (s.fin_le || s.date_seance) > o.dernier) { o.dernier = s.fin_le || s.date_seance; }
+      parOperateur[nom] = o;
+    });
+    var operateurs = Object.keys(parOperateur).map(function (k) { return parOperateur[k]; })
+      .sort(function (a, b) { return b.commandes - a.commandes || b.appels - a.appels; });
+
+    function ligneOperateur(o) {
+      var taux = o.appels ? Math.round(100 * o.commandes / o.appels) : 0;
+      var classe = taux >= 15 ? 'fini' : (taux >= 8 ? 'cours' : 'attente');
+      var age = o.dernier ? Math.round((Date.now() - new Date(o.dernier).getTime()) / 86400000) : null;
+      var activite = age === null ? '—'
+        : (age <= 0 ? "aujourd'hui" : (age === 1 ? 'hier' : 'il y a ' + age + ' jours'));
+      return '<tr><td><b>' + esc(o.nom) + '</b></td>' +
+        '<td class="num">' + formater(o.appels) + '</td>' +
+        '<td class="num">' + formater(o.commandes) + '</td>' +
+        '<td><span class="etiquette-statut ' + classe + '">' + taux + ' %</span></td>' +
+        '<td class="num">' + o.seances + '</td>' +
+        '<td>' + esc(activite) + '</td></tr>';
+    }
+
+    $('#bord_phoning').innerHTML = operateurs.length
+      ? '<table class="tablo"><thead><tr><th>Opérateur</th><th>Appels</th><th>Commandes</th>' +
+        '<th>Taux</th><th>Séances</th><th>Dernière activité</th></tr></thead><tbody>' +
+        operateurs.map(ligneOperateur).join('') + '</tbody></table>' +
+        '<p style="margin:10px 0 0;font-size:12.5px;color:#7A6A5B">' +
+        'Le taux est le nombre de commandes divisé par le nombre d\'appels. ' +
+        'L\'objectif retenu côté phoning est de <b>15 %</b> : au-dessus, la séance est bonne ; ' +
+        'en dessous de 8 %, il faut revoir la préparation de la file.</p>'
+      : '<div class="vide">Aucune séance de phoning enregistrée. Les séances remontent à la clôture.</div>';
 
     $('#bord_actions').innerHTML =
       ligneAction('Demandes de transport à dispatcher', aDispatcher.length,
@@ -1289,6 +1341,15 @@ function chargerBord() {
     $('#bord_chiffres').innerHTML = '';
     $('#bord_actions').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
+}
+
+function compteurFichesJour(jour) {
+  return fetch(CONFIG.url + '/rest/v1/fiches_cartographie?select=id&date_visite=eq.' + jour,
+    { headers: Object.assign(entetes(true), { 'Prefer': 'count=exact', 'Range': '0-0' }) })
+    .then(function (r) {
+      var total = (r.headers.get('Content-Range') || '').split('/')[1];
+      return total && total !== '*' ? parseInt(total, 10) : 0;
+    }).catch(function () { return 0; });
 }
 
 function carte(libelle, valeur, genre) {

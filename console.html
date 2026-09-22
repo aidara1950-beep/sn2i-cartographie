@@ -971,6 +971,22 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
     </div>
   </section>
 
+  <!-- -------------------------------------------------------- camions -->
+  <section class="ecran-console" data-ecran="camions">
+    <div class="entete-ecran">
+      <h2>Camions en direct</h2>
+      <p id="camions_sous">Positions relevées chez le fournisseur GPS, toutes les quinze minutes.</p>
+    </div>
+    <div class="bloc-console">
+      <h3>Flotte suivie <span class="compte" id="camions_compte">0</span></h3>
+      <div class="enveloppe" id="camions_tableau"><div class="chargement">Chargement…</div></div>
+    </div>
+    <div class="bloc-console">
+      <h3>Derniers relevés</h3>
+      <div class="enveloppe" id="camions_releves"><div class="chargement">Chargement…</div></div>
+    </div>
+  </section>
+
   <!-- ------------------------------------------------------ commandes -->
   <section class="ecran-console" data-ecran="commandes">
     <div class="entete-ecran">
@@ -1060,15 +1076,16 @@ var LIBELLES_ROLES = {
 
 /* Ce que chaque rôle a le droit de voir dans la console. */
 var ONGLETS_PAR_ROLE = {
-  dga: ['bord', 'dispatch', 'commandes', 'livraisons', 'boutiques', 'utilisateurs'],
-  logistique: ['bord', 'dispatch', 'commandes', 'livraisons', 'boutiques'],
+  dga: ['bord', 'dispatch', 'camions', 'commandes', 'livraisons', 'boutiques', 'utilisateurs'],
+  logistique: ['bord', 'dispatch', 'camions', 'commandes', 'livraisons', 'boutiques'],
   phoning: ['bord', 'commandes', 'boutiques'],
   superviseur: ['bord', 'commandes', 'boutiques'],
   lecture: ['bord', 'commandes', 'boutiques']
 };
 var TITRES_ONGLETS = {
-  bord: 'Tableau de bord', dispatch: 'Dispatch', commandes: 'Commandes',
-  livraisons: 'Livraisons', boutiques: 'Boutiques', utilisateurs: 'Utilisateurs'
+  bord: 'Tableau de bord', dispatch: 'Dispatch', camions: 'Camions',
+  commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
+  utilisateurs: 'Utilisateurs'
 };
 
 function $(s, r) { return (r || document).querySelector(s); }
@@ -1218,6 +1235,7 @@ function ouvrirOnglet(nom) {
   $$('#onglets button').forEach(function (b) { b.classList.toggle('actif', b.dataset.onglet === nom); });
   if (nom === 'bord') { chargerBord(); }
   if (nom === 'dispatch') { chargerDispatch(); }
+  if (nom === 'camions') { chargerCamions(); }
   if (nom === 'commandes') { chargerCommandes(); }
   if (nom === 'livraisons') { chargerLivraisons(); }
   if (nom === 'utilisateurs') { chargerUtilisateurs(); }
@@ -1366,6 +1384,72 @@ function dispatcher(id) {
       chargerDispatch();
     })
     .catch(function (e) { message(esc(e.message), 'ko'); });
+}
+
+/* -------------------------------------------------------------- camions */
+
+function chargerCamions() {
+  $('#camions_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
+  $('#camions_releves').innerHTML = '<div class="chargement">Chargement…</div>';
+
+  Promise.all([
+    requete('/v_flotte_en_direct?select=*&order=immatriculation'),
+    requete('/positions_vehicules?select=immatriculation,boitier,horodatage_gps,latitude,longitude,vitesse_kmh,moteur_allume&order=horodatage_gps.desc&limit=40')
+  ]).then(function (r) {
+    var flotte = r[0] || [];
+    var releves = r[1] || [];
+    $('#camions_compte').textContent = flotte.length;
+    $('#camions_sous').textContent =
+      'Dernière position connue de chaque camion. Les relevés arrivent toutes les quinze minutes.';
+
+    if (!flotte.length) {
+      $('#camions_tableau').innerHTML =
+        '<div class="vide">Aucune position enregistrée.<br>' +
+        '<span style="font-size:12.5px">Le relevé tourne toutes les quinze minutes ; ' +
+        'appliquez <b>base/0007_positions_gps.sql</b> si ce message persiste.</span></div>';
+    } else {
+      $('#camions_tableau').innerHTML = '<table class="tablo"><thead><tr>' +
+        '<th>Camion</th><th>Boîtier</th><th>Position</th><th>Vitesse</th><th>Moteur</th>' +
+        '<th>Relevé</th><th>Fraîcheur</th><th>Carte</th></tr></thead><tbody>' +
+        flotte.map(function (c) {
+          var age = c.age_minutes === null || c.age_minutes === undefined ? null : nombre(c.age_minutes);
+          var fraicheur = c.fraicheur || 'inconnue';
+          var classe = fraicheur === 'fraiche' ? 'fini' : (fraicheur === 'du jour' ? 'cours' : 'attente');
+          var lien = (c.latitude && c.longitude)
+            ? '<a class="btn-mini discret" target="_blank" rel="noopener" ' +
+              'href="https://www.openstreetmap.org/?mlat=' + c.latitude + '&mlon=' + c.longitude + '#map=16/' +
+              c.latitude + '/' + c.longitude + '">Voir</a>'
+            : '—';
+          return '<tr><td><b>' + esc(c.immatriculation || '—') + '</b></td>' +
+            '<td>' + esc(c.boitier || c.imei.slice(-6)) + '</td>' +
+            '<td class="num">' + (c.latitude ? (+c.latitude).toFixed(5) + ', ' + (+c.longitude).toFixed(5) : '—') + '</td>' +
+            '<td class="num">' + (nombre(c.vitesse_kmh) ? formater(c.vitesse_kmh) + ' km/h' : 'à l\'arrêt') + '</td>' +
+            '<td>' + (c.moteur_allume ? 'allumé' : 'arrêté') + '</td>' +
+            '<td class="num">' + (c.horodatage_gps ? new Date(c.horodatage_gps).toLocaleString('fr-FR').slice(0, 16) : '—') + '</td>' +
+            '<td><span class="etiquette-statut ' + classe + '">' +
+              (age === null ? 'inconnue' : (age < 60 ? 'il y a ' + Math.round(age) + ' min'
+                                                      : 'il y a ' + Math.round(age / 60) + ' h')) +
+            '</span></td><td>' + lien + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+
+    if (!releves.length) {
+      $('#camions_releves').innerHTML = '<div class="vide">Aucun relevé.</div>';
+      return;
+    }
+    $('#camions_releves').innerHTML = '<table class="tablo"><thead><tr>' +
+      '<th>Horodatage GPS</th><th>Camion</th><th>Position</th><th>Vitesse</th><th>Moteur</th>' +
+      '</tr></thead><tbody>' + releves.map(function (p) {
+        return '<tr><td class="num">' + (p.horodatage_gps ? new Date(p.horodatage_gps).toLocaleString('fr-FR').slice(0, 19) : '—') + '</td>' +
+          '<td>' + esc(p.immatriculation || (p.boitier || '—')) + '</td>' +
+          '<td class="num">' + (+p.latitude).toFixed(5) + ', ' + (+p.longitude).toFixed(5) + '</td>' +
+          '<td class="num">' + (nombre(p.vitesse_kmh) ? formater(p.vitesse_kmh) + ' km/h' : 'à l\'arrêt') + '</td>' +
+          '<td>' + (p.moteur_allume ? 'allumé' : 'arrêté') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function (e) {
+    $('#camions_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
+    $('#camions_releves').innerHTML = '';
+  });
 }
 
 /* ----------------------------------------------------------- commandes */

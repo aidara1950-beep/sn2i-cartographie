@@ -315,6 +315,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
   <div class="entete-bandeau">
     <span class="puce" id="puce_enqueteur">Enquêteur : <b>à renseigner</b></span>
     <span class="puce" id="puce_fiches">Fiches : <b>0</b></span>
+    <span class="puce" id="puce_synchro">Remontée : <b>—</b></span>
     <span class="puce" id="puce_reseau">Réseau : <b>connecté</b></span>
   </div>
 </header>
@@ -945,6 +946,21 @@ var TEXTE_CATEGORIES = 'Petite : moins de 2 t par mois · Moyenne : de 2 à 10 t
    build.py remplace ce marqueur selon la version fabriquée. */
 var MODE_PUBLIE = /*--MODE_PUBLIE--*/true;
 
+/* ---------------------------------------------------------------------------
+   REMONTÉE AUTOMATIQUE
+   Les fiches partent seules vers la base SN2I dès qu'un réseau est disponible.
+   L'enquêteur n'a aucun fichier à produire ni à envoyer.
+   Les deux valeurs ci-dessous sont injectées à la fabrication (build.py) depuis
+   config/supabase.env. Si elles restent vides, la remontée est simplement
+   inactive : le formulaire continue de fonctionner et garde tout sur le
+   téléphone, sans jamais perdre une fiche.
+   --------------------------------------------------------------------------- */
+var SYNCHRO = {
+  url: 'https://ynxjbsqkstfqsdunwofm.supabase.co',
+  cle: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGpic3Frc3RmcXNkdW53b2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjY2ODksImV4cCI6MjEwNTY0MjY4OX0.wLlLlPpm9LWwohewWUcpJaF-HUhapE_pYZqyY-0Muq8',
+  active: function () { return !!(this.url && this.cle && this.url.indexOf('http') === 0); }
+};
+
 /* ------------------------------------------------------------- utilitaires */
 
 function $(sel, racine) { return (racine || document).querySelector(sel); }
@@ -1471,6 +1487,12 @@ function enregistrerFiche() {
     ETAT.ficheOuverte = null;
     toast(nouvelle ? 'Fiche enregistrée' : 'Fiche mise à jour');
     return rafraichirListe();
+  }).then(function () {
+    // La fiche part vers la base sans attendre une action de l'enquêteur.
+    // L'appel est isolé : un échec de remontée ne doit jamais faire croire que
+    // l'enregistrement local a échoué.
+    try { synchroniser(true); } catch (e) { /* sans effet sur l'enregistrement */ }
+    return null;
   }).then(function () { afficherEcran('liste'); })
     .catch(function (e) { alert('Enregistrement impossible : ' + (e && e.message ? e.message : e)); });
 }
@@ -1509,12 +1531,19 @@ function rendreListe() {
   if (MODE_PUBLIE) {
     var avis = $('#avis_attente');
     avis.style.display = 'block';
-    avis.innerHTML = fiches.length
-      ? '<b>' + fiches.length + ' fiche(s) enregistrée(s) sur ce téléphone.</b> ' +
-        'Elles remontent automatiquement vers le suivi SN2I : vous n\'avez rien à envoyer. ' +
-        'Ne supprimez pas l\'application avant que le bureau vous confirme leur réception.'
-      : 'Chaque fiche que vous enregistrez est conservée ici, puis remontée automatiquement ' +
-        'vers le suivi SN2I. Vous n\'avez aucun fichier à envoyer.';
+    var enAttente = fiches.filter(function (f) { return !f.envoyee; }).length;
+    if (!SYNCHRO.active()) {
+      avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s) sur ce téléphone.</b> ' +
+        'La remontée automatique n\'est pas encore configurée : vos fiches sont conservées ici, ' +
+        'ne supprimez pas l\'application.';
+    } else if (enAttente) {
+      avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s), dont ' + enAttente +
+        ' en attente d\'envoi.</b> Elles partent automatiquement dès que le réseau le permet. ' +
+        'Vous n\'avez rien à envoyer.';
+    } else {
+      avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s), toutes remontées.</b> ' +
+        'Le bureau les a reçues.';
+    }
   }
 
   $('#stats').innerHTML =
@@ -1919,6 +1948,165 @@ function exporterCsv() {
   telecharger('\ufeff' + csv, nomArchive().replace('.zip', '.csv'), 'text/csv;charset=utf-8');
 }
 
+/* ---------------------------------------------------- remontée automatique */
+
+/* Traduit une fiche du formulaire vers une ligne de la table fiches_cartographie. */
+function ficheVersLigne(f) {
+  var total = totalFiche(f);
+  var n = function (v) { var x = nombre(v); return x ? x : null; };
+  return {
+    id_client: f.id,
+    date_visite: f.date_visite || null,
+    heure_saisie: f.heure_saisie || null,
+    enqueteur: f.enqueteur || null,
+    zone: f.zone || null,
+    secteur: f.secteur || null,
+    localisation: f.localisation || null,
+    gps_latitude: f.gps_lat ? +(+f.gps_lat).toFixed(6) : null,
+    gps_longitude: f.gps_lon ? +(+f.gps_lon).toFixed(6) : null,
+    gps_precision_m: f.gps_prec ? Math.round(nombre(f.gps_prec)) : null,
+    nom_prenom: f.nom_prenom || null,
+    enseigne: f.enseigne || null,
+    categorie: f.categorie || null,
+    type_point_de_vente: f.type_pdv || null,
+    telephone_1: f.tel1 ? '+221' + normaliserTelephone(f.tel1) : null,
+    telephone_2: f.tel2 ? '+221' + normaliserTelephone(f.tel2) : null,
+    mil_kg_mois: n(f.q_mil),
+    mais_kg_mois: n(f.q_mais),
+    tourteau_coton_kg_mois: n(f.q_coton),
+    tourteau_soja_kg_mois: n(f.q_soja),
+    turbo_melange_kg_mois: n(f.q_turbo),
+    magic_melange_kg_mois: n(f.q_magic),
+    mix_ladoum_kg_mois: n(f.q_ladoum),
+    melanges_sn2i_kg_mois: (nombre(f.q_turbo) + nombre(f.q_magic) + nombre(f.q_ladoum)) || null,
+    autre_produit: f.autre_nom || null,
+    autre_kg_mois: n(f.q_autre),
+    produit_meilleure_vente: f.meilleure_vente || null,
+    total_kg_mois: total || null,
+    photo_devanture: f.id + '.jpg',
+    autres_magasins: f.autres_magasins || null,
+    nb_autres_magasins: f.nb_magasins ? nombre(f.nb_magasins) : null,
+    localisation_autres_magasins: f.ou_magasins || null,
+    commentaire: f.commentaire || null,
+    statut_crm: 'Nouveau',
+    potentiel_kg_mois: total || null,
+    segment_calcule: total ? segmentDe(total) : null,
+    cle_dedoublonnage: cleDedoublonnage(f),
+    horodatage_iso: f.cree_le || null,
+    appareil: (navigator.userAgent || '').slice(0, 120) || null
+  };
+}
+
+function envoyerFiche(f) {
+  return fetch(SYNCHRO.url + '/rest/v1/fiches_cartographie?on_conflict=id_client', {
+    method: 'POST',
+    headers: {
+      'apikey': SYNCHRO.cle,
+      'Authorization': 'Bearer ' + SYNCHRO.cle,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify([ficheVersLigne(f)])
+  }).then(function (r) {
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    return true;
+  });
+}
+
+function envoyerPhoto(id, blob) {
+  if (!blob || !blob.size) { return Promise.resolve(false); }
+  return fetch(SYNCHRO.url + '/storage/v1/object/photos-devanture/' + id + '.jpg', {
+    method: 'POST',
+    headers: {
+      'apikey': SYNCHRO.cle,
+      'Authorization': 'Bearer ' + SYNCHRO.cle,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: blob
+  }).then(function (r) { return r.ok; }).catch(function () { return false; });
+}
+
+function majEtatSynchro(enCours) {
+  var el = $('#puce_synchro');
+  if (!el) { return; }
+  var attente = ETAT.fiches.filter(function (f) { return !f.envoyee; }).length;
+  if (!SYNCHRO.active()) {
+    el.className = 'puce hors-ligne';
+    el.innerHTML = 'Remontée : <b>non configurée</b>';
+    return;
+  }
+  if (enCours) {
+    el.className = 'puce';
+    el.innerHTML = 'Remontée : <b>en cours…</b>';
+    return;
+  }
+  if (attente) {
+    el.className = 'puce hors-ligne';
+    el.innerHTML = 'En attente d\'envoi : <b>' + attente + '</b>';
+    return;
+  }
+  el.className = 'puce';
+  el.innerHTML = 'Remontée : <b>à jour</b>';
+}
+
+/* Envoie les fiches non encore transmises, une par une, et s'arrête au premier
+   échec : mieux vaut réessayer plus tard que perdre une fiche.
+   Cette fonction ne doit JAMAIS faire échouer l'enregistrement local : elle est
+   entièrement défensive, car une fiche sauvegardée sur le téléphone est acquise
+   même si la remontée est impossible. */
+function synchroniser(silencieux) {
+  try {
+    if (typeof fetch !== 'function') { majEtatSynchro(); return Promise.resolve(0); }
+    if (!SYNCHRO.active() || ETAT.synchroEnCours) { majEtatSynchro(); return Promise.resolve(0); }
+    var attente = ETAT.fiches.filter(function (f) { return !f.envoyee; });
+    if (!attente.length) { majEtatSynchro(); return Promise.resolve(0); }
+
+    ETAT.synchroEnCours = true;
+    majEtatSynchro(true);
+    var i = 0, envoyees = 0;
+
+    function suivant() {
+      try {
+        if (i >= attente.length) {
+          ETAT.synchroEnCours = false;
+          majEtatSynchro();
+          if (envoyees && !silencieux) { toast(envoyees + ' fiche(s) remontée(s)'); }
+          return Promise.resolve(envoyees);
+        }
+        var f = attente[i++];
+        return envoyerFiche(f)
+          .then(function () { return DB.lirePhoto(f.id); })
+          .then(function (blob) { return envoyerPhoto(f.id, blob); })
+          .then(function () {
+            f.envoyee = true;
+            f.envoyee_le = new Date().toISOString();
+            envoyees++;
+            return DB.ecrireFiche(f);
+          })
+          .then(suivant)
+          .catch(function (e) {
+            // Réseau ou base indisponible : on s'arrête là. La fiche reste en
+            // attente et repartira au prochain essai.
+            i = attente.length;
+            if (!silencieux && window.console) { console.warn('Remontée interrompue :', e); }
+            return suivant();
+          });
+      } catch (e) {
+        ETAT.synchroEnCours = false;
+        majEtatSynchro();
+        if (window.console) { console.warn('Remontée impossible :', e); }
+        return Promise.resolve(envoyees);
+      }
+    }
+    return suivant();
+  } catch (e) {
+    ETAT.synchroEnCours = false;
+    if (window.console) { console.warn('Remontée impossible :', e); }
+    return Promise.resolve(0);
+  }
+}
+
 /* -------------------------------------------------------------- réglages */
 
 function sauvegarderReglages() {
@@ -1934,6 +2122,7 @@ function sauvegarderReglages() {
 function majBandeau() {
   $('#puce_enqueteur').innerHTML = ETAT.enqueteur ? 'Enquêteur : <b>' + esc(ETAT.enqueteur) + '</b>' : 'Enquêteur : <b>à renseigner</b>';
   $('#puce_fiches').innerHTML = 'Fiches : <b>' + ETAT.fiches.length + '</b>';
+  majEtatSynchro();
 }
 
 function sauvegardeComplete() {
@@ -2005,7 +2194,7 @@ function surveillerReseau() {
     if (navigator.onLine) { p.className = 'puce'; p.innerHTML = 'Réseau : <b>connecté</b>'; }
     else { p.className = 'puce hors-ligne'; p.innerHTML = 'Hors ligne — <b>saisie possible</b>'; }
   }
-  window.addEventListener('online', maj);
+  window.addEventListener('online', function () { maj(); synchroniser(true); });
   window.addEventListener('offline', maj);
   maj();
 }
@@ -2112,6 +2301,12 @@ function demarrer() {
     return rafraichirListe();
   }).then(function () {
     majBandeau();
+    // Remontée automatique : un essai au démarrage, puis toutes les 90 secondes
+    // tant que des fiches attendent. L'enquêteur n'a rien à faire.
+    synchroniser(true);
+    if (SYNCHRO.active()) {
+      setInterval(function () { synchroniser(true); }, 90000);
+    }
     var brouillon = DB.secoursLocal.lire('sn2i_brouillon', null);
     if (brouillon && (brouillon.nom_prenom || brouillon.localisation)) {
       $('#avis_brouillon').style.display = 'block';

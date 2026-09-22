@@ -1072,7 +1072,7 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
    ========================================================================== */
 
 var CONFIG = { url: 'https://ynxjbsqkstfqsdunwofm.supabase.co', cle: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGpic3Frc3RmcXNkdW53b2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjY2ODksImV4cCI6MjEwNTY0MjY4OX0.wLlLlPpm9LWwohewWUcpJaF-HUhapE_pYZqyY-0Muq8' };
-var SESSION = { jeton: null, rafraichissement: null, profil: null, onglet: 'bord' };
+var SESSION = { jeton: null, rafraichissement: null, profil: null, onglet: 'bord', utilisateur_id: null };
 
 var LIBELLES_ROLES = {
   dga: 'Direction', phoning: 'Phoning', logistique: 'Logistique',
@@ -1174,17 +1174,52 @@ function seConnecter(courriel, motdepasse) {
   });
 }
 
+/* L'identifiant du compte connecté, tenu du jeton lui-même.
+   Sans lui, demander « le premier profil » renverrait n'importe qui dès que le
+   rôle a le droit de lire plusieurs profils : c'est le cas de la direction, qui
+   les voit tous les six. La console affichait alors le nom et le rôle d'un
+   autre, ouvrait les mauvais onglets, et — pire — inscrivait la date de
+   connexion sur la ligne de quelqu'un d'autre. */
+function identifiantUtilisateur() {
+  if (SESSION.utilisateur_id) { return Promise.resolve(SESSION.utilisateur_id); }
+  return fetch(CONFIG.url + '/auth/v1/user', {
+    headers: { 'apikey': CONFIG.cle, 'Authorization': 'Bearer ' + SESSION.jeton }
+  }).then(function (r) {
+    if (!r.ok) { throw new Error('Session expirée.'); }
+    return r.json();
+  }).then(function (u) {
+    SESSION.utilisateur_id = u && u.id ? u.id : null;
+    try {
+      var brut = localStorage.getItem('sn2i_session');
+      if (brut && SESSION.utilisateur_id) {
+        var s = JSON.parse(brut);
+        s.utilisateur_id = SESSION.utilisateur_id;
+        localStorage.setItem('sn2i_session', JSON.stringify(s));
+      }
+    } catch (e) {}
+    return SESSION.utilisateur_id;
+  });
+}
+
 function chargerProfil() {
-  return requete('/profils?select=id,nom,email,role,zone_id,actif&limit=1').then(function (r) {
+  return identifiantUtilisateur().then(function (id) {
+    if (!id) { throw new Error('Votre session ne porte pas d\'identifiant. Reconnectez-vous.'); }
+    /* Le filtre `id=eq.` est essentiel : il n'y a pas de « profil courant »
+       implicite côté base, et la première ligne renvoyée n'est pas forcément
+       la sienne. */
+    return requete('/profils?select=id,nom,email,role,zone_id,actif&id=eq.' + encodeURIComponent(id) + '&limit=1');
+  }).then(function (r) {
     var profil = r && r[0];
     if (!profil) { throw new Error('Votre compte n\'a pas encore de profil. Demandez à la direction de l\'ouvrir.'); }
     if (!profil.actif) { throw new Error('Votre compte est désactivé.'); }
     SESSION.profil = profil;
-    // Trace de la dernière connexion, sans bloquer l'affichage.
-    if (profil.role === 'dga') {
-      requete('/profils?id=eq.' + profil.id, { methode: 'PATCH', donnees: { dernier_acces: new Date().toISOString() } })
-        .catch(function () {});
-    }
+    /* Trace de la dernière connexion, sans bloquer l'affichage.
+       Chacun note la sienne : la base n'autorise que sa propre ligne, et un
+       garde-fou y interdit de changer son rôle, sa zone ou son activation.
+       Auparavant, seul le DGA tentait l'écriture — et comme la règle la
+       réservait au DGA, tous les autres restaient « jamais connecté ». */
+    requete('/profils?id=eq.' + profil.id, { methode: 'PATCH', donnees: { dernier_acces: new Date().toISOString() } })
+      .catch(function () {});
     return profil;
   });
 }
@@ -1197,6 +1232,7 @@ function restaurerSession() {
     if (!s.jeton || !s.expire_le || Date.now() > s.expire_le) { localStorage.removeItem('sn2i_session'); return Promise.resolve(false); }
     SESSION.jeton = s.jeton;
     SESSION.rafraichissement = s.rafraichissement;
+    SESSION.utilisateur_id = s.utilisateur_id || null;
     return chargerProfil().then(function () { return true; }).catch(function () { return false; });
   } catch (e) { return Promise.resolve(false); }
 }
@@ -1205,16 +1241,18 @@ function enregistrerSession(reponse) {
   var expire = Date.now() + (nombre(reponse.expires_in) || 3600) * 1000;
   SESSION.jeton = reponse.access_token;
   SESSION.rafraichissement = reponse.refresh_token;
+  SESSION.utilisateur_id = (reponse.user && reponse.user.id) || null;
   try {
     localStorage.setItem('sn2i_session', JSON.stringify({
-      jeton: reponse.access_token, rafraichissement: reponse.refresh_token, expire_le: expire
+      jeton: reponse.access_token, rafraichissement: reponse.refresh_token,
+      expire_le: expire, utilisateur_id: SESSION.utilisateur_id
     }));
   } catch (e) {}
 }
 
 function quitter() {
   try { localStorage.removeItem('sn2i_session'); } catch (e) {}
-  SESSION.jeton = null; SESSION.profil = null;
+  SESSION.jeton = null; SESSION.profil = null; SESSION.utilisateur_id = null;
   $('#vue_console').style.display = 'none';
   $('#vue_connexion').style.display = 'flex';
   $('#motdepasse').value = '';

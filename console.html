@@ -1787,6 +1787,7 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
         <label><input type="checkbox" id="cc_boutiques" checked> Boutiques</label>
         <label><input type="checkbox" id="cc_camions" checked> Camions</label>
         <label><input type="checkbox" id="cc_destinations" checked> Destinations</label>
+        <label><input type="checkbox" id="cc_trajets" checked> Trajets du jour</label>
         <button class="btn-console mini" id="cc_boutiques_toutes">Afficher toutes les boutiques</button>
         <button class="btn-console mini" id="cc_recentrer">Recentrer</button>
         <span class="aide" id="cc_etat"></span>
@@ -1801,13 +1802,16 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
           30 minutes</span>
         <span><span class="pastille-carte pastille-jour"></span> position du jour</span>
         <span><span class="pastille-carte pastille-ancienne"></span> position ancienne</span>
+        <span><span class="pastille-carte" style="background:#1B7F3B"></span> <b>trajet
+          parcouru</b> dans la journée, suivant la route</span>
         <span><span class="pastille-carte" style="background:#1B4F9C"></span> <b>itinéraire
-          routier</b> du camion vers sa destination (calculé par OSRM)</span>
+          restant</b> vers sa destination</span>
       </div>
       <p class="aide">
         <b>Cliquez un rond de quartier</b> pour afficher ses boutiques une par une ; survolez une
         boutique pour voir son téléphone, ses derniers achats et son dernier contact. Le petit
-        trait de couleur devant un camion indique sa <b>direction</b> — pas son trajet passé.
+        trait vert suit la <b>route réellement parcourue</b> dans la journée ; le bleu montre
+        l'<b>itinéraire qui reste</b> jusqu'à la destination.
         Une destination ne se devine pas : posez-la sur la carte en créant le transport, ou
         écrivez le nom du quartier dans l'adresse de livraison.
       </p>
@@ -2051,6 +2055,7 @@ var TITRES_ONGLETS = {
 };
 /* Qui voit quoi, dit une fois pour toutes. */
 var VOIT_FLOTTE = ['dga', 'logistique'];      // carte des camions
+var VOIT_TRAJETS = VOIT_FLOTTE;               // trajets parcourus
 var PEUT_DISPATCHER = ['dga', 'logistique'];  // création et affectation de transport
 var VOIT_PHONING = ['dga', 'phoning', 'superviseur'];   // voit l'écran Phoning
 var PEUT_PHONER_ACTIF = ['dga', 'phoning'];           // ouvre une séance et saisit
@@ -3270,6 +3275,12 @@ function chargerCarteAccueil() {
       if (this.checked) { ACCUEIL.calques.camions.addTo(ACCUEIL.carte); }
       else { ACCUEIL.carte.removeLayer(ACCUEIL.calques.camions); }
     };
+    if ($('#cc_trajets')) {
+      $('#cc_trajets').onchange = function () {
+        Object.keys(TRAJETS).forEach(function (p) { delete TRAJETS[p]; });
+        rafraichirCamionsCarte().then(chargerDestinationsCarte);
+      };
+    }
     $('#cc_destinations').onchange = function () {
       if (this.checked) { ACCUEIL.calques.destinations.addTo(ACCUEIL.carte); }
       else { ACCUEIL.carte.removeLayer(ACCUEIL.calques.destinations); }
@@ -3466,10 +3477,18 @@ function rafraichirCamionsCarte() {
   if (!calque) { return Promise.resolve(); }
   return Promise.all([
     requete('/v_flotte_en_direct?select=*&order=immatriculation'),
+    /* Les relevés DU JOUR, du plus ancien au plus récent : ce sont les points de
+       passage du trajet parcouru. */
     requete('/positions_vehicules?select=immatriculation,latitude,longitude,horodatage_gps' +
-            '&order=horodatage_gps.desc&limit=60')
+            '&horodatage_gps=gte.' + aujourdhui() + 'T00:00:00' +
+            '&order=horodatage_gps.asc&limit=800')
   ]).then(function (r) {
     var flotte = r[0] || [], releves = r[1] || [];
+    var parCamion = {};
+    releves.forEach(function (p) {
+      if (p.latitude === null || p.longitude === null) { return; }
+      (parCamion[p.immatriculation] = parCamion[p.immatriculation] || []).push(p);
+    });
     ACCUEIL.camions = flotte;
     calque.clearLayers();
     flotte.forEach(function (v) {
@@ -3487,8 +3506,17 @@ function rafraichirCamionsCarte() {
          ce trait traversait la carte sans but. On dessine donc une FLÈCHE courte
          (300 m) dans le cap du boîtier, et la distance parcourue reste dans la
          bulle. */
+      /* Le trajet parcouru dans la journée, sur la route. */
+      var jour = parCamion[v.immatriculation] || [];
+      if (aLeDroit(VOIT_TRAJETS) && $('#cc_trajets') && $('#cc_trajets').checked
+          && jour.length > 1) {
+        tracerTrajetDuJour(calque, v.immatriculation, jour,
+          (jour[0].horodatage_gps || '').slice(11, 16),
+          (jour[jour.length - 1].horodatage_gps || '').slice(11, 16));
+      }
+      /* La flèche de direction n'a de sens que si le trajet n'est pas dessiné. */
       var cap = nombre(v.cap), vitesse = nombre(v.vitesse_kmh);
-      if (vitesse > 3 && cap) {
+      if (vitesse > 3 && cap && !(jour.length > 1)) {
         var rad = (90 - cap) * Math.PI / 180;
         var d = 0.30 / 111.32;                       // 300 m en degrés
         var fin = [+v.latitude + d * Math.sin(rad), +v.longitude + d * Math.cos(rad) / Math.cos(+v.latitude * Math.PI / 180)];
@@ -3548,6 +3576,67 @@ function tracerItineraire(calque, depart, arrivee, resume) {
       }).addTo(calque).bindPopup('<b>' + esc(resume || 'Destination') + '</b><br>' +
         'Itinéraire routier indisponible pour l\'instant — le service de calcul n\'a pas ' +
         'répondu. Aucun trait n\'est dessiné à la place : un trait droit ferait croire à un trajet.');
+    });
+}
+
+/* --------------------------------------------------------------------------
+   LE TRAJET PARCOURU — sur la route, pas à vol d'oiseau
+   Le DGA, le 23/09/2026 : « si le trait vert est un vrai déplacement dans le
+   temps du camion c'est une bonne chose qu'on le voie, mais ce déplacement doit
+   prendre précisément la route parcourue, pas juste un trait ».
+   On demande donc à OSRM de passer par TOUS les relevés de la journée : un seul
+   appel par camion rend la géométrie complète de la route suivie.
+   Honnêteté : les boîtiers relèvent un point toutes les quinze minutes. Le trait
+   suit la route ENTRE ces points — c'est le trajet reconstitué, pas le relevé
+   continu. C'est écrit dans la bulle.
+   -------------------------------------------------------------------------- */
+var TRAJETS = {};
+
+function tracerTrajetDuJour(calque, plaque, positions, depuis, jusqua) {
+  var propre = (positions || []).filter(function (p) {
+    return p.latitude !== null && p.longitude !== null;
+  });
+  if (propre.length < 2) { return; }
+  /* On garde au plus 25 points de passage, répartis également : assez pour
+     suivre la route, assez court pour l'adresse demandée au service. */
+  var pas = Math.ceil(propre.length / 25);
+  var echantillon = propre.filter(function (p, i) {
+    return i % pas === 0 || i === propre.length - 1;
+  });
+  var signature = echantillon.length + '|' +
+    echantillon[0].horodatage_gps + '|' +
+    echantillon[echantillon.length - 1].horodatage_gps;
+  var connu = TRAJETS[plaque];
+
+  function dessiner(points, info) {
+    L.polyline(points, { color: '#1B7F3B', weight: 4, opacity: 0.8 }).addTo(calque)
+      .bindPopup('<b>Trajet du jour — ' + esc(plaque) + '</b><br>' + (info || '') +
+        '<br><span style="color:#7A6A5B;font-size:12px">Reconstitué SUR LA ROUTE entre ' +
+        propre.length + ' relevés du boîtier (' + (depuis || '') + ' → ' + (jusqua || '') +
+        '). Le boîtier relève un point toutes les quinze minutes : c\'est le trajet ' +
+        'reconstitué, pas un relevé continu.</span>');
+  }
+  if (connu && connu.signature === signature) { dessiner(connu.points, connu.info); return; }
+
+  var chemin = echantillon.map(function (p) { return p.longitude + ',' + p.latitude; }).join(';');
+  fetch(OSRM + chemin + '?overview=full&geometries=geojson')
+    .then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.json(); })
+    .then(function (d) {
+      if (!d || d.code !== 'Ok' || !d.routes || !d.routes[0]) { throw new Error('pas de trajet'); }
+      var route = d.routes[0];
+      var points = route.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+      var info = (route.distance / 1000).toFixed(1).replace('.', ',') + ' km parcourus · ' +
+                 Math.round(route.duration / 60) + ' min de route';
+      TRAJETS[plaque] = { signature: signature, points: points, info: info };
+      dessiner(points, info);
+    })
+    .catch(function () {
+      /* Sans réponse du service, on ne relie PAS les points par des traits
+         droits : cela ferait croire à des trajets qui n'ont pas eu lieu. */
+      L.circleMarker([+propre[propre.length - 1].latitude, +propre[propre.length - 1].longitude],
+        { radius: 6, color: '#1B7F3B', weight: 2, fillColor: '#FFFFFF', fillOpacity: 1 })
+        .addTo(calque).bindPopup('<b>' + esc(plaque) + '</b><br>Trajet du jour indisponible : ' +
+          'le service d\'itinéraire n\'a pas répondu.');
     });
 }
 

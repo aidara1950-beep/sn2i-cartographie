@@ -2186,7 +2186,14 @@ function ficheVersLigne(f) {
   };
 }
 
-function envoyerFiche(f) {
+/* Ajoute la photo à la ligne destinée à la base, et à elle seule : l'archive
+   Excel, elle, ne porte que le NOM du fichier photo. */
+function ligneAvecPhoto(ligne, photoBase64) {
+  if (photoBase64) { ligne.photo_devanture_base64 = photoBase64; }
+  return ligne;
+}
+
+function envoyerFiche(f, photoBase64) {
   /* Insertion pure, sans upsert : la clé publique n'a le droit que d'INSÉRER,
      jamais de modifier une ligne. Si la fiche est déjà en base — cas d'un renvoi
      après une coupure réseau — la base répond 409, ce qui est un succès. */
@@ -2198,11 +2205,58 @@ function envoyerFiche(f) {
       'Content-Type': 'application/json',
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify([ficheVersLigne(f)])
+    body: JSON.stringify([ligneAvecPhoto(ficheVersLigne(f), photoBase64)])
   }).then(function (r) {
     if (r.status === 409) { return true; }
     if (!r.ok) { throw new Error('HTTP ' + r.status); }
     return true;
+  });
+}
+
+/* La photo, réduite et encodée, pour qu'elle voyage DANS la fiche.
+   Pourquoi : la clé publique n'a pas le droit de déposer dans le bac de stockage
+   (Supabase exige aussi un droit de lecture, qui laisserait n'importe qui lister
+   les photos). Elle a en revanche le droit d'insérer une fiche. Mesuré le
+   23/09/2026 : l'envoi direct au bac échouait en silence, et le bac est resté vide.
+
+   Retourne une chaîne base64 nue, ou '' s'il n'y a pas de photo. */
+function photoEnBase64(blob) {
+  if (!blob || !blob.size) { return Promise.resolve(''); }
+  /* GARDE-FOU OBLIGATOIRE — mesuré le 23/09/2026 : dans un navigateur qui ne
+     décode pas les images (ou sur une photo illisible), `image.onload` ne se
+     déclenche jamais et la promesse reste en suspens. La remontée ENTIÈRE des
+     fiches s'arrêtait alors, sans message. On plafonne donc l'attente : au-delà,
+     la fiche part sans sa photo, et la photo reste sur le téléphone avec
+     l'archive — rien n'est perdu, et rien ne bloque. */
+  return new Promise(function (resoudre) {
+    var fini = false;
+    function conclure(valeur) {
+      if (fini) { return; }
+      fini = true;
+      resoudre(valeur);
+    }
+    setTimeout(function () { conclure(''); }, 3000);
+    try {
+      var lecteur = new FileReader();
+      lecteur.onload = function () {
+        var image = new Image();
+        image.onload = function () {
+          try {
+            var max = 1000, l = image.width, h = image.height;
+            if (l > max) { h = Math.round(h * max / l); l = max; }
+            var toile = document.createElement('canvas');
+            toile.width = l; toile.height = h;
+            toile.getContext('2d').drawImage(image, 0, 0, l, h);
+            var donnees = toile.toDataURL('image/jpeg', 0.6);
+            conclure(donnees.indexOf(',') === -1 ? '' : donnees.split(',')[1]);
+          } catch (e) { conclure(''); }
+        };
+        image.onerror = function () { conclure(''); };
+        image.src = lecteur.result;
+      };
+      lecteur.onerror = function () { conclure(''); };
+      lecteur.readAsDataURL(blob);
+    } catch (e) { conclure(''); }
   });
 }
 
@@ -2268,7 +2322,12 @@ function synchroniser(silencieux) {
           return Promise.resolve(envoyees);
         }
         var f = attente[i++];
-        return envoyerFiche(f)
+        /* La photo part AVEC la fiche : c'est le seul chemin que la clé publique
+           a le droit d'emprunter, et c'est ainsi que la console peut la montrer.
+           L'envoi direct au bac reste tenté ensuite, sans bloquer. */
+        return DB.lirePhoto(f.id)
+          .then(function (blob) { return photoEnBase64(blob); })
+          .then(function (b64) { return envoyerFiche(f, b64); })
           .then(function () { return DB.lirePhoto(f.id); })
           .then(function (blob) { return envoyerPhoto(f.id, blob); })
           .then(function () {

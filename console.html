@@ -2001,7 +2001,7 @@ var ONGLETS_PAR_ROLE = {
   lecture: ['bord', 'commandes', 'boutiques']
 };
 var TITRES_ONGLETS = {
-  bord: 'Tableau de bord', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
+  bord: 'Carte', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
   utilisateurs: 'Utilisateurs'
 };
@@ -2179,6 +2179,18 @@ function enregistrerSession(reponse) {
 function quitter() {
   try { localStorage.removeItem('sn2i_session'); } catch (e) {}
   SESSION.jeton = null; SESSION.profil = null; SESSION.utilisateur_id = null;
+  /* Le minuteur de la carte n'était pas arrêté : mesuré le 23/09/2026, la page
+     continuait d'interroger la base toutes les 60 s après « Quitter », sans
+     jeton. On l'arrête, et on oublie la carte pour que le prochain utilisateur
+     reparte d'une carte neuve. */
+  if (ACCUEIL.minuteur) { clearInterval(ACCUEIL.minuteur); ACCUEIL.minuteur = null; }
+  /* Il ne suffit pas d'oublier la carte : il faut la DÉTRUIRE. Sinon le
+     conteneur garde l'empreinte de la carte précédente, et la suivante refuse de
+     s'y installer — mesuré le 23/09/2026 : après une reconnexion, la carte
+     restait vide et le minuteur n'était plus armé. */
+  if (ACCUEIL.carte) { try { ACCUEIL.carte.remove(); } catch (e) {} }
+  ACCUEIL.carte = null; ACCUEIL.calques = {}; ACCUEIL.camions = [];
+  ACCUEIL.quartiers = 0; ACCUEIL.transports = 0; ACCUEIL.boutiquesParQuartier = {};
   $('#vue_console').style.display = 'none';
   $('#vue_connexion').style.display = 'flex';
   $('#motdepasse').value = '';
@@ -2683,13 +2695,18 @@ function chargerZones() {
       $('#bout_zone').appendChild(o);
     });
     /* Le champ, le filtre et le bouton existaient mais n'étaient reliés à rien :
-       on cliquait « Chercher » et il ne se passait rien. Corrigé le 23/09/2026. */
-    $('#bout_chercher').onclick = chercherBoutiques;
+       on cliquait « Chercher » et il ne se passait rien. Corrigé le 23/09/2026.
+       Second correctif, 23/09/2026 : ces trois câblages passaient l'ÉVÉNEMENT du
+       clic dans le paramètre `page`. Mesuré sur la page publiée : la requête
+       partait avec « offset=NaN », l'écran affichait « page [object
+       PointerEvent]1 », et « Page suivante » ne changeait plus rien — on restait
+       bloqué sur les 100 premières boutiques. On repart donc de la page 0. */
+    $('#bout_chercher').onclick = function () { chercherBoutiques(0); };
     $('#bout_recherche').onkeydown = function (e) {
-      if (e.key === 'Enter') { chercherBoutiques(); }
+      if (e.key === 'Enter') { chercherBoutiques(0); }
     };
-    $('#bout_zone').onchange = chercherBoutiques;
-    return chercherBoutiques();
+    $('#bout_zone').onchange = function () { chercherBoutiques(0); };
+    return chercherBoutiques(0);
   }).catch(function (e) {
     $('#boutiques_tableau').innerHTML =
       '<div class="message-console ko">' + esc(e.message) + '</div>';
@@ -2704,25 +2721,56 @@ var BOUTIQUES_TAILLE = 100;
 function chercherBoutiques(page) {
   var texte = ($('#bout_recherche') ? $('#bout_recherche').value : '').trim();
   var zone = ($('#bout_zone') ? $('#bout_zone').value : '').trim();
-  BOUTIQUES_PAGE = (page === undefined) ? 0 : page;
-  var chemin = '/v_boutiques_geo?select=code,nom,telephone,zone,secteur,precision_position,' +
-               'statut_crm,potentiel_kg_mois,nb_commandes,latitude&order=nom' +
-               '&limit=' + BOUTIQUES_TAILLE + '&offset=' + (BOUTIQUES_PAGE * BOUTIQUES_TAILLE);
-  if (zone) { chemin += '&zone=eq.' + encodeURIComponent(zone); }
+  /* Une page est un NOMBRE. Tout le reste (un événement de clic, par exemple)
+     est ramené à la première page : sans cela, l'offset devenait NaN. */
+  BOUTIQUES_PAGE = (typeof page === 'number' && page >= 0) ? page : 0;
+  var filtres = '';
+  if (zone) { filtres += '&zone=eq.' + encodeURIComponent(zone); }
   if (texte) {
     var motif = encodeURIComponent('*' + texte + '*');
-    chemin += '&or=(nom.ilike.' + motif + ',telephone.ilike.' + motif +
-              ',secteur.ilike.' + motif + ',code.ilike.' + motif + ')';
+    filtres += '&or=(nom.ilike.' + motif + ',telephone.ilike.' + motif +
+               ',secteur.ilike.' + motif + ',code.ilike.' + motif + ')';
   }
+  var chemin = '/v_boutiques_geo?select=code,nom,telephone,zone,secteur,precision_position,' +
+               'statut_crm,potentiel_kg_mois,nb_commandes,latitude&order=nom' +
+               '&limit=' + BOUTIQUES_TAILLE + '&offset=' + (BOUTIQUES_PAGE * BOUTIQUES_TAILLE) +
+               filtres;
   $('#boutiques_tableau').innerHTML = '<div class="chargement">Recherche…</div>';
-  return requete(chemin).then(function (lignes) {
-    lignes = lignes || [];
+  /* Le compteur annonçait le nombre de lignes de la PAGE : une recherche qui
+     ramenait 460 boutiques affichait « 100 résultat(s) ». Mesuré le 23/09/2026.
+     On demande donc le total à la base DANS LA MÊME requête (« count=exact »,
+     rendu dans l'en-tête Content-Range) : pas d'aller-retour supplémentaire.
+     Si l'en-tête manque, on retombe sur ce qui est réellement affiché — on
+     n'annonce jamais un chiffre qu'on n'a pas. */
+  return fetch(CONFIG.url + '/rest/v1' + chemin, {
+    headers: Object.assign(entetes(true), { 'Prefer': 'count=exact' })
+  }).then(function (r) {
+    if (r.status === 401 || r.status === 403) {
+      throw new Error('Droits insuffisants pour cette opération.');
+    }
+    if (!r.ok) { throw new Error('Erreur ' + r.status); }
+    var brut = (r.headers && r.headers.get) ? (r.headers.get('Content-Range') || '') : '';
+    var part = brut.split('/')[1];
+    var total = (part && part !== '*') ? parseInt(part, 10) : null;
+    return r.text().then(function (t) {
+      return { lignes: t ? JSON.parse(t) : null, total: total };
+    });
+  }).then(function (reponse) {
+    var lignes = reponse.lignes || [];
+    var debut = BOUTIQUES_PAGE * BOUTIQUES_TAILLE;
+    var total = (reponse.total === null || isNaN(reponse.total))
+      ? debut + lignes.length : reponse.total;
     var libelle = [];
     if (texte) { libelle.push('« ' + texte + ' »'); }
     if (zone) { libelle.push('zone ' + zone); }
-    $('#boutiques_compte').textContent = lignes.length + ' résultat(s)' +
-      (libelle.length ? ' pour ' + libelle.join(', ') : ' — 100 premières boutiques') +
-      (lignes.length === BOUTIQUES_TAILLE ? ' (page ' + (BOUTIQUES_PAGE + 1) + ')' : '');
+    $('#boutiques_compte').textContent =
+      formater(total) + ' résultat(s)' +
+      (libelle.length ? ' pour ' + libelle.join(', ') : '') +
+      (total > BOUTIQUES_TAILLE
+        ? ' — affichées : ' + formater(debut + 1) + ' à ' + formater(debut + lignes.length) +
+          ' (page ' + (BOUTIQUES_PAGE + 1) + ' sur ' +
+          Math.ceil(total / BOUTIQUES_TAILLE) + ')'
+        : '');
     if (!lignes.length) {
       $('#boutiques_tableau').innerHTML =
         '<div class="vide">Aucune boutique pour ce critère.</div>';
@@ -2934,13 +2982,28 @@ else { demarrer(); }
 var CARTES = {};
 var COULEURS_FRAICHEUR = { 'fraiche': '#1B7F3B', 'du jour': '#B7791F', 'ancienne': '#9A9A9A' };
 
+/* Le navigateur sait-il dessiner sur un canevas ? jsdom, qui fait tourner les
+   tests, ne sait pas : on reste alors en SVG, et les contrôles continuent de
+   passer. Dans Chrome, les 6 000 boutiques sont dessinées sur un canevas au lieu
+   de 6 432 éléments SVG — c'est ce que la vérification du 23/09/2026 a mesuré. */
+var PEUT_CANEVAS = (function () {
+  try { return !!document.createElement('canvas').getContext('2d'); } catch (e) { return false; }
+})();
+
 function cartePreparer(id, zoom) {
   var el = document.getElementById(id);
   if (!el || typeof L === 'undefined') { return null; }
   if (CARTES[id]) { try { CARTES[id].remove(); } catch (e) {} delete CARTES[id]; }
+  /* Ceinture et bretelles : si un conteneur porte encore l'empreinte d'une carte
+     (reconnexion, changement d'utilisateur), on la lui retire. Leaflet refuse
+     sinon de créer une carte dans un conteneur déjà marqué. */
+  if (el._leaflet_id) {
+    try { el._leaflet_id = null; el.innerHTML = ''; } catch (e) {}
+  }
   var c;
   try {
-    c = L.map(id, { attributionControl: false }).setView([14.7167, -17.4677], zoom || 11);
+    c = L.map(id, { attributionControl: false, preferCanvas: PEUT_CANEVAS })
+      .setView([14.7167, -17.4677], zoom || 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(c);
   } catch (e) {
     /* Un navigateur sans carte ne doit pas emporter la console avec lui. */
@@ -3229,7 +3292,10 @@ function chargerDestinationsCarte() {
         (t.adresse_livraison ? esc(t.adresse_livraison) + '<br>' : '') +
         (t.camion ? 'Camion ' + esc(t.camion) + '<br>' : 'camion non affecté<br>') +
         '<span style="color:#7A6A5B;font-size:12px">position ' +
-        (t.precision_destination === 'relevee' ? 'relevée' : 'estimée du quartier') + '</span>');
+        (t.precision_destination === 'relevee' ? 'relevée'
+          : t.precision_destination === 'adresse'
+            ? 'déduite du quartier nommé dans l\'adresse de livraison'
+            : 'estimée du quartier du client') + '</span>');
       var camion = t.camion ? positions[t.camion] : null;
       if (camion && camion.latitude !== null) {
         L.polyline([[+camion.latitude, +camion.longitude], dest],
@@ -3650,26 +3716,72 @@ function ouvrirFicheClient(code, ligne) {
   $('#ph_client').innerHTML = '<div class="chargement">Chargement…</div>';
   /* Une seule requête : la vue porte l'identité, la photo de devanture, la
      position (avec sa précision) et l'historique de commandes. */
+  var b = null;
   requete('/v_boutiques_geo?select=*&code=eq.' + encodeURIComponent(code)).then(function (r) {
-    var b = (r && r[0]) || null;
+    b = (r && r[0]) || null;
     if (!b) { throw new Error('Client introuvable.'); }
+    /* La photo de devanture voyage dans la fiche de terrain : c'est le seul
+       chemin que la clé publique du formulaire a le droit d'emprunter. On la
+       cherche par l'identifiant de la boutique, une fois celui-ci connu. */
+    return requete('/fiches_cartographie?select=photo_devanture,photo_devanture_base64,'
+                   + 'commentaire&boutique_id=eq.' + encodeURIComponent(b.id)
+                   + '&limit=1').catch(function () { return []; });
+  }).then(function (r) {
+    var fiche = (r && r[0]) || null;
     var historique = null;
     PH.file.forEach(function (x) { if (x.boutique_code === code) { historique = x; } });
     PH.client = b;
     PH.historique = historique;
     PH.resultat = null;
-    afficherFiche(b, historique);
+    afficherFiche(b, historique, fiche);
   }).catch(function (e) {
     $('#ph_client').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
 }
 
-function afficherFiche(b, h) {
-  var photo = b.photo_devanture_url
-    ? '<img class="photo-devanture" alt="Devanture" src="' + CONFIG.url +
-      '/storage/v1/object/public/photos-devanture/' + encodeURIComponent(b.photo_devanture_url) + '">'
-    : '<div class="photo-absente">Pas encore de photo de devanture : l\'enquêteur n\'est pas ' +
-      'encore passé.</div>';
+/* La photo de devanture. Trois cas, dans l'ordre :
+     1. elle est dans la fiche de terrain (base64) — c'est le cas normal depuis le
+        23/09/2026, et cela ne dépend d'aucun droit sur le bac de stockage ;
+     2. elle est dans le bac, qui est PRIVÉ : on la demande avec le jeton de
+        l'utilisateur connecté. Le chemin « public » ne fonctionne pas — mesuré :
+        « Bucket not found » — et la clé publique n'a aucun droit dessus ;
+     3. il n'y en a pas, et on le dit. */
+function photoDevanture(fiche, b, idImage) {
+  if (fiche && fiche.photo_devanture_base64) {
+    return '<img class="photo-devanture" id="' + idImage + '" alt="Devanture" src="data:image/jpeg;base64,'
+      + fiche.photo_devanture_base64 + '">';
+  }
+  if (b && b.photo_devanture_url) {
+    setTimeout(function () { chargerPhotoDuBac(b.photo_devanture_url, idImage); }, 60);
+    return '<div class="cadre-photo" id="cadre_' + idImage + '">'
+      + '<img class="photo-devanture" id="' + idImage + '" alt="Devanture"></div>';
+  }
+  return '<div class="photo-absente">Pas encore de photo de devanture : l\'enquêteur n\'est pas '
+    + 'encore passé.</div>';
+}
+
+function chargerPhotoDuBac(nom, idImage) {
+  var img = document.getElementById(idImage);
+  if (!img) { return; }
+  fetch(CONFIG.url + '/storage/v1/object/authenticated/photos-devanture/' + encodeURIComponent(nom), {
+    headers: { 'apikey': CONFIG.cle, 'Authorization': 'Bearer ' + SESSION.jeton }
+  }).then(function (r) {
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    return r.blob();
+  }).then(function (blob) {
+    img.src = URL.createObjectURL(blob);
+  }).catch(function () {
+    /* On ne remplace QUE le cadre de la photo : le nom, le téléphone et
+       l'historique doivent rester à l'écran. */
+    var cadre = document.getElementById('cadre_' + idImage);
+    if (cadre) {
+      cadre.innerHTML = '<div class="photo-absente">Photo annoncée mais introuvable dans le bac.</div>';
+    }
+  });
+}
+
+function afficherFiche(b, h, fiche) {
+  var photo = photoDevanture(fiche, b, 'photo_client');
   var geo = (b.latitude !== null && b.latitude !== undefined &&
              b.longitude !== null && b.longitude !== undefined)
     ? { lat: +b.latitude, lng: +b.longitude, precision: b.precision_position } : null;
@@ -3748,7 +3860,13 @@ function afficherFiche(b, h) {
       bouton.classList.add('actif');
     };
   });
-  if ($('#ph_enregistrer')) { $('#ph_enregistrer').onclick = enregistrerAppel; }
+  /* Câblé directement, ce bouton passait l'ÉVÉNEMENT du clic dans le paramètre
+     `suite`, qui sert de drapeau : `if (!suite)` était donc toujours faux et
+     l'opérateur ne voyait JAMAIS « Appel enregistré sous votre nom ». Mesuré le
+     23/09/2026 sur la page publiée — et constaté en vrai : trois appels
+     identiques au même client en trois secondes, l'opérateur ayant recliqué
+     faute de retour. */
+  if ($('#ph_enregistrer')) { $('#ph_enregistrer').onclick = function () { enregistrerAppel(); }; }
   if ($('#ph_commander')) { $('#ph_commander').onclick = enregistrerCommande; }
   if (geo) {
     setTimeout(function () {
@@ -3760,8 +3878,13 @@ function afficherFiche(b, h) {
         fillColor: COULEUR_PRECISION[geo.precision] || '#E8C79A',
         fillOpacity: geo.precision === 'relevee' ? 1 : 0.85
       }).addTo(c).bindPopup('<b>' + esc(b.nom || 'Client') + '</b><br>' +
-        (geo.precision === 'relevee' ? 'position relevée' : 'position estimée du quartier'));
-      c.setView([geo.lat, geo.lng], geo.precision === 'relevee' ? 16 : 14);
+        (geo.precision === 'relevee' ? 'position relevée au GPS'
+          : geo.precision === 'quartier' ? 'position estimée du quartier'
+          : 'position approximative : centre de la zone'));
+      /* Le zoom dit lui aussi la précision : on ne serre pas la vue sur un point
+         qui n'est que le centre d'une zone de plusieurs kilomètres. */
+      c.setView([geo.lat, geo.lng],
+                geo.precision === 'relevee' ? 16 : geo.precision === 'quartier' ? 14 : 11);
     }, 60);
   }
 }

@@ -1704,6 +1704,25 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 }
 .barre-carte input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--principal); }
 .barre-carte .aide { margin-left: auto; }
+
+/* ------------------------------------------------- indicateurs cliquables */
+
+.carte-chiffre.cliquable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.carte-chiffre.cliquable:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(68,42,25,.16); }
+.carte-chiffre .vers {
+  font-size: 11px; color: var(--accent); margin-top: 2px; text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ------------------------------------------------------ infobulles carte */
+
+.leaflet-tooltip.infobulle-boutique {
+  background: #fff; border: 1px solid var(--bord); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(68,42,25,.18); padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; color: var(--texte); max-width: 300px;
+}
+.leaflet-tooltip.infobulle-boutique::before { border-top-color: var(--bord); }
+.leaflet-tooltip.infobulle-boutique b { color: var(--principal); }
 </style>
 </head>
 <body>
@@ -1773,18 +1792,24 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
         <span class="aide" id="cc_etat"></span>
       </div>
       <div id="carte_accueil" class="carte-console haute"></div>
+      <div class="legende-carte">
+        <span><span class="pastille-carte" style="background:#C77D2B"></span> quartier — position
+          <b>estimée</b> (OpenStreetMap)</span>
+        <span><span class="pastille-carte" style="background:#B3261E"></span> position
+          <b>relevée</b> au GPS par l'enquêteur</span>
+        <span><span class="pastille-carte pastille-fraiche"></span> camion vu il y a moins de
+          30 minutes</span>
+        <span><span class="pastille-carte pastille-jour"></span> position du jour</span>
+        <span><span class="pastille-carte pastille-ancienne"></span> position ancienne</span>
+        <span><span class="pastille-carte" style="background:#1B4F9C"></span> <b>itinéraire
+          routier</b> du camion vers sa destination (calculé par OSRM)</span>
+      </div>
       <p class="aide">
-        <span class="pastille-carte" style="background:#C77D2B"></span> quartier — position
-        <b>estimée du quartier</b> (OpenStreetMap) ·
-        <span class="pastille-carte" style="background:#E8C79A"></span> boutique placée au
-        <b>centre de sa zone</b> (approximation large, faute de quartier connu) ·
-        <span class="pastille-carte" style="background:#B3261E"></span> position <b>relevée</b> au
-        GPS de la boutique ·
-        <span class="pastille-carte pastille-fraiche"></span> camion vu il y a moins de 30 minutes ·
-        <span class="pastille-carte pastille-jour"></span> position du jour ·
-        <span class="pastille-carte pastille-ancienne"></span> position ancienne.
-        Le <b>trait pointillé</b> va du camion à sa prochaine destination.
-        Cliquez un rond de quartier pour voir ses boutiques une par une.
+        <b>Cliquez un rond de quartier</b> pour afficher ses boutiques une par une ; survolez une
+        boutique pour voir son téléphone, ses derniers achats et son dernier contact. Le petit
+        trait de couleur devant un camion indique sa <b>direction</b> — pas son trajet passé.
+        Une destination ne se devine pas : posez-la sur la carte en créant le transport, ou
+        écrivez le nom du quartier dans l'adresse de livraison.
       </p>
     </div>
     <div class="cartes-console" id="bord_chiffres"></div>
@@ -1896,6 +1921,23 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
     </div>
   </section>
 
+  <!-- ---------------------------------------------------------- fiches -->
+  <section class="ecran-console" data-ecran="fiches">
+    <div class="entete-ecran">
+      <h2>Fiches de terrain</h2>
+      <p>Ce que les enquêteurs ont relevé, qui l'a relevé, et ce que cela a créé comme boutique.</p>
+    </div>
+    <div class="cartes-console" id="fiches_chiffres"></div>
+    <div class="bloc-console">
+      <h3>Par enquêteur <span class="compte" id="fiches_par_enqueteur_compte"></span></h3>
+      <div class="enveloppe" id="fiches_par_enqueteur"><div class="chargement">Chargement…</div></div>
+    </div>
+    <div class="bloc-console">
+      <h3>Les dernières fiches <span class="compte" id="fiches_compte">0</span></h3>
+      <div class="enveloppe" id="fiches_tableau"><div class="chargement">Chargement…</div></div>
+    </div>
+  </section>
+
   <!-- ------------------------------------------------------ commandes -->
   <section class="ecran-console" data-ecran="commandes">
     <div class="entete-ecran">
@@ -1994,14 +2036,16 @@ var LIBELLES_ROLES = {
    MÊMES onglets — donc la même page. Le DGA l'a vu tout de suite : « c'est
    exactement la même page ». Chaque métier a désormais son écran. */
 var ONGLETS_PAR_ROLE = {
-  dga: ['bord', 'phoning', 'dispatch', 'camions', 'commandes', 'livraisons', 'boutiques', 'utilisateurs'],
-  logistique: ['bord', 'camions', 'dispatch', 'livraisons', 'commandes', 'boutiques'],
-  phoning: ['bord', 'phoning', 'commandes', 'boutiques'],
-  superviseur: ['bord', 'phoning', 'commandes', 'boutiques'],
-  lecture: ['bord', 'commandes', 'boutiques']
+  dga: ['bord', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
+        'boutiques', 'utilisateurs'],
+  logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'commandes', 'boutiques'],
+  phoning: ['bord', 'phoning', 'fiches', 'commandes', 'boutiques'],
+  superviseur: ['bord', 'phoning', 'fiches', 'commandes', 'boutiques'],
+  lecture: ['bord', 'fiches', 'commandes', 'boutiques']
 };
 var TITRES_ONGLETS = {
   bord: 'Carte', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
+  fiches: 'Fiches de terrain',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
   utilisateurs: 'Utilisateurs'
 };
@@ -2216,6 +2260,7 @@ function ouvrirOnglet(nom) {
   $$('#onglets button').forEach(function (b) { b.classList.toggle('actif', b.dataset.onglet === nom); });
   if (nom === 'bord') { chargerBord(); }
   if (nom === 'phoning') { chargerPhoning(); }
+  if (nom === 'fiches') { chargerFiches(); }
   if (nom === 'dispatch') { chargerDispatch(); }
   if (nom === 'camions') { chargerCamions(); }
   if (nom === 'commandes') { chargerCommandes(); }
@@ -2259,16 +2304,16 @@ function chargerBord() {
     /* Huit indicateurs : la grille étant paire (4 puis 2 colonnes), les rangées
        sont toujours complètes, quel que soit l'écran. */
     $('#bord_chiffres').innerHTML =
-      carte('Commandes du jour', commandesJour, '') +
-      carte('À dispatcher', aDispatcher.length, aDispatcher.length ? 'alerte' : '') +
-      carte('Livraisons en cours', enCours.length, enCours.length ? 'accent' : '') +
-      carte('Restant à livrer', formater(restant) + ' <small>unités</small>', '') +
-      carte('Reste à encaisser', formater(resteDu) + ' <small>F</small>', resteDu > 0 ? 'alerte' : '') +
-      carte('Appels de phoning', appels, '') +
-      carte('Commandes du phoning', commandesPhoning, '') +
-      carte('Montant des transports', formater(montantTransports) + ' <small>F</small>', '') +
-      carte('Fiches de superviseur', formater(nbFiches) + ' <small>dont ' + fichesJour + ' auj.</small>', '') +
-      carte('Boutiques au fichier', formater(nbBoutiques), '');
+      carte('Commandes du jour', commandesJour, '', 'commandes') +
+      carte('À dispatcher', aDispatcher.length, aDispatcher.length ? 'alerte' : '', 'dispatch') +
+      carte('Livraisons en cours', enCours.length, enCours.length ? 'accent' : '', 'livraisons') +
+      carte('Restant à livrer', formater(restant) + ' <small>unités</small>', '', 'livraisons') +
+      carte('Reste à encaisser', formater(resteDu) + ' <small>F</small>', resteDu > 0 ? 'alerte' : '', 'livraisons') +
+      carte('Appels de phoning', appels, '', 'phoning') +
+      carte('Commandes du phoning', commandesPhoning, '', 'phoning') +
+      carte('Montant des transports', formater(montantTransports) + ' <small>F</small>', '', 'livraisons') +
+      carte('Fiches de terrain', formater(nbFiches) + ' <small>dont ' + fichesJour + ' auj.</small>', '', 'fiches') +
+      carte('Boutiques au fichier', formater(nbBoutiques), '', 'boutiques');
 
     /* Qui appelle, et où il en est. Le score est le taux de conversion de la
        séance, comparé à l'objectif de 15 % retenu côté phoning. */
@@ -2309,6 +2354,7 @@ function chargerBord() {
         'en dessous de 8 %, il faut revoir la préparation de la file.</p>'
       : '<div class="vide">Aucune séance de phoning enregistrée. Les séances remontent à la clôture.</div>';
 
+    activerCartes();
     $('#bord_actions').innerHTML =
       ligneAction('Demandes de transport à dispatcher', aDispatcher.length,
                   aDispatcher.length ? 'Ouvrir le dispatch' : 'rien à faire', 'dispatch') +
@@ -2320,6 +2366,7 @@ function chargerBord() {
     return chargerCarteAccueil();
   }).catch(function (e) {
     $('#bord_chiffres').innerHTML = '';
+    activerCartes();
     $('#bord_actions').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
 }
@@ -2333,9 +2380,22 @@ function compteurFichesJour(jour) {
     }).catch(function () { return 0; });
 }
 
-function carte(libelle, valeur, genre) {
-  return '<div class="carte-chiffre ' + (genre || '') + '"><div class="n">' + valeur +
-    '</div><div class="l">' + esc(libelle) + '</div></div>';
+/* Un indicateur mène à l'écran qui le détaille. Le DGA disait, le 23/09/2026 :
+   « on voit des fiches augmenter mais on ne peut pas cliquer sur le nombre de
+   fiches … ni voir qui les a renseignées ». */
+function carte(libelle, valeur, genre, onglet) {
+  var attr = onglet ? ' data-vers="' + onglet + '" role="button" tabindex="0"' : '';
+  return '<div class="carte-chiffre ' + (genre || '') + (onglet ? ' cliquable' : '') + '"' + attr +
+    '><div class="n">' + valeur + '</div><div class="l">' + esc(libelle) + '</div>' +
+    (onglet ? '<div class="vers">voir le détail</div>' : '') + '</div>';
+}
+
+/* Rend cliquables les indicateurs qui viennent d'être affichés. */
+function activerCartes() {
+  $$('#bord_chiffres .carte-chiffre[data-vers]').forEach(function (c) {
+    c.onclick = function () { ouvrirOnglet(c.dataset.vers); };
+    c.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { ouvrirOnglet(c.dataset.vers); } };
+  });
 }
 /* Une ligne d'action. Quand il n'y a rien à faire, on affiche une mention grisée
    plutôt qu'un bouton : un bouton cliquable pour une action inexistante trompe. */
@@ -2870,6 +2930,121 @@ function chargerBoutiques() {
   });
 }
 
+/* ------------------------------------------------- fiches de terrain */
+
+/* Ce que les enquêteurs ont relevé : qui, quand, où, et la boutique créée.
+   Le DGA voulait pouvoir cliquer sur le nombre de fiches et voir « qui les a
+   renseignées » — c'est cet écran. */
+function chargerFiches() {
+  $('#fiches_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
+  requete('/fiches_cartographie?select=id_client,nom_prenom,zone,secteur,localisation,' +
+          'enqueteur,date_visite,gps_latitude,gps_longitude,telephone_1,recu_le,traite_le,' +
+          'boutique_id,commentaire&order=recu_le.desc&limit=300')
+  .then(function (fiches) {
+    fiches = fiches || [];
+    /* Les codes des boutiques créées, demandés PAR IDENTIFIANT : rapatrier les
+       6 085 boutiques ne marchait pas — l'API n'en rend que 1 000, et la colonne
+       affichait « créée » au lieu du code. Mesuré le 23/09/2026. */
+    var ids = fiches.map(function (f) { return f.boutique_id; })
+                    .filter(function (x) { return !!x; });
+    var requeteCodes = ids.length
+      ? requete('/boutiques?select=id,code&id=in.(' + ids.join(',') + ')')
+          .catch(function () { return []; })
+      : Promise.resolve([]);
+    return requeteCodes.then(function (boutiques) {
+    var parId = {};
+    (boutiques || []).forEach(function (b) { parId[b.id] = b.code; });
+
+    var jour = aujourdhui();
+    var auj = fiches.filter(function (f) { return (f.recu_le || '').slice(0, 10) === jour; });
+    var avecGps = fiches.filter(function (f) { return f.gps_latitude; });
+    var sansBoutique = fiches.filter(function (f) { return !f.boutique_id; });
+
+    $('#fiches_chiffres').innerHTML =
+      carte('Fiches reçues', formater(fiches.length), '', null) +
+      carte('Dont aujourd\'hui', formater(auj.length), auj.length ? 'accent' : '', null) +
+      carte('Avec position GPS', formater(avecGps.length), '', null) +
+      carte('Devenues une boutique', formater(fiches.length - sansBoutique.length),
+            sansBoutique.length ? '' : 'fini', 'boutiques');
+
+    /* Qui les a renseignées. */
+    var parEnqueteur = {};
+    fiches.forEach(function (f) {
+      var nom = (f.enqueteur || '').trim() || 'enquêteur non renseigné';
+      var e = parEnqueteur[nom] = parEnqueteur[nom] || { total: 0, jour: 0, gps: 0, derniere: null };
+      e.total += 1;
+      if ((f.recu_le || '').slice(0, 10) === jour) { e.jour += 1; }
+      if (f.gps_latitude) { e.gps += 1; }
+      if (!e.derniere || (f.recu_le || '') > e.derniere) { e.derniere = f.recu_le; }
+    });
+    var lignesEnqueteurs = Object.keys(parEnqueteur).sort(function (a, b) {
+      return parEnqueteur[b].total - parEnqueteur[a].total;
+    });
+    /* Le même enquêteur s'inscrit parfois de plusieurs façons : « Kader diallo »,
+       « Kader », « Kader Diallo ». Le total par personne est alors coupé en
+       morceaux, et on le DIT plutôt que de laisser croire à trois enquêteurs. */
+    var parPremierMot = {};
+    lignesEnqueteurs.forEach(function (nom) {
+      var mot = nom.split(/\s+/)[0].toLowerCase();
+      parPremierMot[mot] = parPremierMot[mot] || [];
+      parPremierMot[mot].push(nom);
+    });
+    var ecrituresMultiples = Object.keys(parPremierMot)
+      .filter(function (m) { return parPremierMot[m].length > 1; })
+      .map(function (m) { return parPremierMot[m].join(' / '); });
+    $('#fiches_par_enqueteur_compte').textContent = lignesEnqueteurs.length + ' enquêteur(s)'
+      + (ecrituresMultiples.length ? ' — écritures à unifier' : '');
+    $('#fiches_par_enqueteur').innerHTML = lignesEnqueteurs.length
+      ? '<table class="tablo"><thead><tr><th>Enquêteur</th><th>Fiches</th><th>Dont aujourd\'hui</th>' +
+        '<th>Avec GPS</th><th>Dernière</th></tr></thead><tbody>' +
+        lignesEnqueteurs.map(function (nom) {
+          var e = parEnqueteur[nom];
+          return '<tr><td><b>' + esc(nom) + '</b></td>' +
+            '<td class="num">' + formater(e.total) + '</td>' +
+            '<td class="num">' + formater(e.jour) + '</td>' +
+            '<td class="num">' + formater(e.gps) + '</td>' +
+            '<td>' + (e.derniere ? dateCourte(e.derniere) : '—') + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      : '<div class="vide">Aucune fiche de terrain reçue.</div>';
+    if (ecrituresMultiples.length) {
+      $('#fiches_par_enqueteur').innerHTML +=
+        '<p class="aide" style="color:#B3261E">Le même enquêteur apparaît sous plusieurs ' +
+        'écritures : <b>' + ecrituresMultiples.map(esc).join(' · ') + '</b>. ' +
+        'Son total est donc réparti sur plusieurs lignes — à unifier dans le formulaire ' +
+        'pour que le suivi par personne soit juste.</p>';
+    }
+
+    $('#fiches_compte').textContent = formater(fiches.length) + ' fiche(s)';
+    $('#fiches_tableau').innerHTML = fiches.length
+      ? '<table class="tablo"><thead><tr><th>Fiche</th><th>Client</th><th>Quartier</th>' +
+        '<th>Téléphone</th><th>Enquêteur</th><th>Reçue le</th><th>Position</th>' +
+        '<th>Boutique créée</th></tr></thead><tbody>' +
+        fiches.map(function (f) {
+          return '<tr><td class="num">' + esc(f.id_client || '') + '</td>' +
+            '<td><b>' + esc(f.nom_prenom || 'Client sans nom') + '</b></td>' +
+            '<td>' + esc(f.secteur || f.localisation || f.zone || '—') + '</td>' +
+            '<td class="num">' + esc(f.telephone_1 || '—') + '</td>' +
+            '<td>' + esc(f.enqueteur || '—') + '</td>' +
+            '<td class="num">' + (f.recu_le
+              ? new Date(f.recu_le).toLocaleString('fr-FR').slice(0, 16) : '—') + '</td>' +
+            '<td>' + (f.gps_latitude
+              ? '<span class="etiquette-statut fini">GPS</span>'
+              : '<span style="color:#7A6A5B">aucune</span>') + '</td>' +
+            '<td class="num">' + (f.boutique_id
+              ? '<b>' + esc(parId[f.boutique_id] || 'créée') + '</b>'
+              : '<span style="color:#B3261E">pas encore</span>') + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<p style="margin:12px 0 0;font-size:12.5px;color:#7A6A5B">' +
+        'Chaque fiche reçue devient une boutique de la base en moins de trente minutes ' +
+        '(tâche <b>com.sta.sn2i.fiches</b>), avec la position relevée sur place. ' +
+        'Elle apparaît alors sur la carte, dans la recherche et dans la file d\'appel.</p>'
+      : '<div class="vide">Aucune fiche de terrain reçue pour l\'instant.</div>';
+    });
+  }).catch(function (e) {
+    $('#fiches_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
+  });
+}
+
 /* -------------------------------------------------------- utilisateurs */
 
 function chargerUtilisateurs() {
@@ -3120,8 +3295,12 @@ function chargerQuartiersCarte() {
   return requete('/v_quartiers_geo?select=*&latitude=not.is.null&limit=1000')
     .then(function (quartiers) {
       ACCUEIL.quartiers = (quartiers || []).length;
+      var pointsQuartiers = [];
       (quartiers || []).forEach(function (q) {
         if (q.latitude === null || q.longitude === null) { return; }
+        if (['Dakar', 'Mbour', 'Thiès'].indexOf(q.zone) !== -1) {
+          pointsQuartiers.push([+q.latitude, +q.longitude]);
+        }
         var n = nombre(q.boutiques);
         var rayon = Math.max(6, Math.min(26, 5 + Math.sqrt(n) * 1.6));
         var rond = L.circleMarker([+q.latitude, +q.longitude], {
@@ -3133,16 +3312,22 @@ function chargerQuartiersCarte() {
           '<span style="color:#7A6A5B;font-size:12px">position estimée du quartier</span><br>' +
           '<button class="btn-console mini" data-quartier="' + esc(q.secteur) + '">' +
           'Voir les boutiques</button>');
-        rond.on('popupopen', function (e) {
-          var b = e.popup.getElement().querySelector('[data-quartier]');
-          if (b) {
-            b.onclick = function () {
-              ACCUEIL.carte.setView([+q.latitude, +q.longitude], 14);
-              chargerBoutiquesDuQuartier(q.secteur, +q.latitude, +q.longitude);
-            };
-          }
+        /* Un clic sur le rond ouvre DIRECTEMENT les boutiques du quartier — le
+           DGA disait, le 23/09/2026 : « quand on clique dessus, ça zoome mais ne
+           montre pas les boutiques en détail ». Plus besoin de chercher un bouton. */
+        rond.on('click', function () {
+          ACCUEIL.carte.setView([+q.latitude, +q.longitude], 14);
+          chargerBoutiquesDuQuartier(q.secteur);
         });
       });
+      /* Cadrage par défaut : le CORRIDOR annoncé dans l'en-tête (Dakar · Mbour ·
+         Thiès). Calculer le cadre sur les quartiers ne tenait pas : quelques
+         quartiers mal situés l'étiraient sur tout le Sénégal, de Kayar à Nioro —
+         mesuré le 23/09/2026. Bornes fixes, donc toujours justes : Dakar au
+         nord-ouest, Mbour au sud, Thiès à l'est. */
+      if (ACCUEIL.carte && !(ACCUEIL.camions || []).length) {
+        ACCUEIL.carte.fitBounds([[14.35, -17.55], [14.90, -16.85]], { padding: [20, 20] });
+      }
     });
 }
 
@@ -3201,11 +3386,37 @@ function afficherToutesLesBoutiques() {
   });
 }
 
-function chargerBoutiquesDuQuartier(secteur, lat, lng) {
+/* Le contenu d'une infobulle de boutique : ce que le DGA veut voir « en les
+   survolant » — le dernier achat et le dernier contact. */
+function bulleBoutique(b) {
+  var prec = { 'relevee': 'position relevée au GPS', 'quartier': 'position estimée du quartier',
+               'zone': 'approximation : centre de la zone', 'inconnue': 'position inconnue' };
+  return '<b>' + esc(b.nom || 'Client sans nom') + '</b><br>' +
+    (b.telephone ? '<span style="font-size:14px"><b>' + esc(b.telephone) + '</b></span><br>' : '') +
+    esc(b.secteur || b.zone || '') + ' · ' + esc(b.statut_crm || '—') + '<br>' +
+    '<b>' + formater(nombre(b.nb_commandes)) + '</b> commande(s) en base' +
+    (b.derniere_commande ? ' — dernière le ' + esc(b.derniere_commande) : '') + '<br>' +
+    (b.dernier_appel
+      ? 'Dernier appel : ' + new Date(b.dernier_appel).toLocaleString('fr-FR').slice(0, 16) +
+        (b.dernier_resultat ? ' (' + esc(b.dernier_resultat) + ')' : '')
+      : '<span style="color:#7A6A5B">jamais appelé</span>') +
+    (b.rappel_prevu ? '<br>Rappel prévu : ' + esc(b.rappel_prevu) : '') +
+    (b.potentiel_kg_mois ? '<br>Potentiel déclaré : ' + formater(b.potentiel_kg_mois) + ' kg/mois' : '') +
+    '<br><span style="color:#7A6A5B;font-size:12px">' + (prec[b.precision_position] || '') + '</span>' +
+    '<br><button class="btn-console mini" data-fiche="' + esc(b.code) + '">Ouvrir la fiche</button>';
+}
+
+function chargerBoutiquesDuQuartier(secteur) {
   var cle = secteur;
-  if (ACCUEIL.boutiquesParQuartier[cle]) { return; }
+  if (ACCUEIL.boutiquesParQuartier[cle]) {
+    message('Les boutiques de ' + secteur + ' sont déjà sur la carte. '
+            + 'Décochez « Boutiques » puis recochez pour les recharger.', 'info');
+    return;
+  }
   requete('/v_boutiques_geo?select=code,nom,telephone,latitude,longitude,precision_position,' +
-          'statut_crm&secteur=eq.' + encodeURIComponent(secteur) + '&limit=500')
+          'statut_crm,potentiel_kg_mois,nb_commandes,derniere_commande,dernier_appel,' +
+          'dernier_resultat,rappel_prevu,secteur,zone&secteur=eq.' +
+          encodeURIComponent(secteur) + '&limit=500')
     .then(function (boutiques) {
       ACCUEIL.boutiquesParQuartier[cle] = true;
       var calque = ACCUEIL.calques.boutiques;
@@ -3213,23 +3424,39 @@ function chargerBoutiquesDuQuartier(secteur, lat, lng) {
       (boutiques || []).forEach(function (b) {
         if (b.latitude === null || b.longitude === null) { return; }
         placees += 1;
-        L.circleMarker([+b.latitude, +b.longitude], {
+        var m = L.circleMarker([+b.latitude, +b.longitude], {
           radius: b.precision_position === 'relevee' ? 7 : 5,
           color: '#FFFFFF', weight: 1.5,
           fillColor: b.precision_position === 'relevee' ? '#B3261E' : '#E0A85C',
           fillOpacity: 0.95
-        }).addTo(calque).bindPopup(
-          '<b>' + esc(b.nom || 'Client sans nom') + '</b><br>' +
-          (b.telephone ? esc(b.telephone) + '<br>' : '') +
-          esc(b.statut_crm || '') + '<br>' +
-          '<span style="color:#7A6A5B;font-size:12px">' +
-          (b.precision_position === 'relevee' ? 'position relevée au GPS'
-            : 'position estimée du quartier') + '</span>');
+        }).addTo(calque);
+        /* Au survol, la fiche : nom, téléphone, derniers achats, dernier contact. */
+        m.bindTooltip(bulleBoutique(b), { direction: 'top', sticky: true, opacity: 1,
+                                          className: 'infobulle-boutique' });
+        m.bindPopup(bulleBoutique(b) + '<br><span style="color:#7A6A5B;font-size:12px">' +
+                    'Cliquez « Ouvrir la fiche » pour le détail complet.</span>');
+        m.on('popupopen', function (e) {
+          var bouton = e.popup.getElement().querySelector('[data-fiche]');
+          if (bouton) {
+            bouton.onclick = function () { ouvrirFicheDepuisLaCarte(b.code); };
+          }
+        });
       });
-      message(formater(placees) + ' boutique(s) de ' + secteur + ' placée(s) sur la carte.', 'ok');
+      message(formater(placees) + ' boutique(s) de ' + secteur +
+              ' affichée(s) — survolez-les pour voir leurs derniers achats et contacts.', 'ok');
     }).catch(function (e) {
       message('Boutiques non chargées : ' + esc(e.message), 'ko');
     });
+}
+
+/* Ouvrir la fiche d'un client depuis la carte : on bascule sur l'écran Phoning,
+   qui porte la fiche complète (photo, position, historique, saisie). */
+function ouvrirFicheDepuisLaCarte(code) {
+  var ligne = null;
+  PH.file.forEach(function (x) { if (x.boutique_code === code) { ligne = x; } });
+  if (!ligne) { chargerFileAppel(); }
+  ouvrirOnglet('phoning');
+  setTimeout(function () { ouvrirFicheClient(code, null); }, 500);
 }
 
 /* Les camions, et le segment de leur dernier déplacement : c'est ce qui les
@@ -3245,20 +3472,6 @@ function rafraichirCamionsCarte() {
     var flotte = r[0] || [], releves = r[1] || [];
     ACCUEIL.camions = flotte;
     calque.clearLayers();
-    var traces = {};
-    releves.forEach(function (p) {
-      var c = traces[p.immatriculation] = traces[p.immatriculation] || [];
-      if (c.length < 2) { c.push(p); }
-    });
-    Object.keys(traces).forEach(function (plaque) {
-      var c = traces[plaque];
-      if (c.length < 2) { return; }
-      L.polyline([[+c[1].latitude, +c[1].longitude], [+c[0].latitude, +c[0].longitude]],
-                 { color: '#1B7F3B', weight: 3, opacity: 0.65 }).addTo(calque)
-        .bindPopup('Dernier déplacement de ' + esc(plaque) + ' : ' +
-          (c[1].horodatage_gps ? new Date(c[1].horodatage_gps).toLocaleTimeString('fr-FR').slice(0, 5) : '?') +
-          ' → ' + (c[0].horodatage_gps ? new Date(c[0].horodatage_gps).toLocaleTimeString('fr-FR').slice(0, 5) : '?'));
-    });
     flotte.forEach(function (v) {
       if (v.latitude === null || v.longitude === null) { return; }
       var m = L.circleMarker([+v.latitude, +v.longitude], {
@@ -3268,11 +3481,76 @@ function rafraichirCamionsCarte() {
       m.bindPopup(bulleCamion(v));
       m.bindTooltip(v.immatriculation || 'Camion', { permanent: true, direction: 'right',
         className: 'etiquette-camion' });
+      /* La direction du camion, et non son déplacement passé : un trait droit de
+         15 km entre deux relevés ne dit rien d'utile et laisse croire à un trajet.
+         Relevé le 23/09/2026 : AA-840-VS avait bougé de 14,9 km en 16 minutes, et
+         ce trait traversait la carte sans but. On dessine donc une FLÈCHE courte
+         (300 m) dans le cap du boîtier, et la distance parcourue reste dans la
+         bulle. */
+      var cap = nombre(v.cap), vitesse = nombre(v.vitesse_kmh);
+      if (vitesse > 3 && cap) {
+        var rad = (90 - cap) * Math.PI / 180;
+        var d = 0.30 / 111.32;                       // 300 m en degrés
+        var fin = [+v.latitude + d * Math.sin(rad), +v.longitude + d * Math.cos(rad) / Math.cos(+v.latitude * Math.PI / 180)];
+        L.polyline([[+v.latitude, +v.longitude], fin], {
+          color: COULEURS_FRAICHEUR[v.fraicheur] || '#9A9A9A', weight: 4, opacity: 0.9
+        }).addTo(calque).bindTooltip('En route, cap ' + Math.round(cap) + '° à ' +
+          formater(vitesse) + ' km/h', { sticky: true });
+      }
     });
   });
 }
 
 /* Le tracé vers la prochaine destination de chaque camion. */
+/* --------------------------------------------------------------------------
+   L'ITINÉRAIRE ROUTIER — et non un trait droit
+   Le DGA a dit, le 23/09/2026 : « un grand trait vert … rectiligne donc pas sur
+   les routes … il n'est donc pas utile ». On demande donc le trajet à un service
+   d'itinéraire (OSRM), qui rend la géométrie réelle de la route, avec la distance
+   et la durée. Si le service ne répond pas, on ne dessine RIEN et on le dit :
+   un trait droit ferait croire à un trajet.
+
+   À SAVOIR : ce calcul part du navigateur vers router.project-osrm.org, un
+   service public. Les deux coordonnées y sont transmises (position du camion et
+   point de livraison) — rien d'autre. Si cela doit rester interne, il faudra un
+   service d'itinéraire hébergé pour SN2I.
+   -------------------------------------------------------------------------- */
+var ITINERAIRES = {};
+var OSRM = 'https://router.project-osrm.org/route/v1/driving/';
+
+function tracerItineraire(calque, depart, arrivee, resume) {
+  var cle = [depart.lat.toFixed(4), depart.lng.toFixed(4),
+             arrivee.lat.toFixed(4), arrivee.lng.toFixed(4)].join('|');
+  function dessiner(points, info) {
+    L.polyline(points, { color: '#1B4F9C', weight: 4, opacity: 0.85 }).addTo(calque)
+      .bindPopup('<b>Itinéraire routier</b><br>' + esc(resume || '') +
+                 (info ? '<br>' + info : '') +
+                 '<br><span style="color:#7A6A5B;font-size:12px">calculé par OSRM</span>');
+  }
+  if (ITINERAIRES[cle]) { dessiner(ITINERAIRES[cle].points, ITINERAIRES[cle].info); return; }
+  fetch(OSRM + depart.lng + ',' + depart.lat + ';' + arrivee.lng + ',' + arrivee.lat +
+        '?overview=full&geometries=geojson')
+    .then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.json(); })
+    .then(function (d) {
+      if (!d || d.code !== 'Ok' || !d.routes || !d.routes[0]) {
+        throw new Error("pas d'itinéraire");
+      }
+      var route = d.routes[0];
+      var points = route.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+      var info = (route.distance / 1000).toFixed(1).replace('.', ',') + ' km · ' +
+                 Math.round(route.duration / 60) + ' min';
+      ITINERAIRES[cle] = { points: points, info: info };
+      dessiner(points, info);
+    })
+    .catch(function () {
+      L.circleMarker([arrivee.lat, arrivee.lng], {
+        radius: 8, color: '#FFFFFF', weight: 2, fillColor: '#B3261E', fillOpacity: 1
+      }).addTo(calque).bindPopup('<b>' + esc(resume || 'Destination') + '</b><br>' +
+        'Itinéraire routier indisponible pour l\'instant — le service de calcul n\'a pas ' +
+        'répondu. Aucun trait n\'est dessiné à la place : un trait droit ferait croire à un trajet.');
+    });
+}
+
 function chargerDestinationsCarte() {
   var calque = ACCUEIL.calques.destinations;
   if (!calque) { return Promise.resolve(); }
@@ -3298,8 +3576,10 @@ function chargerDestinationsCarte() {
             : 'estimée du quartier du client') + '</span>');
       var camion = t.camion ? positions[t.camion] : null;
       if (camion && camion.latitude !== null) {
-        L.polyline([[+camion.latitude, +camion.longitude], dest],
-                   { color: '#442A19', weight: 3, dashArray: '7 6' }).addTo(calque);
+        tracerItineraire(calque,
+          { lat: +camion.latitude, lng: +camion.longitude },
+          { lat: dest[0], lng: dest[1] },
+          'Camion ' + (t.camion || '') + ' → ' + (t.destinataire_nom || 'client'));
       }
     });
   });

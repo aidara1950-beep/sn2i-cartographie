@@ -1723,6 +1723,18 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 }
 .leaflet-tooltip.infobulle-boutique::before { border-top-color: var(--bord); }
 .leaflet-tooltip.infobulle-boutique b { color: var(--principal); }
+
+/* --------------------------------------------- étiquettes des camions */
+
+/* Longtemps sans aucun style : le nom du camion s'affichait en petit texte gris,
+   illisible sur la carte. Le DGA l'a dit le 23/09/2026 : « on ne sait pas c'est
+   celui de quel camion ». */
+.leaflet-tooltip.etiquette-camion {
+  background: #FFFFFF; color: #442A19; font-size: 12.5px; font-weight: 600;
+  padding: 4px 8px; border: 1px solid #C79D67; border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(68,42,25,.25); white-space: nowrap;
+}
+.leaflet-tooltip.etiquette-camion::before { display: none; }
 </style>
 </head>
 <body>
@@ -1802,16 +1814,17 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
           30 minutes</span>
         <span><span class="pastille-carte pastille-jour"></span> position du jour</span>
         <span><span class="pastille-carte pastille-ancienne"></span> position ancienne</span>
-        <span><span class="pastille-carte" style="background:#1B7F3B"></span> <b>trajet
-          parcouru</b> dans la journée, suivant la route</span>
+        <span><b>Chaque camion a sa propre couleur</b> : son rond, son étiquette et son
+          trajet du jour</span>
         <span><span class="pastille-carte" style="background:#1B4F9C"></span> <b>itinéraire
           restant</b> vers sa destination</span>
       </div>
       <p class="aide">
         <b>Cliquez un rond de quartier</b> pour afficher ses boutiques une par une ; survolez une
         boutique pour voir son téléphone, ses derniers achats et son dernier contact. Le petit
-        trait vert suit la <b>route réellement parcourue</b> dans la journée ; le bleu montre
-        l'<b>itinéraire qui reste</b> jusqu'à la destination.
+        trajet du jour suit la <b>route réellement parcourue</b>, dans la couleur du camion ;
+        le bleu montre l'<b>itinéraire qui reste</b> jusqu'à la destination. Le nom du camion,
+        son <b>chauffeur</b> et son téléphone sont sur son étiquette et dans sa bulle.
         Une destination ne se devine pas : posez-la sur la carte en créant le transport, ou
         écrivez le nom du quartier dans l'adresse de livraison.
       </p>
@@ -2517,8 +2530,8 @@ function chargerCamions() {
         'appliquez <b>base/0007_positions_gps.sql</b> si ce message persiste.</span></div>';
     } else {
       $('#camions_tableau').innerHTML = '<table class="tablo"><thead><tr>' +
-        '<th>Camion</th><th>Boîtier</th><th>Position</th><th>Vitesse</th><th>Moteur</th>' +
-        '<th>Relevé</th><th>Fraîcheur</th><th>Carte</th></tr></thead><tbody>' +
+        '<th>Camion</th><th>Chauffeur</th><th>Téléphone</th><th>Boîtier</th><th>Position</th>' +
+        '<th>Vitesse</th><th>Moteur</th><th>Relevé</th><th>Fraîcheur</th><th>Carte</th></tr></thead><tbody>' +
         flotte.map(function (c) {
           var age = c.age_minutes === null || c.age_minutes === undefined ? null : nombre(c.age_minutes);
           var fraicheur = c.fraicheur || 'inconnue';
@@ -2529,6 +2542,11 @@ function chargerCamions() {
               c.latitude + '/' + c.longitude + '">Voir</a>'
             : '—';
           return '<tr><td><b>' + esc(c.immatriculation || '—') + '</b></td>' +
+            '<td>' + (c.chauffeur ? esc(c.chauffeur)
+              : '<span style="color:#7A6A5B">non renseigné</span>') + '</td>' +
+            '<td class="num">' + (c.chauffeur_telephone
+              ? '<a href="tel:' + esc(c.chauffeur_telephone) + '">' + esc(c.chauffeur_telephone) + '</a>'
+              : '<span style="color:#B3261E">à renseigner</span>') + '</td>' +
             '<td>' + esc(c.boitier || c.imei.slice(-6)) + '</td>' +
             '<td class="num">' + (c.latitude ? (+c.latitude).toFixed(5) + ', ' + (+c.longitude).toFixed(5) : '—') + '</td>' +
             '<td class="num">' + (nombre(c.vitesse_kmh) ? formater(c.vitesse_kmh) + ' km/h' : 'à l\'arrêt') + '</td>' +
@@ -3162,6 +3180,40 @@ else { demarrer(); }
 var CARTES = {};
 var COULEURS_FRAICHEUR = { 'fraiche': '#1B7F3B', 'du jour': '#B7791F', 'ancienne': '#9A9A9A' };
 
+/* UNE COULEUR PAR CAMION — demandé par le DGA le 23/09/2026 : « le trajet suit
+   un trait mais on ne sait pas c'est celui de quel camion ». La couleur est
+   attribuée par ordre alphabétique de plaque, donc stable d'un affichage à
+   l'autre : le même camion garde toujours la même couleur. */
+var PALETTE_CAMIONS = ['#1B7F3B', '#B3261E', '#1B4F9C', '#8B5CF6',
+                       '#C2410C', '#0E7490', '#7C2D12', '#4D7C0F'];
+var COULEUR_CAMION = {};
+
+function couleurCamion(plaque) {
+  var plaques = Object.keys(COULEUR_CAMION);
+  if (COULEUR_CAMION[plaque]) { return COULEUR_CAMION[plaque]; }
+  var rang = plaques.length % PALETTE_CAMIONS.length;
+  COULEUR_CAMION[plaque] = PALETTE_CAMIONS[rang];
+  return COULEUR_CAMION[plaque];
+}
+
+/* Le nom du camion, son chauffeur et son téléphone : ce que le DGA veut voir
+   « avec le camion ». Le téléphone n'est renseigné que pour 10 des 15 chauffeurs
+   (les 4 conducteurs de camion suivi n'en ont aucun dans nos fichiers) : on le
+   DIT au lieu d'inventer un numéro. */
+function identiteCamion(v) {
+  var morceaux = [v.immatriculation || 'Camion'];
+  if (v.chauffeur) {
+    morceaux.push(v.chauffeur);
+    /* Le téléphone reste sur l'étiquette quand il existe : c'est ce que le DGA
+       demande de voir avec le camion. S'il manque, on ne l'écrit pas ici — la
+       bulle le dit — sinon l'étiquette devient trop longue sur la carte. */
+    if (v.chauffeur_telephone) { morceaux.push(v.chauffeur_telephone); }
+  } else {
+    morceaux.push('chauffeur non renseigné');
+  }
+  return morceaux.join(' · ');
+}
+
 /* Le navigateur sait-il dessiner sur un canevas ? jsdom, qui fait tourner les
    tests, ne sait pas : on reste alors en SVG, et les contrôles continuent de
    passer. Dans Chrome, les 6 000 boutiques sont dessinées sur un canevas au lieu
@@ -3200,7 +3252,13 @@ function cartePreparer(id, zoom) {
 
 function bulleCamion(v) {
   return '<b>' + esc(v.immatriculation || 'Camion') + '</b><br>' +
-    (v.chauffeur_nom ? esc(v.chauffeur_nom) + '<br>' : '') +
+    '<span class="pastille-carte" style="background:' + couleurCamion(v.immatriculation) + '"></span>' +
+    (v.chauffeur
+      ? 'Chauffeur : <b>' + esc(v.chauffeur) + '</b><br>'
+        + (v.chauffeur_telephone
+            ? 'Téléphone : <b>' + esc(v.chauffeur_telephone) + '</b><br>'
+            : '<span style="color:#B3261E">Téléphone non renseigné</span><br>')
+      : '<span style="color:#7A6A5B">Chauffeur non renseigné</span><br>') +
     (v.libelle_usage ? esc(v.libelle_usage) + '<br>' : '') +
     (v.vitesse_kmh === null || v.vitesse_kmh === undefined ? ''
       : formater(v.vitesse_kmh) + ' km/h<br>') +
@@ -3356,27 +3414,34 @@ function afficherToutesLesBoutiques() {
   var total = 0, page = 0, TAILLE = 1000;
   function chargerPage() {
     var debut = page * TAILLE;
-    return requete('/v_boutiques_geo?select=code,nom,telephone,zone,precision_position,' +
-                   'latitude,longitude&precision_position=neq.inconnue' +
+    return requete('/v_boutiques_geo?select=code,nom,telephone,zone,secteur,statut_crm,' +
+                   'precision_position,latitude,longitude,potentiel_kg_mois,nb_commandes,' +
+                   'derniere_commande,dernier_appel,dernier_resultat,rappel_prevu' +
+                   '&precision_position=neq.inconnue' +
                    '&order=code&limit=' + TAILLE + '&offset=' + debut)
       .then(function (lignes) {
         lignes = lignes || [];
         lignes.forEach(function (b) {
           if (b.latitude === null || b.longitude === null) { return; }
           total += 1;
-          L.circleMarker([+b.latitude, +b.longitude], {
+          var marqueur = L.circleMarker([+b.latitude, +b.longitude], {
             radius: b.precision_position === 'relevee' ? 6 : 3,
             color: COULEUR_PRECISION[b.precision_position] || '#9A9A9A',
             weight: b.precision_position === 'relevee' ? 2 : 1,
             fillColor: COULEUR_PRECISION[b.precision_position] || '#9A9A9A',
             fillOpacity: b.precision_position === 'relevee' ? 1 : 0.8
-          }).addTo(calque).bindPopup(
-            '<b>' + esc(b.nom || 'Client sans nom') + '</b><br>' +
-            (b.telephone ? esc(b.telephone) + '<br>' : '') +
-            esc(b.zone || '') + '<br><span style="color:#7A6A5B;font-size:12px">' +
-            (b.precision_position === 'relevee' ? 'position relevée au GPS'
-              : b.precision_position === 'quartier' ? 'position estimée du quartier'
-              : 'position approximative : centre de la zone') + '</span>');
+          }).addTo(calque);
+          /* Le DGA : « on ne peut pas voir les boutiques ni leurs derniers achats
+             ou contact en les survolant c'est dommage » et « les bulles ne sortent
+             pas le détail quand on clique ». Cette couche n'avait NI infobulle NI
+             détail — c'est celle qu'on survole. Corrigé le 23/09/2026. */
+          marqueur.bindTooltip(bulleBoutique(b), { direction: 'top', sticky: true, opacity: 1,
+                                                   className: 'infobulle-boutique' });
+          marqueur.bindPopup(bulleBoutique(b));
+          marqueur.on('popupopen', function (e) {
+            var bouton = e.popup.getElement().querySelector('[data-fiche]');
+            if (bouton) { bouton.onclick = function () { ouvrirFicheDepuisLaCarte(b.code); }; }
+          });
         });
         page += 1;
         if (lignes.length === TAILLE && page < 8) { return chargerPage(); }
@@ -3413,6 +3478,7 @@ function bulleBoutique(b) {
       : '<span style="color:#7A6A5B">jamais appelé</span>') +
     (b.rappel_prevu ? '<br>Rappel prévu : ' + esc(b.rappel_prevu) : '') +
     (b.potentiel_kg_mois ? '<br>Potentiel déclaré : ' + formater(b.potentiel_kg_mois) + ' kg/mois' : '') +
+    (b.derniere_commande ? '' : '<br><span style="color:#7A6A5B">aucune commande enregistrée</span>') +
     '<br><span style="color:#7A6A5B;font-size:12px">' + (prec[b.precision_position] || '') + '</span>' +
     '<br><button class="btn-console mini" data-fiche="' + esc(b.code) + '">Ouvrir la fiche</button>';
 }
@@ -3493,12 +3559,15 @@ function rafraichirCamionsCarte() {
     calque.clearLayers();
     flotte.forEach(function (v) {
       if (v.latitude === null || v.longitude === null) { return; }
+      CAMIONS_CONNUS[v.immatriculation] = v;
+      var couleurCamion_ = couleurCamion(v.immatriculation);
       var m = L.circleMarker([+v.latitude, +v.longitude], {
         radius: 11, color: '#FFFFFF', weight: 2.5,
-        fillColor: COULEURS_FRAICHEUR[v.fraicheur] || '#9A9A9A', fillOpacity: 1
+        fillColor: couleurCamion_, fillOpacity: 1
       }).addTo(calque);
       m.bindPopup(bulleCamion(v));
-      m.bindTooltip(v.immatriculation || 'Camion', { permanent: true, direction: 'right',
+      /* L'étiquette dit de quel camion il s'agit : plaque, chauffeur, téléphone. */
+      m.bindTooltip(esc(identiteCamion(v)), { permanent: true, direction: 'right',
         className: 'etiquette-camion' });
       /* La direction du camion, et non son déplacement passé : un trait droit de
          15 km entre deux relevés ne dit rien d'utile et laisse croire à un trajet.
@@ -3521,9 +3590,9 @@ function rafraichirCamionsCarte() {
         var d = 0.30 / 111.32;                       // 300 m en degrés
         var fin = [+v.latitude + d * Math.sin(rad), +v.longitude + d * Math.cos(rad) / Math.cos(+v.latitude * Math.PI / 180)];
         L.polyline([[+v.latitude, +v.longitude], fin], {
-          color: COULEURS_FRAICHEUR[v.fraicheur] || '#9A9A9A', weight: 4, opacity: 0.9
-        }).addTo(calque).bindTooltip('En route, cap ' + Math.round(cap) + '° à ' +
-          formater(vitesse) + ' km/h', { sticky: true });
+          color: couleurCamion_, weight: 4, opacity: 0.9
+        }).addTo(calque).bindTooltip(esc(identiteCamion(v)) + '<br>En route, cap ' +
+          Math.round(cap) + '° à ' + formater(vitesse) + ' km/h', { sticky: true });
       }
     });
   });
@@ -3591,6 +3660,7 @@ function tracerItineraire(calque, depart, arrivee, resume) {
    continu. C'est écrit dans la bulle.
    -------------------------------------------------------------------------- */
 var TRAJETS = {};
+var CAMIONS_CONNUS = {};   // plaque -> la fiche du camion (chauffeur, téléphone)
 
 function tracerTrajetDuJour(calque, plaque, positions, depuis, jusqua) {
   var propre = (positions || []).filter(function (p) {
@@ -3609,8 +3679,13 @@ function tracerTrajetDuJour(calque, plaque, positions, depuis, jusqua) {
   var connu = TRAJETS[plaque];
 
   function dessiner(points, info) {
-    L.polyline(points, { color: '#1B7F3B', weight: 4, opacity: 0.8 }).addTo(calque)
-      .bindPopup('<b>Trajet du jour — ' + esc(plaque) + '</b><br>' + (info || '') +
+    var couleur = couleurCamion(plaque);
+    L.polyline(points, { color: couleur, weight: 4, opacity: 0.8 }).addTo(calque)
+      .bindTooltip('<b>' + esc(identiteCamion(CAMIONS_CONNUS[plaque] || { immatriculation: plaque })) +
+                   '</b><br>' + esc(info || ''), { sticky: true })
+      .bindPopup('<b>Trajet du jour — ' + esc(plaque) + '</b><br>' +
+        esc(identiteCamion(CAMIONS_CONNUS[plaque] || { immatriculation: plaque })) + '<br>' +
+        (info || '') +
         '<br><span style="color:#7A6A5B;font-size:12px">Reconstitué SUR LA ROUTE entre ' +
         propre.length + ' relevés du boîtier (' + (depuis || '') + ' → ' + (jusqua || '') +
         '). Le boîtier relève un point toutes les quinze minutes : c\'est le trajet ' +

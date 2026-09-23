@@ -1768,13 +1768,16 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
         <label><input type="checkbox" id="cc_boutiques" checked> Boutiques</label>
         <label><input type="checkbox" id="cc_camions" checked> Camions</label>
         <label><input type="checkbox" id="cc_destinations" checked> Destinations</label>
+        <button class="btn-console mini" id="cc_boutiques_toutes">Afficher toutes les boutiques</button>
         <button class="btn-console mini" id="cc_recentrer">Recentrer</button>
         <span class="aide" id="cc_etat"></span>
       </div>
       <div id="carte_accueil" class="carte-console haute"></div>
       <p class="aide">
-        <span class="pastille-carte" style="background:#C77D2B"></span> boutique — position
+        <span class="pastille-carte" style="background:#C77D2B"></span> quartier — position
         <b>estimée du quartier</b> (OpenStreetMap) ·
+        <span class="pastille-carte" style="background:#E8C79A"></span> boutique placée au
+        <b>centre de sa zone</b> (approximation large, faute de quartier connu) ·
         <span class="pastille-carte" style="background:#B3261E"></span> position <b>relevée</b> au
         GPS de la boutique ·
         <span class="pastille-carte pastille-fraiche"></span> camion vu il y a moins de 30 minutes ·
@@ -2921,6 +2924,7 @@ function chargerCarteAccueil() {
       if (this.checked) { ACCUEIL.calques.destinations.addTo(ACCUEIL.carte); }
       else { ACCUEIL.carte.removeLayer(ACCUEIL.calques.destinations); }
     };
+    $('#cc_boutiques_toutes').onclick = afficherToutesLesBoutiques;
     $('#cc_recentrer').onclick = recentrerCarteAccueil;
   }
   /* L'ordre compte : les tracés partent de la position des camions. Les charger
@@ -2965,6 +2969,61 @@ function chargerQuartiersCarte() {
         });
       });
     });
+}
+
+/* Toutes les boutiques d'un coup : c'est ce que le DGA demande — « une carte avec
+   les boutiques géolocalisées ». Chaque point porte sa précision, et la couleur
+   le dit. Les 6 000 points sont dessinés sur un canevas, pas en éléments de page :
+   sans cela, le navigateur s'effondre. */
+var COULEUR_PRECISION = { 'relevee': '#B3261E', 'quartier': '#E0A85C', 'zone': '#E8C79A' };
+
+function afficherToutesLesBoutiques() {
+  var bouton = $('#cc_boutiques_toutes');
+  bouton.disabled = true;
+  bouton.textContent = 'Chargement…';
+  var calque = L.layerGroup().addTo(ACCUEIL.carte);
+  var total = 0, page = 0, TAILLE = 1000;
+  function chargerPage() {
+    var debut = page * TAILLE;
+    return requete('/v_boutiques_geo?select=code,nom,telephone,zone,precision_position,' +
+                   'latitude,longitude&precision_position=neq.inconnue' +
+                   '&order=code&limit=' + TAILLE + '&offset=' + debut)
+      .then(function (lignes) {
+        lignes = lignes || [];
+        lignes.forEach(function (b) {
+          if (b.latitude === null || b.longitude === null) { return; }
+          total += 1;
+          L.circleMarker([+b.latitude, +b.longitude], {
+            radius: b.precision_position === 'relevee' ? 6 : 3,
+            color: COULEUR_PRECISION[b.precision_position] || '#9A9A9A',
+            weight: b.precision_position === 'relevee' ? 2 : 1,
+            fillColor: COULEUR_PRECISION[b.precision_position] || '#9A9A9A',
+            fillOpacity: b.precision_position === 'relevee' ? 1 : 0.8
+          }).addTo(calque).bindPopup(
+            '<b>' + esc(b.nom || 'Client sans nom') + '</b><br>' +
+            (b.telephone ? esc(b.telephone) + '<br>' : '') +
+            esc(b.zone || '') + '<br><span style="color:#7A6A5B;font-size:12px">' +
+            (b.precision_position === 'relevee' ? 'position relevée au GPS'
+              : b.precision_position === 'quartier' ? 'position estimée du quartier'
+              : 'position approximative : centre de la zone') + '</span>');
+        });
+        page += 1;
+        if (lignes.length === TAILLE && page < 8) { return chargerPage(); }
+        bouton.disabled = false;
+        bouton.textContent = 'Masquer les boutiques (' + formater(total) + ')';
+        bouton.onclick = function () {
+          ACCUEIL.carte.removeLayer(calque);
+          bouton.textContent = 'Afficher toutes les boutiques';
+          bouton.onclick = afficherToutesLesBoutiques;
+        };
+        message(formater(total) + ' boutique(s) placée(s) sur la carte, chacune avec sa précision.', 'ok');
+      });
+  }
+  return chargerPage().catch(function (e) {
+    bouton.disabled = false;
+    bouton.textContent = 'Afficher toutes les boutiques';
+    message('Boutiques non chargées : ' + esc(e.message), 'ko');
+  });
 }
 
 function chargerBoutiquesDuQuartier(secteur, lat, lng) {
@@ -3303,6 +3362,11 @@ function chargerPhoning() {
   $('#ph_seance').innerHTML = '<div class="chargement">Chargement…</div>';
   $('#ph_travail').style.display = 'none';
 
+  if (!actif) {
+    /* Le superviseur et la direction ne tiennent pas la séance : ils la
+       surveillent. On leur montre donc les séances du jour, pas une page vide. */
+    return chargerSupervisionPhoning().then(chargerFileAppel);
+  }
   requete('/seances_phoning?select=*&date_seance=eq.' + aujourdhui() +
           '&operateur_nom=eq.' + encodeURIComponent(SESSION.profil.nom) +
           '&order=debut_le.desc&limit=1')
@@ -3345,6 +3409,60 @@ function afficherSeance() {
         'Clôturer la séance</button></div>' : '') +
     '</div>';
   if (actif && $('#ph_cloturer')) { $('#ph_cloturer').onclick = cloturerSeance; }
+}
+
+/* La supervision : ce que la direction et le superviseur doivent voir — qui a
+   appelé, combien, et avec quel résultat. Ils ne saisissent pas d'appel : ce
+   n'est pas leur rôle, et la base le leur refuse. */
+function chargerSupervisionPhoning() {
+  var maZone = SESSION.profil.zone_id;
+  return requete('/seances_phoning?select=*&date_seance=eq.' + aujourdhui() +
+                 '&order=debut_le.desc')
+    .then(function (seances) {
+      seances = seances || [];
+      var totalAppels = seances.reduce(function (n, s) { return n + nombre(s.nb_appels); }, 0);
+      var totalCommandes = seances.reduce(function (n, s) { return n + nombre(s.nb_commandes); }, 0);
+      var taux = totalAppels ? Math.round(1000 * totalCommandes / totalAppels) / 10 : 0;
+      var classe = taux >= 15 ? 'fini' : (taux >= 8 ? 'cours' : 'attente');
+      var entete =
+        '<div class="ph-seance">' +
+          '<div class="qui"><b>' + seances.length + '</b> séance(s) aujourd\'hui<br>' +
+            '<span class="aide">' + formater(totalAppels) + ' appel(s) · ' +
+            formater(totalCommandes) + ' commande(s)</span></div>' +
+          '<div class="jauge"><div class="jauge-barre"><div class="jauge-remplie" style="width:' +
+            Math.min(100, Math.round(100 * totalAppels / Math.max(1, 40 * Math.max(1, seances.length)))) +
+            '%"></div></div><div class="jauge-texte">Taux de conversion de la journée : ' +
+            '<span class="etiquette-statut ' + classe + '">' + taux + ' %</span>' +
+            ' — objectif 15 %</div></div>' +
+        '</div>';
+      if (!seances.length) {
+        $('#ph_seance').innerHTML = entete +
+          '<p class="aide">Aucune séance ouverte aujourd\'hui' +
+          (maZone ? ' dans votre zone' : '') + '. Les séances apparaissent ici dès qu\'un ' +
+          'opérateur démarre la sienne depuis la console, ou qu\'un poste dépose la sienne.</p>';
+        return;
+      }
+      $('#ph_seance').innerHTML = entete +
+        '<table class="tablo"><thead><tr><th>Opérateur</th><th>Début</th><th>Fin</th>' +
+        '<th>Appels</th><th>Commandes</th><th>Taux</th><th>Zone visée</th></tr></thead><tbody>' +
+        seances.map(function (s) {
+          var a = nombre(s.nb_appels), c = nombre(s.nb_commandes);
+          var tx = a ? Math.round(1000 * c / a) / 10 : 0;
+          return '<tr><td><b>' + esc(s.operateur_nom || '—') + '</b></td>' +
+            '<td class="num">' + (s.debut_le ? new Date(s.debut_le).toLocaleTimeString('fr-FR').slice(0, 5) : '—') + '</td>' +
+            '<td class="num">' + (s.fin_le ? new Date(s.fin_le).toLocaleTimeString('fr-FR').slice(0, 5) : 'en cours') + '</td>' +
+            '<td class="num">' + formater(a) + '</td>' +
+            '<td class="num">' + formater(c) + '</td>' +
+            '<td><span class="etiquette-statut ' + (tx >= 15 ? 'fini' : (tx >= 8 ? 'cours' : 'attente')) +
+              '">' + tx + ' %</span></td>' +
+            '<td>' + esc(s.zone_cible || '—') + '</td></tr>';
+        }).join('') + '</tbody></table>' +
+        '<p style="margin:10px 0 0;font-size:12.5px;color:#7A6A5B">Consultation : la saisie des ' +
+        'appels appartient aux opérateurs. Vous pouvez ouvrir la fiche d\'un client dans la file ' +
+        'pour la consulter.</p>';
+    }).catch(function (e) {
+      $('#ph_seance').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
+    });
 }
 
 function demarrerSeance() {
@@ -3465,10 +3583,17 @@ function afficherFiche(b, h) {
         ? '<h5>Position</h5><div id="carte_client" class="carte-client"></div>' +
           '<p class="aide">' + (geo.precision === 'relevee'
             ? 'Position <b>relevée au GPS</b> lors de la visite de l\'enquêteur.'
-            : 'Position <b>estimée du quartier</b> (OpenStreetMap) : ce n\'est pas l\'emplacement ' +
-              'exact de la boutique.') + '</p>'
+            : geo.precision === 'quartier'
+              ? 'Position <b>estimée du quartier</b> (OpenStreetMap) : ce n\'est pas ' +
+                'l\'emplacement exact de la boutique.'
+              : 'Position <b>approximative</b> : le centre de la zone, faute de quartier ' +
+                'connu. À ne pas prendre pour un repère de livraison.') + '</p>'
         : '<p class="aide">Position inconnue : aucune fiche de terrain géolocalisée pour ce ' +
           'client, et son quartier n\'a pas été retrouvé. Aucune position n\'est inventée.</p>') +
+      (aLeDroit(PEUT_PHONER_ACTIF) ? '' :
+        '<p class="aide" style="margin-top:12px">Consultation seule : la saisie de l\'appel et ' +
+        'de la commande appartient aux opérateurs de phoning.</p>') +
+      (aLeDroit(PEUT_PHONER_ACTIF) ?
       '<h5>Résultat de l\'appel</h5>' +
       '<div class="resultats" id="ph_resultats">' +
         RESULTATS_APPEL.map(function (r) {
@@ -3491,7 +3616,8 @@ function afficherFiche(b, h) {
         '<button class="btn-console" id="ph_commander">Enregistrer la commande et la demande ' +
           'de transport</button>' +
       '</div>' +
-      '<p class="aide" id="ph_etat">Choisissez un résultat, puis enregistrez.</p>' +
+      '<p class="aide" id="ph_etat">Choisissez un résultat, puis enregistrez.</p>'
+      : '') +
     '</div>';
   $$('#ph_resultats button').forEach(function (bouton) {
     bouton.onclick = function () {
@@ -3500,8 +3626,8 @@ function afficherFiche(b, h) {
       bouton.classList.add('actif');
     };
   });
-  $('#ph_enregistrer').onclick = enregistrerAppel;
-  $('#ph_commander').onclick = enregistrerCommande;
+  if ($('#ph_enregistrer')) { $('#ph_enregistrer').onclick = enregistrerAppel; }
+  if ($('#ph_commander')) { $('#ph_commander').onclick = enregistrerCommande; }
   if (geo) {
     setTimeout(function () {
       var c = cartePreparer('carte_client', geo.precision === 'relevee' ? 16 : 14);
@@ -3509,7 +3635,7 @@ function afficherFiche(b, h) {
       L.circleMarker([geo.lat, geo.lng], {
         radius: geo.precision === 'relevee' ? 9 : 11,
         color: '#FFFFFF', weight: 2,
-        fillColor: geo.precision === 'relevee' ? '#B3261E' : '#C77D2B',
+        fillColor: COULEUR_PRECISION[geo.precision] || '#E8C79A',
         fillOpacity: geo.precision === 'relevee' ? 1 : 0.85
       }).addTo(c).bindPopup('<b>' + esc(b.nom || 'Client') + '</b><br>' +
         (geo.precision === 'relevee' ? 'position relevée' : 'position estimée du quartier'));

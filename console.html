@@ -1796,7 +1796,6 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 
     <div class="bloc-console" id="bloc_carte_accueil">
       <div class="barre-carte">
-        <label><input type="checkbox" id="cc_boutiques" checked> Boutiques</label>
         <label><input type="checkbox" id="cc_camions" checked> Camions</label>
         <label><input type="checkbox" id="cc_destinations" checked> Destinations</label>
         <label><input type="checkbox" id="cc_trajets" checked> Trajets du jour</label>
@@ -1806,10 +1805,12 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
       </div>
       <div id="carte_accueil" class="carte-console haute"></div>
       <div class="legende-carte">
-        <span><span class="pastille-carte" style="background:#C77D2B"></span> quartier — position
-          <b>estimée</b> (OpenStreetMap)</span>
         <span><span class="pastille-carte" style="background:#B3261E"></span> position
           <b>relevée</b> au GPS par l'enquêteur</span>
+        <span><span class="pastille-carte" style="background:#E0A85C"></span> position
+          <b>estimée</b> au quartier (OpenStreetMap)</span>
+        <span><span class="pastille-carte" style="background:#E8C79A"></span> position
+          <b>estimée</b> à la zone annoncée</span>
         <span><span class="pastille-carte pastille-fraiche"></span> camion vu il y a moins de
           30 minutes</span>
         <span><span class="pastille-carte pastille-jour"></span> position du jour</span>
@@ -1820,13 +1821,15 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
           restant</b> vers sa destination</span>
       </div>
       <p class="aide">
-        <b>Cliquez un rond de quartier</b> pour afficher ses boutiques une par une ; survolez une
-        boutique pour voir son téléphone, ses derniers achats et son dernier contact. Le petit
-        trajet du jour suit la <b>route réellement parcourue</b>, dans la couleur du camion ;
-        le bleu montre l'<b>itinéraire qui reste</b> jusqu'à la destination. Le nom du camion,
-        son <b>chauffeur</b> et son téléphone sont sur son étiquette et dans sa bulle.
-        Une destination ne se devine pas : posez-la sur la carte en créant le transport, ou
-        écrivez le nom du quartier dans l'adresse de livraison.
+        La carte s'ouvre <b>avec toutes les boutiques géolocalisées</b> (leur couleur dit la
+        précision de leur position), les camions en mouvement et le trajet vers leur prochaine
+        destination. Le bouton <b>« Afficher toutes les boutiques »</b> les masque ou les remet.
+        Survolez une boutique pour voir son téléphone, ses derniers achats et son dernier contact ;
+        cliquez-la pour ouvrir sa fiche. Le trajet du jour suit la <b>route réellement
+        parcourue</b>, dans la couleur du camion ; le bleu montre l'<b>itinéraire qui reste</b>
+        jusqu'à la destination. Le nom du camion, son <b>chauffeur</b> et son téléphone sont sur
+        son étiquette et dans sa bulle. Une destination ne se devine pas : posez-la sur la carte en
+        créant le transport, ou écrivez le nom du quartier dans l'adresse de livraison.
       </p>
     </div>
     <div class="cartes-console" id="bord_chiffres"></div>
@@ -2252,7 +2255,8 @@ function quitter() {
      restait vide et le minuteur n'était plus armé. */
   if (ACCUEIL.carte) { try { ACCUEIL.carte.remove(); } catch (e) {} }
   ACCUEIL.carte = null; ACCUEIL.calques = {}; ACCUEIL.camions = [];
-  ACCUEIL.quartiers = 0; ACCUEIL.transports = 0; ACCUEIL.boutiquesParQuartier = {};
+  ACCUEIL.boutiques = 0; ACCUEIL.transports = 0;
+  BOUTIQUES_CARTE.total = 0; BOUTIQUES_CARTE.enCours = null;
   $('#vue_console').style.display = 'none';
   $('#vue_connexion').style.display = 'flex';
   $('#motdepasse').value = '';
@@ -3308,8 +3312,8 @@ function dessinerCamions(idCarte, camions, options) {
    prochaines destinations ».
    ========================================================================== */
 
-var ACCUEIL = { carte: null, calques: {}, camions: [], quartiers: 0, transports: 0,
-                minuteur: null, boutiquesParQuartier: {} };
+var ACCUEIL = { carte: null, calques: {}, camions: [], boutiques: 0, transports: 0,
+                minuteur: null };
 
 function chargerCarteAccueil() {
   var el = document.getElementById('carte_accueil');
@@ -3322,13 +3326,14 @@ function chargerCarteAccueil() {
     var c = cartePreparer('carte_accueil', 11);
     if (!c) { return Promise.resolve(); }
     ACCUEIL.carte = c;
-    ACCUEIL.calques.boutiques = L.layerGroup().addTo(c);
+    /* Les boutiques ont leur propre couche, posée à part : elle est masquable. */
+    ACCUEIL.calques.boutiques = L.layerGroup();
     ACCUEIL.calques.camions = L.layerGroup().addTo(c);
     ACCUEIL.calques.destinations = L.layerGroup().addTo(c);
-    $('#cc_boutiques').onchange = function () {
-      if (this.checked) { ACCUEIL.calques.boutiques.addTo(ACCUEIL.carte); }
-      else { ACCUEIL.carte.removeLayer(ACCUEIL.calques.boutiques); }
-    };
+    /* Le corridor Dakar · Mbour · Thiès est le cadre par défaut. Le calculer sur
+       les points ne tenait pas : quelques positions l'étiraient sur tout le
+       Sénégal, de Kayar à Nioro — mesuré le 23/09/2026. */
+    c.fitBounds([[14.35, -17.55], [14.90, -16.85]], { padding: [20, 20] });
     $('#cc_camions').onchange = function () {
       if (this.checked) { ACCUEIL.calques.camions.addTo(ACCUEIL.carte); }
       else { ACCUEIL.carte.removeLayer(ACCUEIL.calques.camions); }
@@ -3343,74 +3348,71 @@ function chargerCarteAccueil() {
       if (this.checked) { ACCUEIL.calques.destinations.addTo(ACCUEIL.carte); }
       else { ACCUEIL.carte.removeLayer(ACCUEIL.calques.destinations); }
     };
-    $('#cc_boutiques_toutes').onclick = afficherToutesLesBoutiques;
+    $('#cc_boutiques_toutes').onclick = basculerBoutiquesCarte;
     $('#cc_recentrer').onclick = recentrerCarteAccueil;
   }
   /* L'ordre compte : les tracés partent de la position des camions. Les charger
      en parallèle laissait la carte sans trait, parce que les camions n'étaient
      pas encore là quand les destinations arrivaient. */
-  return chargerQuartiersCarte()
-    .then(rafraichirCamionsCarte)
+  return rafraichirCamionsCarte()
     .then(chargerDestinationsCarte)
-    .then(function () { etatCarteAccueil(); });
-}
-
-/* Les quartiers : un rond par quartier, sa taille dit le nombre de boutiques.
-   Cliquer un rond charge les boutiques de ce quartier, une par une. */
-function chargerQuartiersCarte() {
-  var calque = ACCUEIL.calques.boutiques;
-  if (!calque) { return Promise.resolve(); }
-  calque.clearLayers();
-  return requete('/v_quartiers_geo?select=*&latitude=not.is.null&limit=1000')
-    .then(function (quartiers) {
-      ACCUEIL.quartiers = (quartiers || []).length;
-      var pointsQuartiers = [];
-      (quartiers || []).forEach(function (q) {
-        if (q.latitude === null || q.longitude === null) { return; }
-        if (['Dakar', 'Mbour', 'Thiès'].indexOf(q.zone) !== -1) {
-          pointsQuartiers.push([+q.latitude, +q.longitude]);
-        }
-        var n = nombre(q.boutiques);
-        var rayon = Math.max(6, Math.min(26, 5 + Math.sqrt(n) * 1.6));
-        var rond = L.circleMarker([+q.latitude, +q.longitude], {
-          radius: rayon, color: '#FFFFFF', weight: 1.5,
-          fillColor: '#C77D2B', fillOpacity: 0.75
-        }).addTo(calque);
-        rond.bindPopup('<b>' + esc(q.secteur) + '</b><br>' + esc(q.zone) + '<br>' +
-          formater(n) + ' boutique(s)<br>' +
-          '<span style="color:#7A6A5B;font-size:12px">position estimée du quartier</span><br>' +
-          '<button class="btn-console mini" data-quartier="' + esc(q.secteur) + '">' +
-          'Voir les boutiques</button>');
-        /* Un clic sur le rond ouvre DIRECTEMENT les boutiques du quartier — le
-           DGA disait, le 23/09/2026 : « quand on clique dessus, ça zoome mais ne
-           montre pas les boutiques en détail ». Plus besoin de chercher un bouton. */
-        rond.on('click', function () {
-          ACCUEIL.carte.setView([+q.latitude, +q.longitude], 14);
-          chargerBoutiquesDuQuartier(q.secteur);
-        });
-      });
-      /* Cadrage par défaut : le CORRIDOR annoncé dans l'en-tête (Dakar · Mbour ·
-         Thiès). Calculer le cadre sur les quartiers ne tenait pas : quelques
-         quartiers mal situés l'étiraient sur tout le Sénégal, de Kayar à Nioro —
-         mesuré le 23/09/2026. Bornes fixes, donc toujours justes : Dakar au
-         nord-ouest, Mbour au sud, Thiès à l'est. */
-      if (ACCUEIL.carte && !(ACCUEIL.camions || []).length) {
-        ACCUEIL.carte.fitBounds([[14.35, -17.55], [14.90, -16.85]], { padding: [20, 20] });
-      }
-    });
+    .then(function () { etatCarteAccueil(); })
+    /* Et la carte s'ouvre AVEC les boutiques géolocalisées — demande du DGA du
+       22/09/2026. Le rond de quartier est retiré (24/09/2026) : ses infobulles
+       « polluaient » et ne fonctionnaient pas bien. */
+    .then(afficherToutesLesBoutiques)
+    .then(etatCarteAccueil);
 }
 
 /* Toutes les boutiques d'un coup : c'est ce que le DGA demande — « une carte avec
    les boutiques géolocalisées ». Chaque point porte sa précision, et la couleur
    le dit. Les 6 000 points sont dessinés sur un canevas, pas en éléments de page :
-   sans cela, le navigateur s'effondre. */
+   sans cela, le navigateur s'effondre.
+   Depuis le 24/09/2026 la couche n'est construite QU'UNE fois : la masquer et la
+   remontrer ne redemande plus huit pages à la base. Le rond de quartier qui
+   portait des infobulles par quartier est retiré — le DGA : « les infobulles par
+   quartier pollue et ne fonctionne pas bien ». */
 var COULEUR_PRECISION = { 'relevee': '#B3261E', 'quartier': '#E0A85C', 'zone': '#E8C79A' };
+var BOUTIQUES_CARTE = { total: 0, enCours: null };
+
+function boutonBoutiquesEtat() {
+  var bouton = $('#cc_boutiques_toutes');
+  if (!bouton || !ACCUEIL.carte) { return; }
+  bouton.disabled = false;
+  if (!BOUTIQUES_CARTE.total) { bouton.textContent = 'Afficher toutes les boutiques'; return; }
+  bouton.textContent = ACCUEIL.carte.hasLayer(ACCUEIL.calques.boutiques)
+    ? 'Masquer les boutiques (' + formater(BOUTIQUES_CARTE.total) + ')'
+    : 'Afficher les boutiques (' + formater(BOUTIQUES_CARTE.total) + ')';
+}
+
+function basculerBoutiquesCarte() {
+  if (!ACCUEIL.carte || !ACCUEIL.calques.boutiques) { return Promise.resolve(); }
+  if (BOUTIQUES_CARTE.total) {
+    if (ACCUEIL.carte.hasLayer(ACCUEIL.calques.boutiques)) {
+      ACCUEIL.carte.removeLayer(ACCUEIL.calques.boutiques);
+    } else {
+      ACCUEIL.calques.boutiques.addTo(ACCUEIL.carte);
+    }
+    boutonBoutiquesEtat();
+    return Promise.resolve();
+  }
+  return afficherToutesLesBoutiques();
+}
 
 function afficherToutesLesBoutiques() {
   var bouton = $('#cc_boutiques_toutes');
+  if (!bouton || !ACCUEIL.carte || !ACCUEIL.calques.boutiques) { return Promise.resolve(); }
+  if (BOUTIQUES_CARTE.total) {
+    ACCUEIL.calques.boutiques.addTo(ACCUEIL.carte);
+    boutonBoutiquesEtat();
+    return Promise.resolve();
+  }
+  if (BOUTIQUES_CARTE.enCours) { return BOUTIQUES_CARTE.enCours; }
   bouton.disabled = true;
   bouton.textContent = 'Chargement…';
-  var calque = L.layerGroup().addTo(ACCUEIL.carte);
+  var calque = ACCUEIL.calques.boutiques;
+  calque.clearLayers();
+  calque.addTo(ACCUEIL.carte);
   var total = 0, page = 0, TAILLE = 1000;
   function chargerPage() {
     var debut = page * TAILLE;
@@ -3445,21 +3447,18 @@ function afficherToutesLesBoutiques() {
         });
         page += 1;
         if (lignes.length === TAILLE && page < 8) { return chargerPage(); }
-        bouton.disabled = false;
-        bouton.textContent = 'Masquer les boutiques (' + formater(total) + ')';
-        bouton.onclick = function () {
-          ACCUEIL.carte.removeLayer(calque);
-          bouton.textContent = 'Afficher toutes les boutiques';
-          bouton.onclick = afficherToutesLesBoutiques;
-        };
+        BOUTIQUES_CARTE.total = total;
+        boutonBoutiquesEtat();
         message(formater(total) + ' boutique(s) placée(s) sur la carte, chacune avec sa précision.', 'ok');
       });
   }
-  return chargerPage().catch(function (e) {
+  BOUTIQUES_CARTE.enCours = chargerPage().catch(function (e) {
+    BOUTIQUES_CARTE.enCours = null;
     bouton.disabled = false;
     bouton.textContent = 'Afficher toutes les boutiques';
     message('Boutiques non chargées : ' + esc(e.message), 'ko');
   });
+  return BOUTIQUES_CARTE.enCours;
 }
 
 /* Le contenu d'une infobulle de boutique : ce que le DGA veut voir « en les
@@ -3484,46 +3483,11 @@ function bulleBoutique(b) {
 }
 
 function chargerBoutiquesDuQuartier(secteur) {
-  var cle = secteur;
-  if (ACCUEIL.boutiquesParQuartier[cle]) {
-    message('Les boutiques de ' + secteur + ' sont déjà sur la carte. '
-            + 'Décochez « Boutiques » puis recochez pour les recharger.', 'info');
-    return;
-  }
-  requete('/v_boutiques_geo?select=code,nom,telephone,latitude,longitude,precision_position,' +
-          'statut_crm,potentiel_kg_mois,nb_commandes,derniere_commande,dernier_appel,' +
-          'dernier_resultat,rappel_prevu,secteur,zone&secteur=eq.' +
-          encodeURIComponent(secteur) + '&limit=500')
-    .then(function (boutiques) {
-      ACCUEIL.boutiquesParQuartier[cle] = true;
-      var calque = ACCUEIL.calques.boutiques;
-      var placees = 0;
-      (boutiques || []).forEach(function (b) {
-        if (b.latitude === null || b.longitude === null) { return; }
-        placees += 1;
-        var m = L.circleMarker([+b.latitude, +b.longitude], {
-          radius: b.precision_position === 'relevee' ? 7 : 5,
-          color: '#FFFFFF', weight: 1.5,
-          fillColor: b.precision_position === 'relevee' ? '#B3261E' : '#E0A85C',
-          fillOpacity: 0.95
-        }).addTo(calque);
-        /* Au survol, la fiche : nom, téléphone, derniers achats, dernier contact. */
-        m.bindTooltip(bulleBoutique(b), { direction: 'top', sticky: true, opacity: 1,
-                                          className: 'infobulle-boutique' });
-        m.bindPopup(bulleBoutique(b) + '<br><span style="color:#7A6A5B;font-size:12px">' +
-                    'Cliquez « Ouvrir la fiche » pour le détail complet.</span>');
-        m.on('popupopen', function (e) {
-          var bouton = e.popup.getElement().querySelector('[data-fiche]');
-          if (bouton) {
-            bouton.onclick = function () { ouvrirFicheDepuisLaCarte(b.code); };
-          }
-        });
-      });
-      message(formater(placees) + ' boutique(s) de ' + secteur +
-              ' affichée(s) — survolez-les pour voir leurs derniers achats et contacts.', 'ok');
-    }).catch(function (e) {
-      message('Boutiques non chargées : ' + esc(e.message), 'ko');
-    });
+  /* Retirée le 24/09/2026 avec le rond de quartier : le DGA a dit « les
+     infobulles par quartier pollue et ne fonctionne pas bien ». Les boutiques se
+     lisent maintenant sur une seule couche, celle du bouton « Afficher toutes les
+     boutiques ». La fonction reste, inutilisée, pour ne rien perdre du travail. */
+  return secteur;
 }
 
 /* Ouvrir la fiche d'un client depuis la carte : on bascule sur l'écran Phoning,
@@ -3752,7 +3716,7 @@ function chargerDestinationsCarte() {
 function etatCarteAccueil() {
   var sansPosition = 0;
   if ($('#cc_etat')) {
-    $('#cc_etat').innerHTML = ACCUEIL.quartiers + ' quartier(s) placé(s) · ' +
+    $('#cc_etat').innerHTML = formater(BOUTIQUES_CARTE.total) + ' boutique(s) placée(s) · ' +
       ACCUEIL.camions.length + ' camion(s) · ' + ACCUEIL.transports + ' transport(s) — ' +
       'mis à jour à ' + new Date().toLocaleTimeString('fr-FR').slice(0, 5);
   }

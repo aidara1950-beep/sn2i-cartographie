@@ -1150,6 +1150,16 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
   a[href^="tel:"] { color: inherit; text-decoration: none; }
 }
 
+/* --- 08/10/2026 : l'état d'envoi de chaque fiche, la précision du GPS */
+.tag.recue { background: var(--vert-pale); color: var(--vert); border-color: var(--vert-bord); }
+.tag.attente { background: var(--ambre-pale); color: var(--ambre); }
+.tag.refusee { background: var(--rouge-pale); color: var(--rouge); border-color: var(--rouge-bord); }
+.motif-refus { font-size: 13px; color: var(--rouge); margin-top: 4px; }
+#avis_attente .btn { margin-top: 8px; width: auto; min-height: 44px; }
+.gps-precision.bonne { color: var(--vert); font-weight: 700; }
+.gps-precision.moyenne { color: var(--ambre); font-weight: 700; }
+.gps-precision.faible { color: var(--rouge); font-weight: 700; }
+
 /* ==========================================================================
    SN2I — Console d'administration.
    Complète src/styles.css, qui porte la charte commune : mêmes variables,
@@ -1387,16 +1397,16 @@ table.tablo tbody tr:hover > td:first-child { background: #FDFBF8; }
 /* La largeur minimale de chaque tableau est exactement la somme de ses
    colonnes : en dessous, le cadre défile ; au-dessus, les colonnes s'étirent. */
 #dispatch_tableau table.tablo { min-width: 1225px; }
-#dispatch_tableau th:nth-child(1), #dispatch_tableau td:nth-child(1) { width: 130px; }
-#dispatch_tableau th:nth-child(2), #dispatch_tableau td:nth-child(2) { width: 100px; }
-#dispatch_tableau th:nth-child(3), #dispatch_tableau td:nth-child(3) { width: 95px; }
-#dispatch_tableau th:nth-child(4), #dispatch_tableau td:nth-child(4) { width: 190px; }
-#dispatch_tableau th:nth-child(5), #dispatch_tableau td:nth-child(5) { width: 80px; text-align: right; }
-#dispatch_tableau th:nth-child(6), #dispatch_tableau td:nth-child(6) { width: 125px; }
-#dispatch_tableau th:nth-child(7), #dispatch_tableau td:nth-child(7) { width: 140px; }
-#dispatch_tableau th:nth-child(8), #dispatch_tableau td:nth-child(8) { width: 140px; }
-#dispatch_tableau th:nth-child(9), #dispatch_tableau td:nth-child(9) { width: 110px; }
-#dispatch_tableau th:nth-child(10), #dispatch_tableau td:nth-child(10) { width: 115px; }
+#dispatch_tableau table.tablo th:nth-child(1), #dispatch_tableau table.tablo td:nth-child(1) { width: 130px; }
+#dispatch_tableau table.tablo th:nth-child(2), #dispatch_tableau table.tablo td:nth-child(2) { width: 100px; }
+#dispatch_tableau table.tablo th:nth-child(3), #dispatch_tableau table.tablo td:nth-child(3) { width: 95px; }
+#dispatch_tableau table.tablo th:nth-child(4), #dispatch_tableau table.tablo td:nth-child(4) { width: 190px; }
+#dispatch_tableau table.tablo th:nth-child(5), #dispatch_tableau table.tablo td:nth-child(5) { width: 80px; text-align: right; }
+#dispatch_tableau table.tablo th:nth-child(6), #dispatch_tableau table.tablo td:nth-child(6) { width: 125px; }
+#dispatch_tableau table.tablo th:nth-child(7), #dispatch_tableau table.tablo td:nth-child(7) { width: 140px; }
+#dispatch_tableau table.tablo th:nth-child(8), #dispatch_tableau table.tablo td:nth-child(8) { width: 140px; }
+#dispatch_tableau table.tablo th:nth-child(9), #dispatch_tableau table.tablo td:nth-child(9) { width: 110px; }
+#dispatch_tableau table.tablo th:nth-child(10), #dispatch_tableau table.tablo td:nth-child(10) { width: 115px; }
 
 #commandes_tableau table.tablo { min-width: 980px; }
 #commandes_tableau th:nth-child(1), #commandes_tableau td:nth-child(1) { width: 150px; }
@@ -2044,6 +2054,65 @@ table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td
 }
 .trajet-a-venir { animation: none; }
 .trajet-a-venir.anime { animation: trajet-avance 0.9s linear infinite; }
+
+/* ----------------------------------------- planning du dispatch */
+.pl-barre { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 10px; }
+.pl-bascule { display: inline-flex; border: 1px solid var(--bord); border-radius: 999px; overflow: hidden; }
+.pl-bascule button { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 14px; border: 0; background: var(--carte); color: var(--principal); cursor: pointer; min-height: 40px; }
+.pl-bascule button.actif { background: var(--principal); color: #fff; }
+.pl-alerte { background: var(--ambre-pale); border: 1px solid #E8D3A8; color: var(--ambre); border-radius: var(--rayon-s); padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
+.pl-cadre { overflow: auto; max-height: 72vh; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--carte); }
+.pl-grille { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+.pl-grille th, .pl-grille td { border-right: 1px solid var(--bord); border-bottom: 1px solid var(--bord); vertical-align: top; }
+.pl-grille thead th { position: sticky; top: 0; z-index: 3; background: var(--principal-pale); padding: 6px 8px; text-align: left; font-size: 12.5px; color: var(--principal); min-width: 150px; }
+.pl-grille thead th b, .pl-grille thead th span { display: block; }
+.pl-grille thead th span { font-weight: 400; color: var(--texte-doux); }
+.pl-grille thead th.pl-auj { background: var(--accent-pale); }
+.pl-grille .pl-retard { background: var(--rouge-pale) !important; }
+.pl-coin { left: 0; z-index: 4 !important; min-width: 170px !important; }
+.pl-vehicule { position: sticky; left: 0; z-index: 2; background: var(--carte); padding: 8px; min-width: 170px; max-width: 190px; text-align: left; font-size: 12.5px; }
+.pl-vehicule b, .pl-vehicule span { display: block; }
+.pl-vehicule span { font-weight: 400; color: var(--texte-doux); }
+.pl-vehicule .pl-libre { color: var(--vert); font-weight: 700; }
+.pl-vehicule .pl-occupe { color: var(--bleu); font-weight: 700; }
+.pl-vehicule .pl-proche { color: var(--vert); font-weight: 800; }
+.pl-file { background: var(--accent-pale) !important; }
+.pl-ligne-file td { background: #FFFBF4; }
+.pl-case { padding: 6px; min-width: 150px; height: 62px; transition: background .12s; }
+.pl-case.pl-possible { background: var(--vert-pale); outline: 2px dashed var(--vert); outline-offset: -4px; cursor: pointer; }
+.pl-case.pl-survol { background: #CFE8D7; }
+.pl-ticket { background: var(--carte); border: 1px solid var(--bord); border-left: 4px solid var(--accent); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px;
+  font-size: 12.5px; cursor: grab; box-shadow: var(--ombre-basse); }
+.pl-ticket b, .pl-ticket span { display: block; }
+.pl-ticket span { color: var(--texte-doux); }
+.pl-ticket .pl-repere { color: var(--texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+.pl-ticket.place { border-left-color: var(--bleu); }
+.pl-ticket.bloque { border-left-color: var(--vert); cursor: default; opacity: .9; }
+.pl-ticket .pl-statut { color: var(--bleu); font-weight: 700; }
+.pl-ticket.choisi { outline: 3px solid var(--principal); outline-offset: 1px; }
+.pl-total { font-size: 11px; color: var(--texte-doux); }
+.pl-boite { position: fixed; inset: 0; background: rgba(43,28,16,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+.pl-boite-carte { background: var(--carte); border-radius: var(--rayon); padding: var(--e4); max-width: 420px; width: 100%; }
+@media (max-width: 700px) {
+  .pl-vehicule, .pl-coin { min-width: 112px !important; max-width: 120px; padding: 6px; font-size: 11.5px; }
+  .pl-grille thead th, .pl-case { min-width: 128px; }
+  .pl-ticket { font-size: 12px; padding: 5px 6px; }
+  .pl-ticket .pl-repere { max-width: 116px; }
+  .pl-cadre { max-height: 64vh; }
+}
+
+/* ----------------------------------------- recette QA du 08/10 : cibles, contrastes, messages */
+:root { --anneau: 0 0 0 3px #8A6A3F; }
+.carte-chiffre .vers { color: var(--principal); }
+.message-fermer { float: right; font: inherit; font-size: 20px; line-height: 1; border: 0; background: transparent; cursor: pointer;
+  color: inherit; min-width: 44px; min-height: 44px; margin: -10px -8px -10px 8px; }
+.pl-boite-carte .pa-etiquette { margin-top: 10px; }
+@media (max-width: 700px) {
+  #onglets button, .btn-mini, .btn-console, .pl-bascule button { min-height: 44px; }
+  .btn-mini { padding: 0 14px; }
+  input[type="checkbox"] { width: 24px; height: 24px; }
+  table.tablo a[href^="tel:"] { display: inline-block; min-height: 44px; line-height: 44px; }
+}
 </style>
 </head>
 <body>
@@ -2159,11 +2228,11 @@ table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td
   <section class="ecran-console" data-ecran="dispatch">
     <div class="entete-ecran">
       <h2>Dispatch des transports</h2>
-      <p>Le véhicule libre le plus proche est proposé en premier. Une demande dispatchée passe en « En route et à venir ».</p>
+      <p>Chaque demande est un ticket posé à son jour de livraison : glissez-le sur un camion. Le plus proche est signalé quand vous choisissez un ticket.</p>
     </div>
     <div class="pa-compteurs dp-resume" id="dispatch_resume"></div>
     <div class="bloc-console">
-      <h3>À dispatcher <span class="compte" id="dispatch_compte">0</span></h3>
+      <h3>Planning <span class="compte" id="dispatch_compte">0</span> <span class="aide">à dispatcher</span></h3>
       <div id="dispatch_tableau"><div class="chargement">Chargement…</div></div>
     </div>
     <div class="bloc-console">
@@ -2582,12 +2651,23 @@ function toast(m) {
   var el = $('#toast'); el.textContent = m; el.classList.add('visible');
   clearTimeout(minuteur); minuteur = setTimeout(function () { el.classList.remove('visible'); }, 3000);
 }
+/* Une erreur reste à l'écran jusqu'à ce qu'on la ferme (×) ; une confirmation
+   s'efface au bout de 6 s ; tout message s'efface en changeant d'onglet. */
+var MINUTEUR_MESSAGE = null;
 function message(texte, genre) {
   var el = $('#message');
   el.className = 'message-console ' + (genre || 'info');
-  el.innerHTML = texte;
+  el.innerHTML = texte + (genre === 'ko' ? ' <button class="message-fermer" type="button" aria-label="Fermer le message">×</button>' : '');
   el.style.display = 'block';
-  setTimeout(function () { el.style.display = 'none'; }, 6000);
+  var f = el.querySelector('.message-fermer');
+  if (f) { f.onclick = function () { el.style.display = 'none'; }; }
+  clearTimeout(MINUTEUR_MESSAGE);
+  if (genre !== 'ko') { MINUTEUR_MESSAGE = setTimeout(function () { el.style.display = 'none'; }, 6000); }
+}
+/* Un seul lien d'appel, quel que soit le format du numéro (espaces, +221…). */
+function lienTel(t) {
+  var c = String(t || '').replace(/\D/g, '').slice(-9);
+  return c.length === 9 ? '<a href="tel:+221' + c + '">' + esc(telephoneLisible(c)) + '</a>' : esc(t || '—');
 }
 function nombre(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
 function formater(n) { return String(Math.round(nombre(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
@@ -2767,6 +2847,9 @@ function construireOnglets() {
 }
 
 function ouvrirOnglet(nom) {
+  var permis = ONGLETS_PAR_ROLE[monRole()] || [];
+  if (permis.indexOf(nom) === -1) { nom = permis[0] || 'bord'; }
+  if ($('#message')) { $('#message').style.display = 'none'; }
   SESSION.onglet = nom;
   $$('.ecran-console').forEach(function (e) { e.classList.toggle('actif', e.dataset.ecran === nom); });
   $$('#onglets button').forEach(function (b) { b.classList.toggle('actif', b.dataset.onglet === nom); });
@@ -2995,6 +3078,237 @@ function etiqueterTableaux(racine) {
   });
 }
 
+/* ------------------------------------------------------ planning du dispatch
+
+   Demande du DGA (08/10/2026) : « un planning visuel ; les demandes sont des
+   tickets qu'on glisse sur les camions libres présentés en ligne ; une ou deux
+   semaines ; le ticket est bloqué au jour de livraison, on ne peut que le
+   descendre ; une alerte pour ce qui reste à dispatcher hors de la période ».
+
+     · une colonne par jour (7 ou 14), plus une colonne « En retard » quand une
+       demande non dispatchée a passé son jour ;
+     · une première ligne « À dispatcher », puis une ligne par véhicule ACTIF
+       qui a une plaque, les libres d'abord ;
+     · un ticket ne se pose QUE dans la colonne de son jour : sur un camion
+       (dispatcher_demande), ou d'un camion à l'autre tant qu'il n'est pas parti
+       (reaffecter_livraison) ;
+     · au toucher (téléphone) : toucher le ticket, puis la case du camion. */
+
+var PLANNING = { jours: 7, choisi: null, demandes: [], places: [] };
+try { PLANNING.jours = +(localStorage.getItem('sn2i_planning_jours') || 7) === 14 ? 14 : 7; } catch (e) { /* stockage indisponible */ }
+
+function jourCle(d) { return d.toISOString().slice(0, 10); }
+function joursAffiches() {
+  var t = [], base = new Date(aujourdhui() + 'T00:00:00Z');
+  for (var i = 0; i < PLANNING.jours; i++) { t.push(jourCle(new Date(base.getTime() + i * 86400000))); }
+  return t;
+}
+function libelleJour(cle) {
+  if (cle === 'retard') { return '<b>En retard</b><span>jour passé</span>'; }
+  var d = new Date(cle + 'T12:00:00Z');
+  var noms = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  return '<b>' + (cle === aujourdhui() ? 'Aujourd\'hui' : cle === jourPlus(1) ? 'Demain' : noms[d.getUTCDay()]) + '</b><span>' +
+    cle.slice(8, 10) + '/' + cle.slice(5, 7) + '</span>';
+}
+/* Le jour d'un ticket : sa date de livraison souhaitée ; passé et non dispatché → « En retard ». */
+function jourDuTicket(t) {
+  var j = t.date_souhaitee || t.date_demande || aujourdhui();
+  return j < aujourdhui() ? (t.place ? aujourdhui() : 'retard') : j;
+}
+
+function ticketsDuPlanning(demandes, enCours) {
+  var a = (demandes || []).map(function (d) {
+    return { id: d.id, numero: d.numero, client: d.destinataire_nom, montant: d.montant_a_encaisser, unites: d.nb_unites,
+             produits: d.produits, creneau: d.creneau, repere: d.repere || d.adresse_livraison, date_souhaitee: d.date_souhaitee,
+             date_demande: d.date_demande, lat: d.latitude, lng: d.longitude, precision: d.precision_position,
+             place: false, vehicule_id: null, statut: 'a_dispatcher' };
+  });
+  var b = (enCours || []).map(function (t) {
+    return { id: t.id, numero: t.numero, client: t.destinataire_nom, montant: t.montant_a_encaisser, unites: t.nb_unites,
+             produits: t.produits, creneau: t.creneau, repere: t.repere || t.adresse_livraison, date_souhaitee: t.date_souhaitee,
+             lat: t.destination_latitude, lng: t.destination_longitude, place: true, vehicule_id: t.vehicule_id,
+             statut: t.livraison_statut || 'programmee', arrivee: t.heure_arrivee_prevue };
+  });
+  return a.concat(b);
+}
+
+function vehiculesDuPlanning() {
+  return DISPATCH.flotte.filter(function (v) { return v.etat === 'actif' && v.immatriculation; }).sort(function (a, b) {
+    if (a.disponible !== b.disponible) { return a.disponible ? -1 : 1; }
+    if (a.type !== b.type) { return a.type === 'camion' ? -1 : 1; }
+    return String(a.immatriculation).localeCompare(String(b.immatriculation));
+  });
+}
+
+function rendrePlanning(demandes, enCours) {
+  var tickets = ticketsDuPlanning(demandes, enCours);
+  PLANNING.tickets = tickets;
+  var jours = joursAffiches(), fin = jours[jours.length - 1];
+  var retard = tickets.filter(function (t) { return !t.place && jourDuTicket(t) === 'retard'; });
+  var colonnes = (retard.length ? ['retard'] : []).concat(jours);
+  var plusTard = tickets.filter(function (t) { var j = jourDuTicket(t); return !t.place && j !== 'retard' && j > fin; })
+    .sort(function (a, b) { return jourDuTicket(a) < jourDuTicket(b) ? -1 : 1; });
+  var vehicules = vehiculesDuPlanning();
+  var sansPlaque = DISPATCH.flotte.filter(function (v) { return v.etat === 'actif' && !v.immatriculation; }).length;
+
+  /* L'alerte : ce qui reste à placer et qu'on ne voit pas. */
+  var alertes = [];
+  if (retard.length) { alertes.push('<b>' + retard.length + '</b> demande(s) en retard, non dispatchée(s) : colonne « En retard »'); }
+  if (plusTard.length) {
+    alertes.push('<b>' + plusTard.length + '</b> demande(s) à dispatcher après le ' + esc(dateCourte(fin)) +
+      ', la prochaine le <b>' + esc(dateCourte(jourDuTicket(plusTard[0]))) + '</b>' +
+      (PLANNING.jours === 7 ? ' — <button class="btn-mini" id="pl_voir14">Voir 14 jours</button>' : ''));
+  }
+  var html = '<div class="pl-barre"><div class="pl-bascule">' +
+      '<button class="' + (PLANNING.jours === 7 ? 'actif' : '') + '" data-pl-jours="7">1 semaine</button>' +
+      '<button class="' + (PLANNING.jours === 14 ? 'actif' : '') + '" data-pl-jours="14">2 semaines</button></div>' +
+      '<span class="aide">Glissez un ticket sur un camion, dans la colonne de son jour. Sur téléphone : touchez le ticket, puis la case.</span></div>' +
+    (alertes.length ? '<div class="pl-alerte">⚠ ' + alertes.join('<br>⚠ ') + '</div>' : '') +
+    '<div class="pl-cadre"><table class="pl-grille"><thead><tr><th class="pl-coin">Véhicule</th>' +
+      colonnes.map(function (c) { return '<th class="' + (c === 'retard' ? 'pl-retard' : (c === aujourdhui() ? 'pl-auj' : '')) + '">' + libelleJour(c) + '</th>'; }).join('') +
+    '</tr></thead><tbody>' +
+    ligneDuPlanning(null, colonnes, tickets) +
+    vehicules.map(function (v) { return ligneDuPlanning(v, colonnes, tickets); }).join('') +
+    '</tbody></table></div>' +
+    (sansPlaque ? '<p class="aide">' + sansPlaque + ' véhicule(s) actif(s) sans plaque ne figurent pas au planning : complétez-les dans « Camions et flotte ».</p>' : '');
+  $('#dispatch_tableau').innerHTML = html;
+  brancherPlanning();
+}
+
+function ligneDuPlanning(v, colonnes, tickets) {
+  var tete = v
+    ? '<th class="pl-vehicule" data-pl-veh="' + v.id + '"><b>' + esc(v.immatriculation) + '</b>' +
+        '<span>' + esc(v.type === 'tricycle' ? 'tricycle' : 'camion') + ' · ' + esc(v.chauffeur || 'sans chauffeur') + '</span>' +
+        '<span class="' + (v.disponible ? 'pl-libre' : 'pl-occupe') + '">' + (v.disponible ? 'libre' : 'en livraison') + '</span>' +
+        '<span class="pl-distance" data-pl-dist="' + v.id + '"></span></th>'
+    : '<th class="pl-vehicule pl-file"><b>À dispatcher</b><span>' +
+        tickets.filter(function (t) { return !t.place; }).length + ' ticket(s) en attente</span></th>';
+  return '<tr class="' + (v ? '' : 'pl-ligne-file') + '">' + tete + colonnes.map(function (c) {
+    var ici = tickets.filter(function (t) {
+      return jourDuTicket(t) === c && (v ? (t.place && t.vehicule_id === v.id) : !t.place);
+    });
+    var unites = ici.reduce(function (n, t) { return n + nombre(t.unites); }, 0);
+    return '<td class="pl-case' + (c === 'retard' ? ' pl-retard' : '') + '" data-pl-jour="' + c + '" data-pl-cible="' + (v ? v.id : '') + '">' +
+      ici.map(ticketHtml).join('') +
+      (v && ici.length ? '<div class="pl-total">' + ici.length + ' livraison(s) · ' + formater(unites) + ' u.</div>' : '') + '</td>';
+  }).join('') + '</tr>';
+}
+
+function ticketHtml(t) {
+  var bloque = t.place && t.statut === 'en_route';
+  var detail = [t.numero, t.produits, t.repere, t.creneau ? LIBELLES_CRENEAU[t.creneau] : '', t.arrivee ? 'arrivée ' + heureLocale(t.arrivee) : '']
+    .filter(Boolean).join(' · ');
+  return '<div class="pl-ticket' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + '"' +
+    (bloque ? '' : ' draggable="true"') + ' data-pl-ticket="' + t.id + '" title="' + esc(detail) + '">' +
+    '<b>' + esc(t.client || 'Client') + '</b>' +
+    '<span>' + (t.montant ? francs(t.montant) + ' · ' : '') + formater(t.unites) + ' u.' +
+      (t.creneau ? ' · ' + esc(LIBELLES_CRENEAU[t.creneau] || '') : '') + '</span>' +
+    (t.repere ? '<span class="pl-repere">📍 ' + esc(t.repere) + '</span>' : '') +
+    (t.place ? '<span class="pl-statut">' + (bloque ? '🚚 en route' : 'programmée' + (t.arrivee ? ' · ' + esc(heureLocale(t.arrivee)) : '')) + '</span>' : '') +
+  '</div>';
+}
+
+/* Le ticket choisi (glissé ou touché) : seules les cases de SON jour s'allument,
+   et chaque camion affiche sa distance à la livraison, le plus proche signalé. */
+function choisirTicket(id) {
+  var t = (PLANNING.tickets || []).filter(function (x) { return x.id === id; })[0];
+  PLANNING.choisi = t || null;
+  $$('.pl-ticket').forEach(function (e) { e.classList.toggle('choisi', !!t && e.dataset.plTicket === id); });
+  $$('.pl-case').forEach(function (c) {
+    var ok = !!t && c.dataset.plJour === jourDuTicket(t) && c.dataset.plCible && c.dataset.plCible !== (t.vehicule_id || '');
+    c.classList.toggle('pl-possible', ok);
+  });
+  var meilleur = null, best = Infinity;
+  $$('[data-pl-dist]').forEach(function (s) {
+    s.textContent = ''; s.classList.remove('pl-proche');
+    if (!t || t.lat === null || t.lat === undefined) { return; }
+    var v = DISPATCH.flotte.filter(function (x) { return x.id === s.dataset.plDist; })[0];
+    if (!v || v.latitude === null || v.age_minutes === null || +v.age_minutes > 120) { return; }
+    var km = distanceKm({ lat: +v.latitude, lng: +v.longitude }, { lat: +t.lat, lng: +t.lng });
+    s.textContent = kmLisible(km) + ' de la livraison';
+    if (v.disponible && km < best) { best = km; meilleur = s; }
+  });
+  if (meilleur) { meilleur.classList.add('pl-proche'); meilleur.textContent = '★ le plus proche · ' + meilleur.textContent; }
+}
+
+function poserTicket(t, vehiculeId) {
+  var v = DISPATCH.flotte.filter(function (x) { return x.id === vehiculeId; })[0];
+  if (!t || !v) { return; }
+  var faire = function (chauffeur) {
+    var km = t.lat !== null && t.lat !== undefined && v.latitude !== null ? distanceKm({ lat: +v.latitude, lng: +v.longitude }, { lat: +t.lat, lng: +t.lng }) : null;
+    var appel = t.place
+      ? rpc('reaffecter_livraison', { p_demande: t.id, p_vehicule: v.id, p_chauffeur: chauffeur || null })
+      : rpc('dispatcher_demande', { p_demande: t.id, p_vehicule: v.id, p_chauffeur: chauffeur || null,
+          p_arrivee: arriveeProposee({ date_souhaitee: jourDuTicket(t) === 'retard' ? aujourdhui() : jourDuTicket(t), creneau: t.creneau }, km).toISOString() });
+    appel.then(function (r) {
+      message(esc(t.client || 'Ticket') + ' → <b>' + esc(r.vehicule) + '</b> · ' + esc(r.chauffeur) +
+        (t.place ? ' (déplacé).' : '. Heure d\'arrivée proposée : corrigez-la dans « En route et à venir ».'), 'ok');
+      PLANNING.choisi = null; chargerDispatch();
+    }).catch(function (e) { message('Non placé : ' + esc(e.message), 'ko'); chargerDispatch(); });
+  };
+  if (v.chauffeur_id) { faire(null); return; }
+  /* Véhicule sans chauffeur : on le demande, parmi les chauffeurs actifs. */
+  var boite = document.createElement('div');
+  boite.className = 'pl-boite';
+  boite.innerHTML = '<div class="pl-boite-carte"><h3>' + esc(v.immatriculation) + ' n\'a pas de chauffeur</h3>' +
+    '<label class="pa-etiquette">Qui le conduit ?<select class="pa-champ" id="pl_chauffeur">' +
+    optionsChauffeurs(null).replace('— chauffeur du véhicule —', '— choisir —') + '</select></label>' +
+    '<div class="pa-actions"><button class="pa-btn pa-discret" id="pl_annuler">Annuler</button>' +
+    '<button class="pa-btn pa-principal" id="pl_ok">Placer le ticket</button></div></div>';
+  document.body.appendChild(boite);
+  $('#pl_annuler').onclick = function () { boite.remove(); chargerDispatch(); };
+  $('#pl_ok').onclick = function () {
+    var c = $('#pl_chauffeur').value;
+    if (!c) { message('Choisissez un chauffeur.', 'ko'); return; }
+    boite.remove(); faire(c);
+  };
+}
+
+function brancherPlanning() {
+  $$('[data-pl-jours]').forEach(function (b) {
+    b.onclick = function () {
+      PLANNING.jours = +b.dataset.plJours;
+      try { localStorage.setItem('sn2i_planning_jours', String(PLANNING.jours)); } catch (e) { /* sans effet */ }
+      chargerDispatch();
+    };
+  });
+  if ($('#pl_voir14')) { $('#pl_voir14').onclick = function () { $('[data-pl-jours="14"]').click(); }; }
+  var peut = aLeDroit(PEUT_DISPATCHER);
+  $$('.pl-ticket').forEach(function (e) {
+    if (!peut || e.classList.contains('bloque')) { e.removeAttribute('draggable'); return; }
+    e.ondragstart = function (ev) {
+      ev.dataTransfer.setData('text/plain', e.dataset.plTicket);
+      ev.dataTransfer.effectAllowed = 'move';
+      choisirTicket(e.dataset.plTicket);
+    };
+    e.ondragend = function () { $$('.pl-case').forEach(function (c) { c.classList.remove('pl-survol'); }); };
+    e.onclick = function (ev) {
+      ev.stopPropagation();
+      choisirTicket(PLANNING.choisi && PLANNING.choisi.id === e.dataset.plTicket ? null : e.dataset.plTicket);
+    };
+  });
+  $$('.pl-case').forEach(function (c) {
+    c.ondragover = function (ev) { if (c.classList.contains('pl-possible')) { ev.preventDefault(); c.classList.add('pl-survol'); } };
+    c.ondragleave = function () { c.classList.remove('pl-survol'); };
+    c.ondrop = function (ev) {
+      ev.preventDefault(); c.classList.remove('pl-survol');
+      if (!c.classList.contains('pl-possible')) { return; }
+      poserTicket(PLANNING.choisi, c.dataset.plCible);
+    };
+    c.onclick = function () {
+      if (!PLANNING.choisi) { return; }
+      if (!c.classList.contains('pl-possible')) {
+        if (c.dataset.plJour !== jourDuTicket(PLANNING.choisi)) {
+          message('Le ticket reste à son jour de livraison : posez-le dans la colonne du ' +
+                  esc(jourDuTicket(PLANNING.choisi) === 'retard' ? 'retard' : dateCourte(jourDuTicket(PLANNING.choisi))) + '.', 'ko');
+        }
+        return;
+      }
+      poserTicket(PLANNING.choisi, c.dataset.plCible);
+    };
+  });
+}
+
 function chargerDispatch() {
   preparerCreationTransport();
   $('#dispatch_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
@@ -3017,10 +3331,7 @@ function chargerDispatch() {
       '<span><b>' + livreesAuj + '</b> livrée(s) aujourd\'hui</span>' +
       '<span><b>' + DISPATCH.flotte.filter(function (v) { return v.disponible; }).length + '</b> véhicule(s) libre(s)</span>';
 
-    $('#dispatch_tableau').innerHTML = DISPATCH.demandes.length
-      ? '<div class="dp-cartes">' + DISPATCH.demandes.map(function (d) { return carteDemande(d, peut); }).join('') + '</div>'
-      : '<div class="vide">Rien à dispatcher : toutes les demandes ont un camion.</div>';
-    DISPATCH.demandes.forEach(function (d) { brancherCarteDemande(d); });
+    rendrePlanning(DISPATCH.demandes, enCours);
 
     $('#dispatch_en_cours').innerHTML = enCours.length ? tableauEnCours(enCours, peut)
       : '<div class="vide">Aucun transport en route.</div>';
@@ -3155,10 +3466,29 @@ function tableauEnCours(lignes, peut) {
         (peut && t.livraison_id ? '<td class="dp-gestes">' +
           (t.livraison_statut !== 'en_route' ? '<button class="btn-mini" data-geste="en_route" data-liv="' + t.livraison_id + '">Parti</button>' : '') +
           '<button class="btn-mini" data-geste="livree" data-liv="' + t.livraison_id + '">Livrée</button>' +
+          '<button class="btn-mini discret" data-geste="partielle" data-liv="' + t.livraison_id + '">En partie</button>' +
           '<button class="btn-mini discret" data-geste="echec" data-liv="' + t.livraison_id + '">Échec</button>' +
-          '<button class="btn-mini discret" data-geste="eta" data-liv="' + t.livraison_id + '">Heure ✓</button></td>' : (peut ? '<td></td>' : '')) +
+          '<button class="btn-mini discret" data-geste="eta" data-liv="' + t.livraison_id + '">Enregistrer l\'heure</button></td>' : (peut ? '<td></td>' : '')) +
       '</tr>';
     }).join('') + '</tbody></table>';
+}
+
+var MOTIFS_ECHEC = ['Client absent', 'Client a refusé la marchandise', 'Adresse ou repère introuvable', 'Panne du véhicule',
+  'Manque de place ou de stock au chargement', 'Autre raison'];
+
+/* Une petite fenêtre dans la page (plus de boîte système) : un titre, des
+   champs, « Annuler » et une action. */
+function boite(titre, corps, libelleOk, surOk) {
+  var b = document.createElement('div');
+  b.className = 'pl-boite';
+  b.innerHTML = '<div class="pl-boite-carte" role="dialog" aria-label="' + esc(titre) + '"><h3>' + esc(titre) + '</h3>' + corps +
+    '<div class="pa-actions"><button class="pa-btn pa-discret" data-boite="non">Annuler</button>' +
+    '<button class="pa-btn pa-principal" data-boite="oui">' + esc(libelleOk) + '</button></div></div>';
+  document.body.appendChild(b);
+  b.querySelector('[data-boite="non"]').onclick = function () { b.remove(); };
+  b.querySelector('[data-boite="oui"]').onclick = function () { if (surOk(b) !== false) { b.remove(); } };
+  var premier = b.querySelector('input, select, textarea'); if (premier) { premier.focus(); }
+  return b;
 }
 
 function brancherEnCours() {
@@ -3169,12 +3499,54 @@ function brancherEnCours() {
       var change = champ && champ.value && champ.value !== champ.defaultValue;
       var eta = champ && champ.value && (geste === 'eta' || change) ? new Date(champ.value).toISOString() : null;
       if (geste === 'eta' && !eta) { message('Choisissez la nouvelle heure d\'arrivée.', 'ko'); return; }
-      var commentaire = null;
       if (geste === 'echec') {
-        commentaire = window.prompt('Pourquoi la livraison a-t-elle échoué ?');
-        if (!commentaire) { return; }
+        boite('Pourquoi la livraison a-t-elle échoué ?', '<label class="pa-etiquette">Motif<select class="pa-champ" data-b="motif">' +
+          MOTIFS_ECHEC.map(function (m) { return '<option>' + esc(m) + '</option>'; }).join('') + '</select></label>' +
+          '<label class="pa-etiquette">Précision<input class="pa-champ" data-b="precision" placeholder="Facultatif, sauf « Autre raison »"></label>' +
+          '<p class="aide">La demande revient au dispatch, sans camion : vous pourrez la confier à un autre.</p>',
+          'Déclarer l\'échec', function (bx) {
+            var m = bx.querySelector('[data-b="motif"]').value, pr = bx.querySelector('[data-b="precision"]').value.trim();
+            if (m === 'Autre raison' && pr.length < 3) { message('Précisez la raison.', 'ko'); return false; }
+            executerGeste(b, id, 'echec', null, m + (pr ? ' — ' + pr : ''));
+          });
+        return;
       }
-      if (geste === 'livree' && !window.confirm('Confirmer la livraison ? Elle ne pourra plus être modifiée.')) { return; }
+      if (geste === 'partielle') {
+        boite('Livrée en partie', '<label class="pa-etiquette">Quantité livrée<input class="pa-champ" inputmode="numeric" data-b="qte"></label>' +
+          '<label class="pa-etiquette">Pourquoi pas tout ?<input class="pa-champ" data-b="note" placeholder="Facultatif"></label>' +
+          '<p class="aide">Le reste devient une nouvelle demande, à dispatcher dès demain.</p>', 'Enregistrer', function (bx) {
+            var q = +bx.querySelector('[data-b="qte"]').value.replace(/\D/g, '');
+            if (!q) { message('Indiquez la quantité livrée.', 'ko'); return false; }
+            rpc('livraison_partielle', { p_livraison: id, p_qte: q, p_commentaire: bx.querySelector('[data-b="note"]').value || null })
+              .then(function (r) { message('Livrée en partie : ' + esc(r.restant) + ' unité(s) restent, nouvelle demande ' + esc(r.reliquat) + '.', 'ok'); rechargerSuivi(); })
+              .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+          });
+        return;
+      }
+      if (geste === 'encaisser') {
+        boite('Encaisser', '<label class="pa-etiquette">Montant reçu (FCFA)<input class="pa-champ" inputmode="numeric" data-b="montant" value="' +
+          esc(b.dataset.reste || '') + '"></label>' +
+          '<label class="pa-etiquette">Date<input type="date" class="pa-champ" data-b="date" value="' + aujourdhui() + '" max="' + aujourdhui() + '"></label>' +
+          '<label class="pa-etiquette">Mode et remarque<input class="pa-champ" data-b="note" placeholder="Espèces, Wave, chèque…"></label>', 'Enregistrer', function (bx) {
+            var mt = +bx.querySelector('[data-b="montant"]').value.replace(/\D/g, '');
+            if (!mt) { message('Indiquez le montant reçu.', 'ko'); return false; }
+            rpc('encaisser_livraison', { p_livraison: id, p_montant: mt, p_date: bx.querySelector('[data-b="date"]').value || null,
+                                         p_commentaire: bx.querySelector('[data-b="note"]').value || null })
+              .then(function (l) { message('Encaissé ' + francs(mt) + ' — total ' + francs(l.encaissement) + ' sur ' + francs(l.montant) + '.', 'ok'); rechargerSuivi(); })
+              .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+          });
+        return;
+      }
+      if (geste === 'livree' && !window.confirm('Confirmer la livraison complète ? Elle ne pourra plus être modifiée.')) { return; }
+      executerGeste(b, id, geste, eta, null);
+    };
+  });
+}
+
+function rechargerSuivi() { if (SESSION.onglet === 'dispatch') { chargerDispatch(); } else { chargerLivraisons(); } }
+
+function executerGeste(b, id, geste, eta, commentaire) {
+  (function () {
       /* Un geste à la fois : les boutons de la ligne se figent jusqu'à la réponse. */
       var freres = $$('[data-liv="' + id + '"]');
       if (freres.some(function (x) { return x.disabled; })) { return; }
@@ -3184,14 +3556,13 @@ function brancherEnCours() {
         .then(function (l) {
           message('Livraison ' + esc(l.numero) + ' : ' + esc(LIBELLES_STATUT_LIVRAISON[l.statut] || l.statut) +
                   (l.heure_arrivee_prevue ? ' · arrivée prévue ' + esc(heureLocale(l.heure_arrivee_prevue)) : '') + '.', 'ok');
-          if (SESSION.onglet === 'dispatch') { chargerDispatch(); } else { chargerLivraisons(); }
+          rechargerSuivi();
         })
         .catch(function (e) {
           freres.forEach(function (x) { x.disabled = false; });
           message('Non enregistré : ' + esc(e.message), 'ko');
         });
-    };
-  });
+  })();
 }
 
 /* -------------------------------------------------------------- camions */
@@ -3328,27 +3699,41 @@ function brancherChauffeurs() {
 
 /* ----------------------------------------------------------- commandes */
 
+var LIBELLES_STATUT_COMMANDE = { a_confirmer: 'À confirmer', confirmee: 'Confirmée', en_preparation: 'En préparation',
+  chargee: 'Chargée', livree: 'Livrée', livree_partielle: 'Livrée en partie', annulee: 'Annulée', echec: 'Échec' };
+
+/* Recette QA du 08/10/2026 : statuts bruts, ni client ni montant, recherche qui
+   ne portait pas sur le nom. Le client vient de la boutique liée ; la recherche
+   porte sur le numéro, le client, son téléphone et l'adresse. */
 function chargerCommandes() {
   $('#commandes_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
-  var filtre = $('#cmd_recherche').value.trim();
-  var chemin = '/commandes?select=*&order=date_commande.desc&limit=200';
-  if (filtre) { chemin += '&or=(numero.ilike.*' + encodeURIComponent(filtre) + '*,adresse_livraison.ilike.*' + encodeURIComponent(filtre) + '*)'; }
-  requete(chemin).then(function (commandes) {
-    if (!commandes || !commandes.length) {
-      $('#commandes_tableau').innerHTML = '<div class="vide">Aucune commande' + (filtre ? ' pour ce critère' : '') + '.</div>';
+  var filtre = $('#cmd_recherche').value.trim().toLowerCase();
+  var chiffres = filtre.replace(/\D/g, '');
+  requete('/commandes?select=*,boutiques(nom,telephone)&order=date_commande.desc,date_creation.desc&limit=300').then(function (commandes) {
+    commandes = (commandes || []).filter(function (c) {
+      if (!filtre) { return true; }
+      var b = c.boutiques || {};
+      return [c.numero, b.nom, c.adresse_livraison, c.operateur_nom].some(function (x) { return String(x || '').toLowerCase().indexOf(filtre) !== -1; }) ||
+        (chiffres.length >= 4 && String(b.telephone || '').replace(/\D/g, '').indexOf(chiffres) !== -1);
+    });
+    if (!commandes.length) {
+      $('#commandes_tableau').innerHTML = '<div class="vide">Aucune commande' + (filtre ? ' pour « ' + esc(filtre) + ' »' : '') + '.</div>';
       return;
     }
-    $('#commandes_tableau').innerHTML = '<table class="tablo"><thead><tr>' +
-      '<th>Numéro</th><th>Date</th><th>Source</th><th>Unités</th><th>Adresse</th><th>Opérateur</th><th>Statut</th>' +
+    $('#commandes_tableau').innerHTML = '<table class="tablo fl-flotte carte-mobile"><thead><tr>' +
+      '<th>Numéro</th><th>Date</th><th>Client</th><th>Montant</th><th>Unités</th><th>Adresse</th><th>Opérateur</th><th>Statut</th>' +
       '</tr></thead><tbody>' + commandes.map(function (c) {
-        return '<tr><td class="num"><b>' + esc(c.numero) + '</b></td>' +
+        var b = c.boutiques || {};
+        return '<tr><td class="num"><b>' + esc(c.numero) + '</b><br><span class="aide">' + esc(c.source === 'phoning' ? 'phoning' : (c.source || '—')) + '</span></td>' +
           '<td class="num">' + dateCourte(c.date_commande) + '</td>' +
-          '<td>' + esc(c.source || '—') + '</td>' +
+          '<td>' + esc(b.nom || '—') + (b.telephone ? '<br>' + lienTel(b.telephone) : '') + '</td>' +
+          '<td class="num">' + (c.montant_estime ? francs(c.montant_estime) : '—') + '</td>' +
           '<td class="num">' + formater(c.nb_unites) + '</td>' +
           '<td>' + esc((c.adresse_livraison || '—').slice(0, 40)) + '</td>' +
           '<td>' + esc(c.operateur_nom || '—') + '</td>' +
-          '<td><span class="etiquette-statut ' + classeStatut(c.statut) + '">' + esc(c.statut) + '</span></td></tr>';
+          '<td><span class="etiquette-statut ' + classeStatut(c.statut) + '">' + esc(LIBELLES_STATUT_COMMANDE[c.statut] || c.statut) + '</span></td></tr>';
       }).join('') + '</tbody></table>';
+    etiqueterTableaux($('#commandes_tableau'));
   }).catch(function (e) {
     $('#commandes_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
@@ -3368,15 +3753,17 @@ function classeStatut(s) {
    signé relève la position du client (enregistrer_position_bl). Le phoning y
    voit tout, sans pouvoir rien changer. */
 
-var LIV_TOUT = false;
+var LIV_VUE = 'cours';   // cours | encaisser | tout
 
 function chargerLivraisons() {
   if (!$('#liv_suivi_q')) { $('#liv_suivi_contenu').innerHTML = blocSuiviClient('liv_suivi'); brancherSuiviClient('liv_suivi'); }
   $('#livraisons_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
   var gere = aLeDroit(PEUT_DISPATCHER);
-  var filtre = LIV_TOUT ? '' : '&statut=in.(programmee,en_route)';
-  $('#liv_bascule').textContent = LIV_TOUT ? 'Voir seulement les livraisons en cours' : 'Voir tout l\'historique';
-  $('#liv_bascule').onclick = function () { LIV_TOUT = !LIV_TOUT; chargerLivraisons(); };
+  var filtre = LIV_VUE === 'cours' ? '&statut=in.(programmee,en_route)' : LIV_VUE === 'encaisser' ? '&statut=in.(livree,livree_partielle)' : '';
+  $('#liv_bascule').outerHTML = '<div class="pl-bascule" id="liv_bascule">' + [['cours', 'En cours'], ['encaisser', 'À encaisser'], ['tout', 'Tout l\'historique']].map(function (x) {
+    return '<button class="' + (LIV_VUE === x[0] ? 'actif' : '') + '" data-liv-vue="' + x[0] + '">' + x[1] + '</button>';
+  }).join('') + '</div>';
+  $$('[data-liv-vue]').forEach(function (b) { b.onclick = function () { LIV_VUE = b.dataset.livVue; chargerLivraisons(); }; });
   Promise.all([
     requete('/livraisons?select=*' + filtre + '&order=date_livraison.desc,heure_arrivee_prevue.asc.nullslast&limit=200'),
     requete('/v_flotte_gestion?select=id,immatriculation,latitude,longitude,age_minutes,vitesse_kmh,a_balise,chauffeur_telephone')
@@ -3384,7 +3771,7 @@ function chargerLivraisons() {
     var lignes = r[0] || [], flotte = {};
     (r[1] || []).forEach(function (v) { flotte[v.id] = v; });
     if (!lignes.length) {
-      $('#livraisons_tableau').innerHTML = '<div class="vide">' + (LIV_TOUT ? 'Aucune livraison enregistrée.'
+      $('#livraisons_tableau').innerHTML = '<div class="vide">' + (LIV_VUE === 'tout' ? 'Aucune livraison enregistrée.' : LIV_VUE === 'encaisser' ? 'Rien à encaisser.'
         : 'Aucune livraison en cours.') + '</div>';
       return;
     }
@@ -3428,8 +3815,11 @@ function chargerLivraisons() {
           (gere && enCours ? '<div class="dp-gestes">' +
             (l.statut !== 'en_route' ? '<button class="btn-mini" data-geste="en_route" data-liv="' + l.id + '">Parti</button>' : '') +
             '<button class="btn-mini" data-geste="livree" data-liv="' + l.id + '">Livrée</button>' +
+            '<button class="btn-mini discret" data-geste="partielle" data-liv="' + l.id + '">En partie</button>' +
             '<button class="btn-mini discret" data-geste="echec" data-liv="' + l.id + '">Échec</button>' +
-            '<button class="btn-mini discret" data-geste="eta" data-liv="' + l.id + '">Heure ✓</button></div>' : '') + '</td></tr>';
+            '<button class="btn-mini discret" data-geste="eta" data-liv="' + l.id + '">Enregistrer l\'heure</button></div>' : '') +
+          (gere && /^livree/.test(l.statut) && reste > 0 ? '<div class="dp-gestes"><button class="btn-mini" data-geste="encaisser" data-liv="' +
+            l.id + '" data-reste="' + Math.round(reste) + '">Encaisser</button></div>' : '') + '</td></tr>';
     }).join('');
     $('#livraisons_tableau').innerHTML =
       '<table class="tablo liv-tableau carte-mobile"><thead><tr><th>Livraison</th><th>Destination</th><th>Camion et chauffeur</th>' +
@@ -3998,17 +4388,26 @@ function chargerUtilisateurs() {
           }).join('');
         return '<tr><td><b>' + esc(p.nom) + '</b></td>' +
           '<td>' + esc(p.email || '—') + '</td>' +
-          '<td><select class="mini" data-role="' + p.id + '">' + options + '</select></td>' +
+          '<td>' + (p.id === SESSION.profil.id ? '<b>' + esc(LIBELLES_ROLES[p.role] || p.role) + '</b><br><span class="aide">votre compte</span>'
+            : '<select class="mini" data-role="' + p.id + '" data-nom="' + esc(p.nom) + '" aria-label="Rôle de ' + esc(p.nom) + '">' + options + '</select>') + '</td>' +
           '<td class="num">' + (p.dernier_acces ? dateCourte(p.dernier_acces) : 'jamais') + '</td>' +
           '<td class="num">' + dateCourte(p.date_creation) + '</td>' +
-          '<td><input type="checkbox" data-actif="' + p.id + '"' + (p.actif ? ' checked' : '') + '></td></tr>';
+          '<td>' + (p.id === SESSION.profil.id ? '—' : '<input type="checkbox" data-actif="' + p.id + '" data-nom="' + esc(p.nom) + '" aria-label="Compte de ' +
+            esc(p.nom) + ' actif"' + (p.actif ? ' checked' : '') + '>') + '</td></tr>';
       }).join('') + '</tbody></table>';
 
     $$('[data-role]').forEach(function (s) {
-      s.onchange = function () { changerRole(s.dataset.role, s.value); };
+      var avant = s.value;
+      s.onchange = function () {
+        if (!window.confirm('Donner à ' + s.dataset.nom + ' le rôle « ' + (LIBELLES_ROLES[s.value] || s.value) + ' » ?')) { s.value = avant; return; }
+        avant = s.value; changerRole(s.dataset.role, s.value);
+      };
     });
-    $$('[data-actif]').forEach(function (c) {
-      c.onchange = function () { changerActivation(c.dataset.actif, c.checked); };
+    $$('#utilisateurs_tableau [data-actif]').forEach(function (c) {
+      c.onchange = function () {
+        if (!window.confirm((c.checked ? 'Réactiver' : 'Désactiver') + ' le compte de ' + c.dataset.nom + ' ?')) { c.checked = !c.checked; return; }
+        changerActivation(c.dataset.actif, c.checked);
+      };
     });
   }).catch(function (e) {
     $('#utilisateurs_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
@@ -4876,6 +5275,22 @@ function telephoneLisible(t) {
 
 /* Appel d'une fonction de la base. L'erreur rendue est celle que la base a
    écrite (« Ce client est tenu par un autre opérateur. »), pas un code HTTP. */
+/* Les messages de la base sont écrits en français pour nos fonctions ; ceux de
+   PostgreSQL ou de l'API, en anglais technique, sont traduits ici. */
+function traduireErreur(d, statut) {
+  var m = (d && (d.message || d.hint)) || '';
+  var code = String((d && d.code) || '');
+  if (/^[A-ZÀ-Ý]/.test(m) && /[éèàùç«»’']/.test(m) && !/permission denied|violates|duplicate key/i.test(m)) { return m; }
+  if (code === '42501' || /permission denied|not allowed|JWT/i.test(m) || statut === 401 || statut === 403) {
+    return 'Droit refusé : votre profil ne permet pas cette action. Reconnectez-vous si votre session a expiré.';
+  }
+  if (code === '23505' || /duplicate key/i.test(m)) { return 'Déjà enregistré : cette valeur existe déjà.'; }
+  if (code === '23514' || /violates check constraint/i.test(m)) { return 'Valeur refusée par la base : vérifiez la saisie.'; }
+  if (code === 'PGRST202' || /Could not find the function/i.test(m)) { return 'Fonction indisponible : rechargez la page (version ancienne).'; }
+  if (statut >= 500) { return 'La base ne répond pas pour l\'instant : réessayez dans un instant.'; }
+  return m || ('Erreur ' + statut);
+}
+
 function rpc(nom, args) {
   return fetch(CONFIG.url + '/rest/v1/rpc/' + nom, {
     method: 'POST', headers: entetes(true), body: JSON.stringify(args || {})
@@ -4884,8 +5299,8 @@ function rpc(nom, args) {
       var d = null;
       try { d = t ? JSON.parse(t) : null; } catch (e) { d = null; }
       if (!r.ok) {
-        var m = (d && (d.message || d.hint)) || ('Erreur ' + r.status);
-        var err = new Error(m); err.statut = r.status; throw err;
+        var m = traduireErreur(d, r.status);
+        var err = new Error(m); err.statut = r.status; err.definitif = r.status < 500; throw err;
       }
       return d;
     });
@@ -4936,7 +5351,9 @@ function afficherAccueilPoste(bilan) {
   arreterMinuteurs();
   return rpc('etat_file_appel').catch(function () { return null; }).then(function (etat) {
     var file = etat && etat.pour_le
-      ? '<p class="aide">File du <b>' + esc(dateCourte(etat.pour_le)) + '</b> : <b>' +
+      ? (etat.pour_le < aujourdhui() ? '<div class="message-console ko">La file d\'aujourd\'hui n\'a pas été préparée hier soir : ' +
+          'vous appelez sur celle du ' + esc(dateCourte(etat.pour_le)) + '. Prévenez la direction.</div>' : '') +
+        '<p class="aide">File du <b>' + esc(dateCourte(etat.pour_le)) + '</b> : <b>' +
         formater(etat.restants) + '</b> client(s) encore à appeler sur ' + formater(etat.dans_la_file) +
         (etat.en_cours && etat.en_cours.length ? ' · ' + etat.en_cours.length + ' opérateur(s) en appel' : '') +
         '.</p>'
@@ -5162,7 +5579,9 @@ function pageClient() {
     '<div class="pa-carte">' +
       '<div class="pa-motif">' + esc((typeof MOTIFS_LIBELLES !== 'undefined' && MOTIFS_LIBELLES[f.motif]) ||
         LIBELLES_MOTIF[f.motif] || f.motif || 'File du jour') +
-        ' <span>rang ' + esc(f.rang) + ' · score ' + esc(f.score) + '</span></div>' +
+        (monRole() === 'dga' ? ' <span>rang ' + esc(f.rang) + ' · score ' + esc(f.score) + '</span>' : '') + '</div>' +
+      (f.pour_le && f.pour_le < aujourdhui() ? '<div class="message-console ko">File du ' + esc(dateCourte(f.pour_le)) +
+        ' : celle d\'aujourd\'hui n\'a pas été préparée hier soir. Prévenez la direction.</div>' : '') +
       '<div class="pa-identite">' +
         '<div class="pa-photo">' + (b.photo_devanture_url ? photoDevanture(null, b, 'pa_photo')
           : '<div class="photo-absente">Pas de photo</div>') + '</div>' +
@@ -5176,7 +5595,7 @@ function pageClient() {
       '<a class="pa-appeler" href="tel:+221' + esc(tel) + '" id="pa_appeler">📞 ' + esc(telephoneLisible(b.telephone)) + '</a>' +
       (b.telephone_2 ? '<div class="aide">Second numéro : <a href="tel:+221' +
         esc(String(b.telephone_2).replace(/\D/g, '').slice(-9)) + '">' + esc(telephoneLisible(b.telephone_2)) + '</a></div>' : '') +
-      '<div class="pa-pourquoi"><b>Pourquoi l\'appeler :</b> ' + esc(f.pourquoi || '—') + '</div>' +
+      '<div class="pa-pourquoi"><b>Pourquoi l\'appeler :</b> ' + esc(monRole() === 'dga' ? (f.pourquoi || '—') : String(f.pourquoi || '—').replace(/\s*\([+-]\d+\)/g, '')) + '</div>' +
     '</div>' +
     souffleur([0, 1, 2]) +
     '<div class="pa-actions pa-actions-client">' +
@@ -5574,11 +5993,13 @@ function envoyerAppel() {
     /* Rien n'est perdu : la saisie reste à l'écran, et la même clé d'envoi
        garantit qu'un nouvel essai n'enregistrera pas deux fois. */
     var el = $('#pa_envoi_etat');
+    var coupure = err.reseau || !err.definitif;
     if (el) {
       el.innerHTML = '<div class="message-console ko">Non enregistré : ' + esc(err.message) +
-        '<br>Votre saisie est conservée. Réessayez : l\'appel ne sera pas compté deux fois.</div>';
+        (coupure ? '<br>Votre saisie est conservée. Réessayez : l\'appel ne sera pas compté deux fois.'
+                 : '<br>Corrigez la saisie (bouton « Modifier ») avant de renvoyer.') + '</div>';
     }
-    if (bouton) { bouton.disabled = false; bouton.innerHTML = '↻ Réessayer l\'envoi'; }
+    if (bouton) { bouton.disabled = false; bouton.innerHTML = coupure ? '↻ Réessayer l\'envoi' : '✓ Valider et client suivant'; }
   });
 }
 
@@ -5621,7 +6042,7 @@ function chargerPrix() {
     var produits = r[0] || [], histo = r[1] || [];
     var noms = {}; produits.forEach(function (p) { noms[p.sku] = p.nom; });
     zone.innerHTML =
-      '<table class="tablo pa-prix"><thead><tr><th>Produit</th><th>Unité</th><th>Prix (FCFA)</th><th>Proposé</th>' +
+      '<table class="tablo pa-prix fl-flotte carte-mobile"><thead><tr><th>Produit</th><th>Unité</th><th>Prix (FCFA)</th><th>Proposé</th>' +
       '<th>Dernière modification</th><th></th></tr></thead><tbody>' +
       produits.map(function (p) {
         return '<tr' + (!p.prix_fcfa || !p.actif ? ' class="pa-prix-inactif"' : '') + '><td><b>' + esc(p.nom) + '</b></td>' +
@@ -5649,6 +6070,7 @@ function chargerPrix() {
             '<td class="num"><b>' + (h.nouveau_prix ? formater(h.nouveau_prix) : '—') + '</b>' + (h.nouveau_actif === false ? ' (retiré)' : '') + '</td>' +
             '<td>' + esc(h.par || '—') + '</td></tr>';
         }).join('') + '</tbody></table>' : '<div class="vide">Aucun changement depuis le barème du 08/10/2026.</div>');
+    etiqueterTableaux(zone);
     /* Un seul enregistrement pour tout le tableau : rien de ce qui a été tapé
        n'est perdu. Chiffres seulement (« 8500,50 » devenait 850 050) ; chaque
        changement est montré avant d'être confirmé, et un écart de plus de 20 %
@@ -5816,6 +6238,9 @@ function ouvrirFicheDepuisLaCarte(code) {
         « Bucket not found » — et la clé publique n'a aucun droit dessus ;
      3. il n'y en a pas, et on le dit. */
 function photoDevanture(fiche, b, idImage) {
+  /* Recette du 08/10/2026 : une « photo » déposée par un inconnu pouvait porter du
+     code. On n'affiche qu'une chaîne base64 pure. */
+  if (fiche && fiche.photo_devanture_base64 && !/^[A-Za-z0-9+/=]+$/.test(fiche.photo_devanture_base64)) { fiche = null; }
   if (fiche && fiche.photo_devanture_base64) {
     return '<img class="photo-devanture" id="' + idImage + '" alt="Devanture" src="data:image/jpeg;base64,'
       + fiche.photo_devanture_base64 + '">';

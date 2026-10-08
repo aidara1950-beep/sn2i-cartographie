@@ -1792,7 +1792,6 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 .pa-etapes li.fait { color: var(--vert); }
 .pa-etapes li.fait span { background: var(--vert-pale); border-color: var(--vert-bord); }
 
-.pa-grille { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--e4); align-items: start; }
 .pa-carte { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--e4); }
 .pa-carte h3 { color: var(--principal); font-size: 19px; margin-bottom: var(--e3); }
 .pa-carte h3 small { font-weight: 500; color: var(--texte-doux); font-size: 14px; }
@@ -1848,7 +1847,7 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 .pa-issue:hover, .pa-issue:focus-visible { outline: none; box-shadow: var(--anneau); }
 .pa-issue.actif { background: var(--principal); border-color: var(--principal); color: #fff; }
 
-.pa-produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.pa-produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 8px; }
 .pa-produit {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   border: 1px solid var(--bord); border-radius: var(--rayon-s); padding: 6px 6px 6px 12px;
@@ -1902,8 +1901,6 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 .pa-consultation-tete { display: flex; justify-content: space-between; align-items: center; gap: var(--e3); margin-bottom: var(--e3); }
 
 @media (max-width: 900px) {
-  .pa-grille { grid-template-columns: 1fr; }
-  .pa-script { position: static; order: 2; }
 }
 @media (max-width: 640px) {
   .pa-poste { padding: var(--e3) 0; }
@@ -1927,6 +1924,61 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
 .pa-position { margin-top: var(--e3); }
 .pa-position summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--principal); }
 .pa-position .carte-client { height: 220px; margin-top: var(--e2); border-radius: var(--rayon-s); }
+
+/* ----------------------------------------- le souffleur, en tête de page */
+.pa-page > * + * { margin-top: var(--e3); }
+.pa-souffleur {
+  background: var(--accent-pale); border: 2px solid var(--accent); border-radius: var(--rayon);
+  padding: var(--e3) var(--e4);
+}
+.pa-souffleur-tete { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 6px; }
+.pa-souffleur-tete > span {
+  font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  color: #fff; background: var(--principal); border-radius: 6px; padding: 3px 8px;
+}
+.pa-souffleur-tete b { color: var(--principal); font-size: 15px; }
+.pa-souffleur-onglets { display: flex; flex-wrap: wrap; gap: 6px; }
+.pa-souffleur-onglets button {
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--accent); background: var(--carte); color: var(--principal);
+}
+.pa-souffleur-onglets button.actif { background: var(--principal); border-color: var(--principal); color: #fff; }
+.pa-dire { font-size: 17px; line-height: 1.45; color: var(--texte); margin: 6px 0; }
+.pa-dire-fort { font-size: 18px; font-weight: 600; background: var(--carte); border-radius: var(--rayon-s); padding: 10px 12px; }
+.pa-conseil { font-size: 13px; color: var(--ambre); margin: 6px 0 0; }
+.pa-objection-btn {
+  font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; margin-top: 8px;
+  padding: 8px 14px; border-radius: var(--rayon-s); border: 1px dashed var(--principal);
+  background: transparent; color: var(--principal);
+}
+.pa-objections { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 8px; }
+.pa-objections[hidden] { display: none; }
+.pa-objections div { background: var(--carte); border-radius: var(--rayon-s); padding: 8px 10px; font-size: 14px; }
+.pa-objections p { margin: 4px 0 0; }
+
+/* ----------------------------------------- prix et total */
+.pa-total { margin-top: var(--e3); border-top: 1px solid var(--bord); padding-top: var(--e2); }
+.pa-total > div, .pa-recap-ligne { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 3px 0; }
+.pa-total-ligne { font-size: 17px !important; color: var(--principal); border-top: 1px solid var(--bord); margin-top: 4px; padding-top: 6px !important; }
+.pa-total-ligne b { font-size: 19px; }
+
+/* ----------------------------------------- livraison */
+.pa-precision { border-radius: var(--rayon-s); padding: 10px 12px; font-size: 14px; margin-bottom: var(--e3); }
+.pa-precision.ok { background: var(--vert-pale); border: 1px solid var(--vert-bord); color: var(--vert); }
+.pa-precision.attention { background: var(--ambre-pale); border: 1px solid #E8D3A8; color: var(--ambre); }
+.pa-carte-livraison { height: 220px; border-radius: var(--rayon-s); margin-bottom: var(--e3); }
+.pa-date-courte { width: auto; min-height: var(--h-mini); padding: 6px 10px; }
+.req { color: var(--rouge); }
+
+/* ----------------------------------------- écran des prix */
+.pa-prix-champ { width: 130px; min-height: var(--h-mini); padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.pa-prix-inactif td { color: var(--texte-doux); }
+.pa-prix-ajout { display: flex; flex-wrap: wrap; gap: 8px; }
+.pa-prix-ajout .pa-champ { width: auto; flex: 1 1 160px; }
+@media (max-width: 640px) {
+  .pa-dire { font-size: 16px; }
+  .pa-souffleur { padding: var(--e3); }
+}
 </style>
 </head>
 <body>
@@ -2185,6 +2237,15 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
   </section>
 
   <!-- -------------------------------------------------- utilisateurs -->
+  <!-- ------------------------------------------------------------ prix -->
+  <section class="ecran-console" data-ecran="prix">
+    <div class="entete-ecran">
+      <h2>Prix</h2>
+      <p>Le barème du phoning, en FCFA. Changé ici par la direction, appliqué au client suivant.</p>
+    </div>
+    <div class="bloc-console"><div id="prix_tableau"></div></div>
+  </section>
+
   <section class="ecran-console" data-ecran="utilisateurs">
     <div class="entete-ecran">
       <h2>Utilisateurs</h2>
@@ -2392,7 +2453,7 @@ var LIBELLES_ROLES = {
    exactement la même page ». Chaque métier a désormais son écran. */
 var ONGLETS_PAR_ROLE = {
   dga: ['bord', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
-        'boutiques', 'utilisateurs'],
+        'boutiques', 'prix', 'utilisateurs'],
   logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'commandes', 'boutiques'],
   phoning: ['bord', 'phoning', 'fiches', 'commandes', 'boutiques'],
   superviseur: ['bord', 'phoning', 'fiches', 'commandes', 'boutiques'],
@@ -2402,7 +2463,7 @@ var TITRES_ONGLETS = {
   bord: 'Carte', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
   fiches: 'Fiches de terrain',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
-  utilisateurs: 'Utilisateurs'
+  prix: 'Prix', utilisateurs: 'Utilisateurs'
 };
 /* Qui voit quoi, dit une fois pour toutes. */
 var VOIT_FLOTTE = ['dga', 'logistique'];      // carte des camions
@@ -2623,6 +2684,7 @@ function ouvrirOnglet(nom) {
   if (nom === 'commandes') { chargerCommandes(); }
   if (nom === 'livraisons') { chargerLivraisons(); }
   if (nom === 'utilisateurs') { chargerUtilisateurs(); }
+  if (nom === 'prix') { chargerPrix(); }
   if (nom === 'boutiques') { chargerZones(); }
 }
 
@@ -2794,16 +2856,22 @@ function chargerDispatch() {
     }).join('');
 
     $('#dispatch_tableau').innerHTML = '<table class="tablo"><thead><tr>' +
-      '<th>Demande</th><th>Commande</th><th>Date</th><th>Produits</th><th>Unités</th>' +
-      '<th>Destinataire</th><th>Véhicule</th><th>Chauffeur</th><th>Statut</th><th></th>' +
+      '<th>Demande</th><th>Livrer le</th><th>Produits</th><th>Unités</th><th>À encaisser</th>' +
+      '<th>Destinataire et repère</th><th>Véhicule</th><th>Chauffeur</th><th>Statut</th><th></th>' +
       '</tr></thead><tbody>' +
       demandes.map(function (d) {
         return '<tr><td class="num"><b>' + esc(d.numero) + '</b></td>' +
-          '<td class="num">' + esc(d.commande_id || '—') + '</td>' +
-          '<td class="num">' + dateCourte(d.date_demande) + '</td>' +
+          '<td class="num">' + (d.date_souhaitee ? dateCourte(d.date_souhaitee) : dateCourte(d.date_demande)) +
+            (d.creneau ? '<br><span class="aide">' + esc(LIBELLES_CRENEAU[d.creneau] || d.creneau) + '</span>' : '') + '</td>' +
           '<td>' + esc((d.produits || '').slice(0, 46)) + '</td>' +
           '<td class="num">' + formater(d.nb_unites) + '</td>' +
-          '<td>' + esc(d.destinataire_nom || '—') + '</td>' +
+          '<td class="num">' + (d.montant_a_encaisser ? '<b>' + formater(d.montant_a_encaisser) + ' F</b>' : '—') + '</td>' +
+          '<td>' + esc(d.destinataire_nom || '—') +
+            (d.repere ? '<br><span class="aide">' + esc(d.repere) + '</span>' : '') +
+            (d.telephone_livraison ? '<br><span class="aide">☎ ' + esc(telephoneLisible(d.telephone_livraison)) + '</span>' : '') +
+            (d.precision_position && d.precision_position !== 'relevee'
+              ? '<br><span class="aide" style="color:#6B4A22">position approximative : se fier au repère</span>' : '') +
+          '</td>' +
           '<td>' + (peutDispatcher
               ? '<select class="mini" data-vehicule="' + d.id + '"><option value="">— choisir —</option>' + optionsVehicules + '</select>'
               : esc(d.vehicule_id ? 'affecté' : '—')) + '</td>' +
@@ -3038,6 +3106,7 @@ function televerserFichier(fichier, id, type, suite) {
 }
 
 function prendrePhoto(id, type) {
+  if (type === 'bl') { releverPositionBl(id); }
   var champ = document.createElement('input');
   champ.type = 'file';
   champ.accept = 'image/*';
@@ -3066,6 +3135,31 @@ function prendrePhoto(id, type) {
   champ.click();
 }
 
+/* La position du téléphone au moment de la photo du BL signé. Demandée AVANT
+   l'appareil photo, pour qu'elle soit celle du lieu de la signature. La base
+   décide si elle remplace la position du client (enregistrer_position_bl). */
+var POSITION_BL = {};
+function releverPositionBl(id) {
+  POSITION_BL[id] = null;
+  if (!navigator.geolocation) { return; }
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    POSITION_BL[id] = { lat: pos.coords.latitude, lng: pos.coords.longitude, precision: pos.coords.accuracy };
+  }, function () { POSITION_BL[id] = { refus: true }; },
+  { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+}
+function envoyerPositionBl(id) {
+  var p = POSITION_BL[id];
+  if (!p || p.refus) {
+    message('Photo du BL enregistrée, mais la position n\'a pas été relevée : autorisez la localisation ' +
+            'sur ce téléphone pour que la fiche du client soit mise à jour.', 'ko');
+    return Promise.resolve();
+  }
+  return rpc('enregistrer_position_bl', { p_livraison: id, p_latitude: p.lat, p_longitude: p.lng,
+                                          p_precision_m: p.precision })
+    .then(function (r) { message('Photo du BL enregistrée. ' + esc(r.message), r.verdict === 'appliquee' ? 'ok' : 'info'); })
+    .catch(function (e) { message('Photo du BL enregistrée ; position non transmise : ' + esc(e.message), 'ko'); });
+}
+
 function televerserPhoto(id, type, blob) {
   var nom = type + '-' + id + '-' + Date.now() + '.jpg';
   return fetch(CONFIG.url + '/storage/v1/object/bl-factures/' + nom, {
@@ -3090,6 +3184,8 @@ function televerserPhoto(id, type, blob) {
     return requete('/livraisons?id=eq.' + id, { methode: 'PATCH', donnees: champs });
   }).then(function () {
     message('Photo enregistrée sous votre nom. La preuve est conservée.', 'ok');
+    if (type === 'bl' && Object.prototype.hasOwnProperty.call(POSITION_BL, id)) { return envoyerPositionBl(id); }
+  }).then(function () {
     if (typeof chargerLivraisons === 'function' && $('#livraisons_tableau')) { chargerLivraisons(); }
     return true;
   }).catch(function (e) {
@@ -4406,7 +4502,8 @@ function ouvrirSeance() {
 function prendreSuivant() {
   arreterMinuteurs();
   $('#ph_poste').innerHTML = '<div class="chargement">Recherche du client suivant…</div>';
-  return rpc('prendre_client_suivant', { p_seance: PH.seance.id }).then(function (r) {
+  return Promise.all([rpc('prendre_client_suivant', { p_seance: PH.seance.id }), chargerCatalogue()]).then(function (res) {
+    var r = res[0];
     if (!r || r.fin) {
       PH.courant = null;
       $('#ph_poste').innerHTML =
@@ -4423,6 +4520,7 @@ function prendreSuivant() {
     if (!memeClient) {
       PH.page = 'client'; PH.issue = null; PH.lignes = {}; PH.rappel = ''; PH.refus = '';
       PH.commentaire = ''; PH.cle = nouvelleCle(); PH.debut = Date.now(); PH.etapeScript = 0;
+      PH.livraison = null;
     }
     afficherPoste();
   }).catch(function (e) {
@@ -4460,13 +4558,40 @@ function majChrono() {
 
 /* ------------------------------------------------------------ le poste */
 
-var PAGES = [['client', 'Client'], ['issue', 'Issue'], ['detail', 'Détail'], ['valider', 'Valider']];
+/* Une commande passe par cinq pages ; les autres issues par quatre. */
+function pagesActives() {
+  var p = [['client', 'Client'], ['issue', 'Issue'], ['detail', 'Détail']];
+  if (PH.issue === 'commande') { p.push(['livraison', 'Livraison']); }
+  p.push(['valider', 'Valider']);
+  return p;
+}
+
+var LIBELLES_CRENEAU = { matin: 'Matin', apres_midi: 'Après-midi', soir: 'Soir' };
+
+/* Le catalogue et ses prix viennent de la base (produits_tarifs), tenus par la
+   direction dans l'onglet Prix. Relu à chaque client : un prix changé à 10h
+   s'applique au client suivant. La base refait le calcul et fige le prix. */
+function chargerCatalogue() {
+  return requete('/produits_tarifs?select=sku,nom,unite,prix_fcfa,actif,ordre&order=ordre')
+    .then(function (r) { PH.catalogue = r || []; })
+    .catch(function () { PH.catalogue = PH.catalogue || []; });
+}
+function produitsCommandables() {
+  return (PH.catalogue || []).filter(function (p) { return p.actif && p.prix_fcfa; });
+}
+function prixDe(sku) {
+  var p = (PH.catalogue || []).filter(function (x) { return x.sku === sku; })[0];
+  return p && p.prix_fcfa ? +p.prix_fcfa : 0;
+}
+/* Espaces insécables : « 59 750 FCFA » ne se coupe jamais en fin de ligne. */
+function francs(n) { return formater(n).replace(/ /g, '\u00a0') + '\u00a0FCFA'; }
 
 function afficherPoste() {
   var s = PH.seance, c = PH.courant;
   var appels = nombre(s.nb_appels), commandes = nombre(s.nb_commandes);
   var taux = appels ? Math.round(1000 * commandes / appels) / 10 : 0;
-  var rang = PAGES.map(function (p) { return p[0]; }).indexOf(PH.page);
+  var pages = pagesActives();
+  var rang = pages.map(function (p) { return p[0]; }).indexOf(PH.page);
   $('#ph_poste').innerHTML =
     '<div class="pa-bandeau">' +
       '<div class="pa-compteurs">' +
@@ -4479,23 +4604,73 @@ function afficherPoste() {
       '<button class="pa-btn pa-discret pa-petit" id="pa_cloturer">Clôturer la séance</button>' +
     '</div>' +
     '<div class="pa-jauge"><div style="width:' + Math.min(100, Math.round(100 * appels / OBJECTIF_APPELS)) + '%"></div></div>' +
-    '<ol class="pa-etapes">' + PAGES.map(function (p, i) {
+    '<ol class="pa-etapes">' + pages.map(function (p, i) {
       return '<li class="' + (i < rang ? 'fait' : (i === rang ? 'actif' : '')) + '"><span>' + (i + 1) +
         '</span>' + p[1] + '</li>';
     }).join('') + '</ol>' +
-    '<div class="pa-grille">' +
-      '<div class="pa-page" id="pa_page"></div>' +
-      '<aside class="pa-script" id="pa_script"></aside>' +
-    '</div>';
+    '<div class="pa-page" id="pa_page"></div>';
   $('#pa_cloturer').onclick = cloturerSeance;
-  ({ client: pageClient, issue: pageIssue, detail: pageDetail, valider: pageValider })[PH.page]();
-  afficherScript();
+  ({ client: pageClient, issue: pageIssue, detail: pageDetail, livraison: pageLivraison,
+     valider: pageValider })[PH.page]();
+  brancherSouffleur();
   majChrono();
   demarrerMinuteurs();
   var cible = $('#pa_page [data-focus]'); if (cible) { cible.focus(); }
 }
 
 function allerA(page) { PH.page = page; afficherPoste(); }
+
+/* ----------------------------------------------- le souffleur (script)
+
+   Le script n'est plus un panneau à droite : c'est un bandeau en tête de
+   page, avec la phrase à dire MAINTENANT. Chaque page appelle les étapes qui
+   la concernent ; les objections s'ouvrent d'un bouton, sans quitter la page. */
+
+function etapeObjections() {
+  for (var i = 0; i < SCRIPT.etapes.length; i++) { if (SCRIPT.etapes[i].objections) { return i; } }
+  return -1;
+}
+function phraseScript(t) {
+  var nom = (SESSION.profil.nom || '').split(' ')[0];
+  return esc(t).replace(/\{operateur\}/g, esc(nom));
+}
+
+/* etapes : indices de SCRIPT.etapes proposés sur la page ; extra : phrases
+   calculées pour ce client (la relecture de la commande, par exemple). */
+function souffleur(etapes, extra) {
+  if (typeof SCRIPT === 'undefined') { return ''; }
+  etapes = etapes || [];
+  var i = etapes.indexOf(PH.etapeScript) !== -1 ? PH.etapeScript : etapes[0];
+  var e = i !== undefined ? SCRIPT.etapes[i] : null;
+  var obj = etapeObjections();
+  return '<div class="pa-souffleur" id="pa_souffleur">' +
+    '<div class="pa-souffleur-tete"><span>À dire</span>' +
+      (etapes.length > 1 ? '<div class="pa-souffleur-onglets">' + etapes.map(function (k) {
+        return '<button data-etape="' + k + '" class="' + (k === i ? 'actif' : '') + '">' +
+          esc(SCRIPT.etapes[k].titre) + '</button>';
+      }).join('') + '</div>' : (e ? '<b>' + esc(e.titre) + '</b>' : '')) +
+    '</div>' +
+    (extra || []).map(function (x) { return '<p class="pa-dire pa-dire-fort">« ' + x + ' »</p>'; }).join('') +
+    (e ? (e.phrases || []).map(function (x) { return '<p class="pa-dire">« ' + phraseScript(x) + ' »</p>'; }).join('') +
+         (e.remarques && e.remarques.length ? '<p class="pa-conseil">' + phraseScript(e.remarques[0]) + '</p>' : '') : '') +
+    (obj !== -1 ? '<button class="pa-objection-btn" id="pa_objections_btn">Le client objecte…</button>' +
+      '<div class="pa-objections" id="pa_objections" hidden>' + SCRIPT.etapes[obj].objections.map(function (o) {
+        return '<div><b>' + phraseScript(o.dit) + '</b><p>' + phraseScript(o.repond) + '</p></div>';
+      }).join('') + '</div>' : '') +
+  '</div>';
+}
+function brancherSouffleur() {
+  $$('#pa_souffleur [data-etape]').forEach(function (b) {
+    b.onclick = function () { PH.etapeScript = +b.dataset.etape; allerA(PH.page); };
+  });
+  var bouton = $('#pa_objections_btn');
+  if (bouton) {
+    bouton.onclick = function () {
+      var o = $('#pa_objections'); o.hidden = !o.hidden;
+      bouton.textContent = o.hidden ? 'Le client objecte…' : 'Masquer les objections';
+    };
+  }
+}
 
 /* Page 1 — le client */
 function pageClient() {
@@ -4507,6 +4682,7 @@ function pageClient() {
       (a.date_rappel ? ' · rappel le ' + esc(dateCourte(a.date_rappel)) : '') +
       (a.commentaire ? '<br><i>« ' + esc(a.commentaire) + ' »</i>' : '') + '</li>';
   }).join('');
+  if ([0, 1, 2].indexOf(PH.etapeScript) === -1) { PH.etapeScript = 0; }
   $('#pa_page').innerHTML =
     '<div class="pa-carte">' +
       '<div class="pa-motif">' + esc((typeof MOTIFS_LIBELLES !== 'undefined' && MOTIFS_LIBELLES[f.motif]) ||
@@ -4526,11 +4702,14 @@ function pageClient() {
       (b.telephone_2 ? '<div class="aide">Second numéro : <a href="tel:+221' +
         esc(String(b.telephone_2).replace(/\D/g, '').slice(-9)) + '">' + esc(telephoneLisible(b.telephone_2)) + '</a></div>' : '') +
       '<div class="pa-pourquoi"><b>Pourquoi l\'appeler :</b> ' + esc(f.pourquoi || '—') + '</div>' +
-      '<div class="pa-actions pa-actions-client">' +
-        '<button class="pa-btn pa-discret" id="pa_passer">Passer ce client</button>' +
-        '<button class="pa-btn pa-principal" id="pa_vers_issue" data-focus>J\'ai appelé → issue de l\'appel <kbd>Entrée</kbd></button>' +
-      '</div>' +
-      '<div id="pa_passage"></div>' +
+    '</div>' +
+    souffleur([0, 1, 2]) +
+    '<div class="pa-actions pa-actions-client">' +
+      '<button class="pa-btn pa-discret" id="pa_passer">Passer ce client</button>' +
+      '<button class="pa-btn pa-principal" id="pa_vers_issue" data-focus>J\'ai appelé → issue de l\'appel <kbd>Entrée</kbd></button>' +
+    '</div>' +
+    '<div id="pa_passage"></div>' +
+    '<div class="pa-carte">' +
       '<h5>Ce qu\'on sait du client</h5>' +
       '<div class="pa-historique">' +
         '<div><span>Achats constatés</span><b>' + formater(nombre(h.nb_commandes)) + ' cmd · ' +
@@ -4551,30 +4730,35 @@ function pageClient() {
   chargerPhotoClient(b);
 }
 
-/* La position, repliée : elle sert à situer le client, pas à appeler. La
+/* La position, repliée sur la fiche : elle sert à situer le client. La
    précision est dite, et le zoom la respecte : un centre de zone n'est pas un
    repère de livraison. */
+function texteprecision(p) {
+  return p === 'relevee' ? 'relevée au GPS'
+    : p === 'quartier' ? 'estimée du quartier (OpenStreetMap), pas l\'emplacement exact'
+    : p === 'zone' ? 'approximative : le centre de la zone' : 'inconnue';
+}
 function blocPosition(b) {
   if (b.latitude === null || b.latitude === undefined || b.longitude === null || b.longitude === undefined) {
     return '<p class="aide">Position inconnue : aucune fiche de terrain géolocalisée, quartier non retrouvé.</p>';
   }
-  var texte = b.precision_position === 'relevee' ? 'relevée au GPS lors de la visite'
-    : b.precision_position === 'quartier' ? 'estimée du quartier (OpenStreetMap), pas l\'emplacement exact'
-    : 'approximative : le centre de la zone';
-  return '<details class="pa-position" id="pa_position"><summary>Position — ' + texte + '</summary>' +
-    '<div id="carte_client" class="carte-client"></div></details>';
+  return '<details class="pa-position" id="pa_position"><summary>Position — ' + texteprecision(b.precision_position) +
+    '</summary><div id="carte_client" class="carte-client"></div></details>';
+}
+function dessinerCarteClient(b) {
+  var precis = b.precision_position === 'relevee';
+  var c = cartePreparer('carte_client', precis ? 16 : 14);
+  if (!c) { return; }
+  L.circleMarker([+b.latitude, +b.longitude], { radius: precis ? 9 : 11, color: '#FFFFFF', weight: 2,
+    fillColor: COULEUR_PRECISION[b.precision_position] || '#E8C79A', fillOpacity: precis ? 1 : 0.85 }).addTo(c);
+  c.setView([+b.latitude, +b.longitude], precis ? 16 : b.precision_position === 'quartier' ? 14 : 11);
 }
 function brancherPosition(b) {
   var d = $('#pa_position'); if (!d) { return; }
   d.ontoggle = function () {
     if (!d.open || d.dataset.dessinee) { return; }
     d.dataset.dessinee = '1';
-    var precis = b.precision_position === 'relevee';
-    var c = cartePreparer('carte_client', precis ? 16 : 14);
-    if (!c) { return; }
-    L.circleMarker([+b.latitude, +b.longitude], { radius: precis ? 9 : 11, color: '#FFFFFF', weight: 2,
-      fillColor: COULEUR_PRECISION[b.precision_position] || '#E8C79A', fillOpacity: precis ? 1 : 0.85 }).addTo(c);
-    c.setView([+b.latitude, +b.longitude], precis ? 16 : b.precision_position === 'quartier' ? 14 : 11);
+    dessinerCarteClient(b);
   };
 }
 
@@ -4634,25 +4818,40 @@ function pageIssue() {
 }
 
 function choisirIssue(cle) {
-  if (PH.issue !== cle) { PH.lignes = {}; PH.rappel = ''; PH.refus = ''; }
+  if (PH.issue !== cle) { PH.lignes = {}; PH.rappel = ''; PH.refus = ''; PH.livraison = null; }
   PH.issue = cle;
-  if (cle === 'commande') { PH.etapeScript = Math.min(4, SCRIPT.etapes.length - 1); }
+  if (cle === 'commande') {
+    PH.etapeScript = 4;
+    if (!PH.livraison) {
+      var b = PH.courant.boutique || {};
+      PH.livraison = { date: jourPlus(1), creneau: '', repere: b.adresse_repere || '', adresse: b.secteur || '',
+                       telephone: '' };
+    }
+  }
   if (cle === 'a_rappeler' && !PH.rappel) { PH.rappel = jourPlus(1); }
   allerA('detail');
 }
 
 /* Page 3 — le détail, selon l'issue */
 function pageDetail() {
-  var corps = '';
+  var corps = '', script = '';
   if (PH.issue === 'commande') {
-    corps = '<h3>Produits commandés</h3><div class="pa-produits">' + PRODUITS_PHONING.map(function (p) {
-      var q = PH.lignes[p.sku] || 0;
-      return '<div class="pa-produit' + (q ? ' choisi' : '') + '">' +
-        '<div class="nom">' + esc(p.nom) + '<span>' + esc(p.unite) + '</span></div>' +
-        '<div class="pa-pas"><button data-moins="' + p.sku + '" aria-label="Moins">−</button>' +
-        '<input inputmode="numeric" data-sku="' + p.sku + '" value="' + (q || '') + '" placeholder="0">' +
-        '<button data-plus="' + p.sku + '" aria-label="Plus">+</button></div></div>';
-    }).join('') + '</div><p class="aide" id="pa_total"></p>';
+    var offerts = produitsCommandables();
+    var sansPrix = (PH.catalogue || []).filter(function (p) { return p.actif && !p.prix_fcfa; });
+    script = souffleur([4]);
+    corps = '<h3>Produits commandés</h3>' +
+      (offerts.length ? '<div class="pa-produits">' + offerts.map(function (p) {
+        var q = PH.lignes[p.sku] || 0;
+        return '<div class="pa-produit' + (q ? ' choisi' : '') + '">' +
+          '<div class="nom">' + esc(p.nom) + '<span>' + francs(p.prix_fcfa) + ' / ' + esc(p.unite) + '</span></div>' +
+          '<div class="pa-pas"><button data-moins="' + p.sku + '" aria-label="Moins">−</button>' +
+          '<input inputmode="numeric" data-sku="' + p.sku + '" value="' + (q || '') + '" placeholder="0">' +
+          '<button data-plus="' + p.sku + '" aria-label="Plus">+</button></div></div>';
+      }).join('') + '</div>'
+        : '<div class="message-console ko">Aucun produit n\'a de prix : la direction les fixe dans l\'onglet Prix.</div>') +
+      '<div class="pa-total" id="pa_total"></div>' +
+      (sansPrix.length ? '<p class="aide">Sans prix fixé par la direction, donc non proposés : ' +
+        sansPrix.map(function (p) { return esc(p.nom); }).join(', ') + '.</p>' : '');
   } else if (PH.issue === 'a_rappeler') {
     corps = '<h3>Quand le rappeler ?</h3><div class="pa-puces">' +
       [[1, 'Demain'], [2, 'Après-demain'], [7, 'Dans une semaine'], [14, 'Dans deux semaines']].map(function (x) {
@@ -4663,6 +4862,8 @@ function pageDetail() {
       aujourdhui() + '" max="' + jourPlus(90) + '" value="' + esc(PH.rappel) + '"></label>' +
       '<p class="aide">L\'heure convenue s\'écrit dans le commentaire.</p>';
   } else if (PH.issue === 'refus') {
+    var obj = etapeObjections();
+    script = obj !== -1 ? souffleur([obj]) : '';
     corps = '<h3>Pourquoi refuse-t-il ?</h3><div class="pa-puces">' + MOTIFS_REFUS.map(function (m) {
       return '<button data-refus="' + m.cle + '" class="' + (PH.refus === m.cle ? 'actif' : '') + '">' + esc(m.libelle) + '</button>';
     }).join('') + '</div>';
@@ -4670,24 +4871,25 @@ function pageDetail() {
     corps = '<h3>' + esc(libelleIssue(PH.issue)) + '</h3>' +
       (PH.issue === 'faux_numero' ? '<p class="aide">Si le client vous a donné un autre numéro, écrivez-le dans le commentaire.</p>' : '');
   }
-  $('#pa_page').innerHTML =
+  $('#pa_page').innerHTML = script +
     '<div class="pa-carte">' + corps +
       '<label class="pa-etiquette">Commentaire' +
       '<textarea class="pa-champ" id="pa_commentaire" rows="3" placeholder="Ce que le client a dit, ce qu\'il faut retenir">' +
       esc(PH.commentaire) + '</textarea></label>' +
     '</div>' +
     '<div class="pa-actions"><button class="pa-btn pa-discret" id="pa_retour">← Issue</button>' +
-    '<button class="pa-btn pa-principal" id="pa_vers_valider">Vérifier avant d\'envoyer →</button></div>';
+    '<button class="pa-btn pa-principal" id="pa_vers_valider">' +
+      (PH.issue === 'commande' ? 'Livraison →' : 'Vérifier avant d\'envoyer →') + '</button></div>';
 
   $('#pa_commentaire').oninput = function () { PH.commentaire = this.value; };
   $('#pa_retour').onclick = function () { allerA('issue'); };
-  $('#pa_vers_valider').onclick = versValidation;
+  $('#pa_vers_valider').onclick = pageSuivante;
   $$('#pa_page [data-jour]').forEach(function (b) {
-    b.onclick = function () { PH.rappel = b.dataset.jour; pageDetail(); };
+    b.onclick = function () { PH.rappel = b.dataset.jour; allerA('detail'); };
   });
   if ($('#pa_rappel')) { $('#pa_rappel').onchange = function () { PH.rappel = this.value; }; }
   $$('#pa_page [data-refus]').forEach(function (b) {
-    b.onclick = function () { PH.refus = b.dataset.refus; pageDetail(); };
+    b.onclick = function () { PH.refus = b.dataset.refus; allerA('detail'); };
   });
   $$('#pa_page .pa-pas input').forEach(function (i) {
     i.oninput = function () {
@@ -4707,24 +4909,76 @@ function pageDetail() {
       majTotal();
     };
   });
+  brancherSouffleur();
   majTotal();
 }
 
 function lignesCommande() {
-  return PRODUITS_PHONING.filter(function (p) { return PH.lignes[p.sku] > 0; }).map(function (p) {
-    return { sku: p.sku, designation: p.nom, unite: p.unite, quantite: PH.lignes[p.sku] };
+  return produitsCommandables().filter(function (p) { return PH.lignes[p.sku] > 0; }).map(function (p) {
+    return { sku: p.sku, designation: p.nom, unite: p.unite, quantite: PH.lignes[p.sku], prix: +p.prix_fcfa };
   });
+}
+function totalCommande() {
+  return lignesCommande().reduce(function (n, l) { return n + l.quantite * l.prix; }, 0);
 }
 function majTotal() {
   var el = $('#pa_total'); if (!el) { return; }
   var l = lignesCommande();
   el.innerHTML = l.length
-    ? '<b>' + l.length + '</b> produit(s) : ' + l.map(function (x) { return x.quantite + ' ' + x.unite + ' ' + esc(x.designation); }).join(' + ')
-    : 'Aucun produit saisi.';
+    ? l.map(function (x) {
+        return '<div><span>' + x.quantite + ' ' + esc(x.unite) + ' ' + esc(x.designation) + ' × ' + formater(x.prix) +
+          '</span><b>' + francs(x.quantite * x.prix) + '</b></div>';
+      }).join('') + '<div class="pa-total-ligne"><span>Total à encaisser</span><b>' + francs(totalCommande()) + '</b></div>'
+    : '<div class="aide">Aucun produit saisi.</div>';
+}
+
+/* Page 4 (commande seulement) — la livraison */
+function pageLivraison() {
+  var b = PH.courant.boutique || {}, lv = PH.livraison;
+  var releve = b.precision_position === 'relevee';
+  var aCarte = b.latitude !== null && b.latitude !== undefined && b.longitude !== null && b.longitude !== undefined;
+  $('#pa_page').innerHTML = souffleur([4]) +
+    '<div class="pa-carte"><h3>Où et quand livrer ?</h3>' +
+      '<div class="pa-precision ' + (releve ? 'ok' : 'attention') + '">' + (releve
+        ? '📍 Position relevée au GPS : la logistique sait où aller.'
+        : '📍 Position ' + esc(texteprecision(b.precision_position)) + '. <b>Demandez un repère précis</b> ' +
+          '(« face à la mosquée, porte verte »). La position exacte sera relevée à la signature du BL.') + '</div>' +
+      (aCarte ? '<div id="carte_client" class="carte-client pa-carte-livraison"></div>' : '') +
+      '<label class="pa-etiquette">Repère de livraison' + (releve ? '' : ' <span class="req">*</span>') +
+        '<input class="pa-champ" id="pa_repere" value="' + esc(lv.repere) + '" placeholder="Ce que le livreur doit chercher"></label>' +
+      '<label class="pa-etiquette">Adresse ou quartier' +
+        '<input class="pa-champ" id="pa_adresse" value="' + esc(lv.adresse) + '"></label>' +
+      '<div class="pa-etiquette">Jour de livraison</div><div class="pa-puces">' +
+        [[0, 'Aujourd\'hui'], [1, 'Demain'], [2, 'Après-demain']].map(function (x) {
+          var d = jourPlus(x[0]);
+          return '<button data-livjour="' + d + '" class="' + (lv.date === d ? 'actif' : '') + '">' + x[1] + '</button>';
+        }).join('') +
+        '<input type="date" class="pa-champ pa-date-courte" id="pa_livdate" min="' + aujourdhui() + '" max="' +
+          jourPlus(30) + '" value="' + esc(lv.date) + '"></div>' +
+      '<div class="pa-etiquette">Créneau <span class="req">*</span></div><div class="pa-puces">' +
+        ['matin', 'apres_midi', 'soir'].map(function (k) {
+          return '<button data-creneau="' + k + '" class="' + (lv.creneau === k ? 'actif' : '') + '">' + LIBELLES_CRENEAU[k] + '</button>';
+        }).join('') + '</div>' +
+      '<label class="pa-etiquette">Téléphone pour la livraison' +
+        '<input class="pa-champ" id="pa_livtel" inputmode="tel" value="' + esc(lv.telephone) +
+        '" placeholder="Seulement s\'il est différent du numéro appelé"></label>' +
+    '</div>' +
+    '<div class="pa-actions"><button class="pa-btn pa-discret" id="pa_retour">← Produits</button>' +
+    '<button class="pa-btn pa-principal" id="pa_vers_valider">Vérifier avant d\'envoyer →</button></div>';
+  [['#pa_repere', 'repere'], ['#pa_adresse', 'adresse'], ['#pa_livtel', 'telephone']].forEach(function (x) {
+    $(x[0]).oninput = function () { lv[x[1]] = this.value; };
+  });
+  $('#pa_livdate').onchange = function () { lv.date = this.value; allerA('livraison'); };
+  $$('#pa_page [data-livjour]').forEach(function (bt) { bt.onclick = function () { lv.date = bt.dataset.livjour; allerA('livraison'); }; });
+  $$('#pa_page [data-creneau]').forEach(function (bt) { bt.onclick = function () { lv.creneau = bt.dataset.creneau; allerA('livraison'); }; });
+  $('#pa_retour').onclick = function () { allerA('detail'); };
+  $('#pa_vers_valider').onclick = pageSuivante;
+  brancherSouffleur();
+  if (aCarte) { setTimeout(function () { dessinerCarteClient(b); }, 30); }
 }
 
 /* Ce que la base refuserait, l'écran le refuse d'abord, avec le bon mot. */
-function erreurSaisie() {
+function erreurDetail() {
   if (!PH.issue) { return 'Choisissez l\'issue de l\'appel.'; }
   if (PH.issue === 'commande' && !lignesCommande().length) { return 'Saisissez au moins un produit et sa quantité.'; }
   if (PH.issue === 'a_rappeler' && (!PH.rappel || PH.rappel < aujourdhui() || PH.rappel > jourPlus(90))) {
@@ -4733,30 +4987,68 @@ function erreurSaisie() {
   if (PH.issue === 'refus' && !PH.refus) { return 'Choisissez le motif du refus.'; }
   return null;
 }
-function versValidation() {
-  var e = erreurSaisie();
-  if (e) { message(e, 'ko'); return; }
-  allerA('valider');
+function erreurLivraison() {
+  if (PH.issue !== 'commande') { return null; }
+  var lv = PH.livraison || {}, b = PH.courant.boutique || {};
+  if (!lv.date || lv.date < aujourdhui() || lv.date > jourPlus(30)) { return 'Choisissez le jour de livraison (dans les 30 jours).'; }
+  if (!lv.creneau) { return 'Choisissez le créneau de livraison.'; }
+  if (b.precision_position !== 'relevee' && String(lv.repere || '').trim().length < 5) {
+    return 'Écrivez un repère précis : la position du client n\'est pas relevée au GPS.';
+  }
+  var t = String(lv.telephone || '').replace(/\D/g, '');
+  if (t && t.slice(-9).length !== 9) { return 'Téléphone de livraison : 9 chiffres attendus.'; }
+  return null;
+}
+function erreurSaisie() { return erreurDetail() || erreurLivraison(); }
+
+function pageSuivante() {
+  if (PH.page === 'detail') {
+    var e = erreurDetail(); if (e) { message(e, 'ko'); return; }
+    allerA(PH.issue === 'commande' ? 'livraison' : 'valider');
+  } else if (PH.page === 'livraison') {
+    var e2 = erreurLivraison(); if (e2) { message(e2, 'ko'); return; }
+    allerA('valider');
+  }
+}
+var versValidation = pageSuivante;
+
+/* La phrase de relecture, dite au client avant de raccrocher. */
+function relecture() {
+  var l = lignesCommande(), lv = PH.livraison || {};
+  if (!l.length) { return []; }
+  var jour = lv.date === aujourdhui() ? 'aujourd\'hui' : lv.date === jourPlus(1) ? 'demain'
+    : 'le ' + dateCourte(lv.date);
+  return ['Je récapitule : ' + l.map(function (x) {
+    return x.quantite + ' ' + esc(x.unite) + (x.quantite > 1 ? 's' : '') + ' de ' + esc(x.designation);
+  }).join(', ') + ', soit <b>' + francs(totalCommande()) + '</b>, livrés ' + jour +
+    (lv.creneau ? ' ' + (lv.creneau === 'matin' ? 'dans la matinée' : lv.creneau === 'soir' ? 'en soirée' : 'dans l\'après-midi') : '') +
+    (lv.repere ? ', ' + esc(lv.repere) : '') + '. C\'est bien ça ?'];
 }
 
-/* Page 4 — le récapitulatif, puis l'envoi */
+/* Dernière page — le récapitulatif, puis l'envoi */
 function pageValider() {
-  var b = PH.courant.boutique, l = lignesCommande();
+  var b = PH.courant.boutique, l = lignesCommande(), lv = PH.livraison || {};
   var refus = MOTIFS_REFUS.filter(function (m) { return m.cle === PH.refus; })[0];
-  $('#pa_page').innerHTML =
+  $('#pa_page').innerHTML = (PH.issue === 'commande' ? souffleur([5], relecture()) : '') +
     '<div class="pa-carte"><h3>Vérifiez avant d\'envoyer</h3><dl class="pa-recap">' +
       '<dt>Client</dt><dd>' + esc(b.nom || '—') + ' · ' + esc(telephoneLisible(b.telephone)) + '</dd>' +
       '<dt>Issue</dt><dd><b>' + esc(libelleIssue(PH.issue)) + '</b></dd>' +
       (l.length ? '<dt>Commande</dt><dd>' + l.map(function (x) {
-        return '<div>' + x.quantite + ' ' + esc(x.unite) + ' — ' + esc(x.designation) + '</div>';
-      }).join('') + '<div class="aide">Une demande de transport partira vers la logistique.</div></dd>' : '') +
+        return '<div class="pa-recap-ligne"><span>' + x.quantite + ' ' + esc(x.unite) + ' — ' + esc(x.designation) +
+          ' × ' + formater(x.prix) + '</span><b>' + francs(x.quantite * x.prix) + '</b></div>';
+      }).join('') + '<div class="pa-recap-ligne pa-total-ligne"><span>Total à encaisser</span><b>' + francs(totalCommande()) +
+        '</b></div><div class="aide">Prix du catalogue à cet instant ; la base les fige sur la commande.</div></dd>' +
+        '<dt>Livraison</dt><dd>' + esc(dateCourte(lv.date)) + ' · ' + esc(LIBELLES_CRENEAU[lv.creneau] || '') +
+          (lv.repere ? '<br>' + esc(lv.repere) : '') + (lv.adresse ? '<br><span class="aide">' + esc(lv.adresse) + '</span>' : '') +
+          (lv.telephone ? '<br>☎ ' + esc(telephoneLisible(lv.telephone)) : '') +
+          '<div class="aide">Une demande de transport partira vers la logistique.</div></dd>' : '') +
       (PH.issue === 'a_rappeler' ? '<dt>Rappel</dt><dd>' + esc(dateCourte(PH.rappel)) + '</dd>' : '') +
       (refus ? '<dt>Motif</dt><dd>' + esc(refus.libelle) + '</dd>' : '') +
       '<dt>Commentaire</dt><dd>' + (PH.commentaire.trim() ? esc(PH.commentaire.trim()) : '<span class="aide">aucun</span>') + '</dd>' +
     '</dl><div id="pa_envoi_etat"></div></div>' +
     '<div class="pa-actions"><button class="pa-btn pa-discret" id="pa_retour">← Modifier</button>' +
     '<button class="pa-btn pa-principal" id="pa_envoyer" data-focus>✓ Valider et client suivant <kbd>Entrée</kbd></button></div>';
-  $('#pa_retour').onclick = function () { allerA('detail'); };
+  $('#pa_retour').onclick = function () { allerA(PH.issue === 'commande' ? 'livraison' : 'detail'); };
   $('#pa_envoyer').onclick = envoyerAppel;
 }
 
@@ -4766,12 +5058,17 @@ function envoyerAppel() {
   if (e) { message(e, 'ko'); return; }
   PH.envoi = true;
   var bouton = $('#pa_envoyer'); if (bouton) { bouton.disabled = true; bouton.textContent = 'Envoi…'; }
+  var lv = PH.livraison || {};
   rpc('enregistrer_appel', { p: {
     cle: PH.cle,
     seance_id: PH.seance.id,
     boutique_id: PH.courant.boutique.id,
     resultat: PH.issue,
-    lignes: PH.issue === 'commande' ? lignesCommande() : [],
+    lignes: PH.issue === 'commande' ? lignesCommande().map(function (x) {
+      return { sku: x.sku, quantite: x.quantite };   // le prix, la base le prend dans son catalogue
+    }) : [],
+    livraison: PH.issue === 'commande' ? { date: lv.date, creneau: lv.creneau, repere: (lv.repere || '').trim(),
+      adresse: (lv.adresse || '').trim(), telephone: (lv.telephone || '').trim() } : null,
     date_rappel: PH.issue === 'a_rappeler' ? PH.rappel : null,
     motif_refus: PH.issue === 'refus' ? PH.refus : null,
     commentaire: PH.commentaire.trim() || null,
@@ -4780,7 +5077,7 @@ function envoyerAppel() {
     PH.envoi = false;
     PH.seance.nb_appels = r.nb_appels; PH.seance.nb_commandes = r.nb_commandes;
     toast(r.commande
-      ? 'Commande ' + r.commande + ' enregistrée · transport ' + r.demande_transport + ' demandé.'
+      ? 'Commande ' + r.commande + (r.montant ? ' · ' + francs(r.montant) : '') + ' · transport ' + r.demande_transport + ' demandé.'
       : 'Appel enregistré.');
     PH.courant = null;
     prendreSuivant();
@@ -4797,28 +5094,6 @@ function envoyerAppel() {
   });
 }
 
-/* ------------------------------------------------------------ le script */
-
-function afficherScript() {
-  var zone = $('#pa_script'); if (!zone || typeof SCRIPT === 'undefined') { return; }
-  var i = Math.max(0, Math.min(PH.etapeScript, SCRIPT.etapes.length - 1));
-  var e = SCRIPT.etapes[i];
-  var nom = (SESSION.profil.nom || '').split(' ')[0];
-  var texte = function (t) { return esc(t).replace(/\{operateur\}/g, esc(nom)); };
-  zone.innerHTML =
-    '<div class="pa-script-tete"><b>Script</b><span>' + (i + 1) + '/' + SCRIPT.etapes.length + '</span></div>' +
-    '<h4>' + esc(e.titre) + '</h4>' + (e.objectif ? '<p class="aide">' + esc(e.objectif) + '</p>' : '') +
-    (e.phrases || []).map(function (p) { return '<p class="pa-phrase">« ' + texte(p) + ' »</p>'; }).join('') +
-    (e.objections || []).map(function (o) {
-      return '<details><summary>' + texte(o.dit || '') + '</summary><p>' + texte(o.repond || '') + '</p></details>';
-    }).join('') +
-    (e.remarques || []).map(function (r) { return '<p class="aide">• ' + texte(r) + '</p>'; }).join('') +
-    '<div class="pa-script-nav"><button id="pa_script_prec" ' + (i === 0 ? 'disabled' : '') + '>←</button>' +
-    '<button id="pa_script_suiv" ' + (i === SCRIPT.etapes.length - 1 ? 'disabled' : '') + '>Étape suivante →</button></div>';
-  $('#pa_script_prec').onclick = function () { PH.etapeScript = i - 1; afficherScript(); };
-  $('#pa_script_suiv').onclick = function () { PH.etapeScript = i + 1; afficherScript(); };
-}
-
 /* ------------------------------------------------------------ clavier */
 
 document.addEventListener('keydown', function (ev) {
@@ -4832,13 +5107,83 @@ document.addEventListener('keydown', function (ev) {
   }
   if (ev.key === 'Enter' && !ev.shiftKey && (!dansUnChamp || ev.target.tagName === 'INPUT')) {
     if (PH.page === 'client' && !$('#pa_passage .pa-passage')) { ev.preventDefault(); allerA('issue'); }
-    else if (PH.page === 'detail' && ev.target.type !== 'date') { ev.preventDefault(); versValidation(); }
+    else if ((PH.page === 'detail' || PH.page === 'livraison') && ev.target.type !== 'date') { ev.preventDefault(); pageSuivante(); }
     else if (PH.page === 'valider') { ev.preventDefault(); envoyerAppel(); }
   }
   if (ev.key === 'Escape' && !dansUnChamp) {
-    if (PH.page === 'detail') { allerA('issue'); } else if (PH.page === 'valider') { allerA('detail'); }
+    if (PH.page === 'detail') { allerA('issue'); }
+    else if (PH.page === 'livraison') { allerA('detail'); }
+    else if (PH.page === 'valider') { allerA(PH.issue === 'commande' ? 'livraison' : 'detail'); }
   }
 });
+
+/* ------------------------------------------------- prix (direction seule)
+
+   Les prix bougent vite : la direction les change ici, la base trace chaque
+   changement sous son nom, et le poste d'appel prend le nouveau prix au client
+   suivant. Une commande déjà prise garde le prix de son appel. */
+
+function chargerPrix() {
+  var zone = $('#prix_tableau');
+  zone.innerHTML = '<div class="chargement">Chargement…</div>';
+  Promise.all([
+    requete('/produits_tarifs?select=*&order=ordre,nom'),
+    requete('/historique_tarifs?select=*&order=le.desc&limit=30').catch(function () { return []; })
+  ]).then(function (r) {
+    var produits = r[0] || [], histo = r[1] || [];
+    var noms = {}; produits.forEach(function (p) { noms[p.sku] = p.nom; });
+    zone.innerHTML =
+      '<table class="tablo pa-prix"><thead><tr><th>Produit</th><th>Unité</th><th>Prix (FCFA)</th><th>Proposé</th>' +
+      '<th>Dernière modification</th><th></th></tr></thead><tbody>' +
+      produits.map(function (p) {
+        return '<tr' + (!p.prix_fcfa || !p.actif ? ' class="pa-prix-inactif"' : '') + '><td><b>' + esc(p.nom) + '</b></td>' +
+          '<td>' + esc(p.unite) + '</td>' +
+          '<td><input class="pa-champ pa-prix-champ" inputmode="numeric" data-prix="' + esc(p.sku) + '" value="' +
+            (p.prix_fcfa || '') + '" placeholder="à fixer"></td>' +
+          '<td><input type="checkbox" data-actif="' + esc(p.sku) + '"' + (p.actif ? ' checked' : '') + '></td>' +
+          '<td class="aide">' + esc(dateCourte(p.maj_le)) + ' · ' + esc(p.maj_par || '—') + '</td>' +
+          '<td><button class="btn-mini" data-enregistrer="' + esc(p.sku) + '">Enregistrer</button></td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<p class="aide">Un produit n\'est proposé au phoning que s\'il est coché ET a un prix. Le nouveau prix ' +
+        's\'applique au client suivant ; une commande déjà prise garde son prix.</p>' +
+      '<h3 style="margin-top:18px">Ajouter un produit</h3>' +
+      '<div class="pa-prix-ajout"><input class="pa-champ" id="prix_nom" placeholder="Nom du produit">' +
+        '<input class="pa-champ" id="prix_unite" placeholder="Unité (sac, sachet…)" value="sac">' +
+        '<input class="pa-champ" id="prix_valeur" inputmode="numeric" placeholder="Prix FCFA">' +
+        '<button class="btn-console accent" id="prix_ajouter">Ajouter</button></div>' +
+      '<h3 style="margin-top:18px">Derniers changements</h3>' +
+      (histo.length ? '<table class="tablo"><thead><tr><th>Quand</th><th>Produit</th><th>Avant</th><th>Après</th><th>Par</th></tr></thead><tbody>' +
+        histo.map(function (h) {
+          return '<tr><td class="num">' + esc(new Date(h.le).toLocaleString('fr-FR').slice(0, 16)) + '</td>' +
+            '<td>' + esc(noms[h.sku] || h.sku) + '</td>' +
+            '<td class="num">' + (h.ancien_prix ? formater(h.ancien_prix) : '—') + (h.ancien_actif === false ? ' (retiré)' : '') + '</td>' +
+            '<td class="num"><b>' + (h.nouveau_prix ? formater(h.nouveau_prix) : '—') + '</b>' + (h.nouveau_actif === false ? ' (retiré)' : '') + '</td>' +
+            '<td>' + esc(h.par || '—') + '</td></tr>';
+        }).join('') + '</tbody></table>' : '<div class="vide">Aucun changement depuis le barème du 08/10/2026.</div>');
+    $$('[data-enregistrer]').forEach(function (b) {
+      b.onclick = function () {
+        var sku = b.dataset.enregistrer;
+        var v = $('[data-prix="' + sku + '"]').value.replace(/\D/g, '');
+        enregistrerPrix(sku, null, null, v ? +v : null, $('[data-actif="' + sku + '"]').checked);
+      };
+    });
+    $('#prix_ajouter').onclick = function () {
+      var nom = $('#prix_nom').value.trim(), v = $('#prix_valeur').value.replace(/\D/g, '');
+      if (nom.length < 2) { message('Nom du produit requis.', 'ko'); return; }
+      enregistrerPrix(null, nom, $('#prix_unite').value.trim() || 'sac', v ? +v : null, true);
+    };
+  }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+function enregistrerPrix(sku, nom, unite, prix, actif) {
+  rpc('enregistrer_tarif', { p_sku: sku, p_nom: nom, p_unite: unite, p_prix: prix, p_actif: actif })
+    .then(function (t) {
+      message(esc(t.nom) + ' : ' + (t.prix_fcfa ? francs(t.prix_fcfa) : 'sans prix') + (t.actif ? '' : ' (retiré)') +
+              ' — enregistré sous votre nom.', 'ok');
+      chargerPrix();
+    })
+    .catch(function (e) { message('Prix non enregistré : ' + esc(e.message), 'ko'); });
+}
 
 /* ------------------------------------------------------------ clôture */
 

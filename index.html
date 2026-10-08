@@ -572,8 +572,8 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
       <input type="text" id="f_enseigne" placeholder="Ce qui est écrit sur la devanture">
     </div>
     <div class="champ">
-      <label class="intitule" for="f_enqueteur">Enquêteur</label>
-      <input type="text" id="f_enqueteur" placeholder="Votre nom">
+      <label class="intitule" for="f_enqueteur">Enquêteur <span class="req">*</span></label>
+      <select id="f_enqueteur"></select>
     </div>
   </div>
 
@@ -662,9 +662,11 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
   <div class="titre-section">Identité de l'enquêteur<span class="filet"></span></div>
   <div class="carte">
     <div class="champ">
-      <label class="intitule" for="r_enqueteur">Votre nom et prénom</label>
-      <input type="text" id="r_enqueteur" placeholder="Ex. Cheikh Diop">
-      <span class="aide-champ">Ce nom est inscrit sur chaque fiche, pour la traçabilité.</span>
+      <label class="intitule" for="r_enqueteur">Qui êtes-vous ?</label>
+      <select id="r_enqueteur"></select>
+      <span class="aide-champ" id="aide_enqueteurs">Choisissez votre nom : il est inscrit sur chaque fiche, pour la traçabilité.
+        Votre nom n'est pas dans la liste ? Demandez à votre superviseur de vous ajouter.</span>
+      <button class="btn btn-secondaire" id="btn_recharger_enqueteurs" type="button">↻ Recharger la liste des enquêteurs</button>
     </div>
     <div class="champ">
       <label class="intitule" for="r_zone">Zone proposée par défaut</label>
@@ -1414,6 +1416,8 @@ var DB = (function () {
 
 var ETAT = {
   enqueteur: '',
+  enqueteurId: '',
+  enqueteurs: [],         // la liste tenue en base (liste_enqueteurs), gardée sur le téléphone
   zoneDefaut: 'Dakar',
   fiches: [],
   brouillon: null,
@@ -1438,6 +1442,7 @@ function ficheVide() {
   var f = {
     id: null, cree_le: null, maj_le: null,
     enqueteur: ETAT.enqueteur,
+    enqueteur_id: ETAT.enqueteurId || '',
     date_visite: jourISO(),
     heure_saisie: heureCourte(),
     zone: ETAT.zoneDefaut || '',
@@ -1485,7 +1490,7 @@ function ouvrirFormulaire(fiche) {
 
   $('#titre-formulaire').textContent = f.id ? 'Modifier la fiche ' + f.id : 'Nouvelle fiche client';
   $('#f_date').value = f.date_visite;
-  $('#f_enqueteur').value = f.enqueteur;
+  remplirEnqueteurs('#f_enqueteur', f.enqueteur_id || ETAT.enqueteurId, f.enqueteur);
   $('#f_zone').innerHTML = rendreChoix('zone', ZONES, f.zone);
   $('#f_secteur').value = f.secteur || '';
   $('#f_localisation').value = f.localisation || '';
@@ -1603,7 +1608,9 @@ function traiterPhoto(ev) {
 function lireFormulaire(silencieux) {
   var f = ETAT.brouillon || ficheVide();
   f.date_visite = $('#f_date').value || jourISO();
-  f.enqueteur = $('#f_enqueteur').value.trim() || ETAT.enqueteur;
+  var choix = enqueteurDe($('#f_enqueteur').value);
+  if (choix) { f.enqueteur_id = choix.id; f.enqueteur = choix.nom; }
+  else if (!f.enqueteur_id) { f.enqueteur = ''; }
   f.zone = ($('input[name="zone"]:checked') || {}).value || '';
   f.secteur = $('#f_secteur').value.trim();
   f.localisation = $('#f_localisation').value.trim();
@@ -1635,7 +1642,7 @@ function validerFormulaire(f) {
   if (!f.tel1) { erreurs.push(['Numéro de téléphone à renseigner', '#f_tel1']); }
   else if (!telephoneValide(f.tel1)) { erreurs.push(['Numéro invalide (9 chiffres, ex. 77 123 45 67)', '#f_tel1']); }
   if (f.tel2 && !telephoneValide(f.tel2)) { erreurs.push(['Second numéro invalide', '#f_tel2']); }
-  if (!f.enqueteur) { erreurs.push(['Nom de l\'enquêteur à renseigner (écran Réglages)', null]); }
+  if (!f.enqueteur) { erreurs.push(['Choisissez l\'enquêteur dans la liste (écran Réglages)', '#f_enqueteur']); }
 
   return erreurs;
 }
@@ -2148,6 +2155,7 @@ function ficheVersLigne(f) {
     date_visite: f.date_visite || null,
     heure_saisie: f.heure_saisie || null,
     enqueteur: f.enqueteur || null,
+    enqueteur_id: f.enqueteur_id || null,
     zone: f.zone || null,
     secteur: f.secteur || null,
     localisation: f.localisation || null,
@@ -2361,8 +2369,65 @@ function synchroniser(silencieux) {
 
 /* -------------------------------------------------------------- réglages */
 
+/* ------------------------------------------------------------ enquêteurs
+
+   La liste vient de la base (liste_enqueteurs : les actifs, nom et
+   identifiant) et reste sur le téléphone : le formulaire marche hors réseau
+   avec la dernière liste reçue. Plus de nom tapé à la main — le 08/10/2026,
+   « Kader Diallo », « Kader diallo » et « Kader » comptaient pour trois. */
+
+function enqueteurDe(id) {
+  return ETAT.enqueteurs.filter(function (e) { return e.id === id; })[0] || null;
+}
+function remplirEnqueteurs(selecteur, id, nomGarde) {
+  var sel = $(selecteur); if (!sel) { return; }
+  var liste = ETAT.enqueteurs.slice();
+  /* Une fiche ancienne porte un nom qui n'est plus dans la liste : on le montre, sans le proposer aux autres. */
+  var garde = id && !enqueteurDe(id) && nomGarde ? '<option value="' + esc(id) + '" selected>' + esc(nomGarde) + ' (plus dans la liste)</option>' : '';
+  sel.innerHTML = '<option value="">' + (liste.length ? '— choisir dans la liste —' : '— liste non chargée : connectez-vous une fois —') + '</option>' +
+    garde + liste.map(function (e) {
+      return '<option value="' + esc(e.id) + '"' + (e.id === id ? ' selected' : '') + '>' + esc(e.nom) + '</option>';
+    }).join('');
+}
+function chargerEnqueteurs(silencieux) {
+  /* Le formulaire doit démarrer sans réseau, et même sans fetch : la liste
+     gardée sur le téléphone suffit. */
+  if (typeof fetch !== 'function' || !SYNCHRO.url || SYNCHRO.url.indexOf('--') !== -1) { return Promise.resolve(false); }
+  return fetch(SYNCHRO.url + '/rest/v1/rpc/liste_enqueteurs', {
+    method: 'POST',
+    headers: { 'apikey': SYNCHRO.cle, 'Authorization': 'Bearer ' + SYNCHRO.cle, 'Content-Type': 'application/json' },
+    body: '{}'
+  }).then(function (r) {
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    return r.json();
+  }).then(function (liste) {
+    ETAT.enqueteurs = (liste || []).map(function (e) { return { id: e.id, nom: e.nom }; });
+    DB.ecrireMeta('enqueteurs', JSON.stringify(ETAT.enqueteurs));
+    DB.secoursLocal.ecrire('sn2i_enqueteurs', JSON.stringify(ETAT.enqueteurs));
+    /* Un ancien réglage tapé à la main (« Kader Diallo ») retrouve son nom dans la liste. */
+    if (!ETAT.enqueteurId && ETAT.enqueteur) {
+      var trouve = ETAT.enqueteurs.filter(function (e) {
+        return e.nom.toLowerCase().trim() === ETAT.enqueteur.toLowerCase().trim();
+      })[0];
+      if (trouve) { ETAT.enqueteurId = trouve.id; ETAT.enqueteur = trouve.nom; DB.ecrireMeta('enqueteurId', trouve.id); }
+    }
+    remplirEnqueteurs('#r_enqueteur', ETAT.enqueteurId, ETAT.enqueteur);
+    if ($('#f_enqueteur')) { remplirEnqueteurs('#f_enqueteur', (ETAT.brouillon && ETAT.brouillon.enqueteur_id) || ETAT.enqueteurId, ETAT.enqueteur); }
+    majBandeau();
+    if (!silencieux) { toast(ETAT.enqueteurs.length + ' enquêteur(s) dans la liste'); }
+    return true;
+  }).catch(function () {
+    if (!silencieux) { toast('Liste non rechargée : pas de réseau. La dernière liste reçue reste utilisable.'); }
+    return false;
+  });
+}
+
 function sauvegarderReglages() {
-  ETAT.enqueteur = $('#r_enqueteur').value.trim();
+  var choix = enqueteurDe($('#r_enqueteur').value);
+  if (!choix) { toast('Choisissez votre nom dans la liste'); return; }
+  ETAT.enqueteurId = choix.id;
+  DB.ecrireMeta('enqueteurId', choix.id);
+  ETAT.enqueteur = choix.nom;
   ETAT.zoneDefaut = $('#r_zone').value;
   DB.ecrireMeta('enqueteur', ETAT.enqueteur);
   DB.ecrireMeta('zoneDefaut', ETAT.zoneDefaut);
@@ -2487,6 +2552,7 @@ function brancherEvenements() {
   sur('#f_restauration', 'onchange', function (e) { if (e.target.files[0]) { restaurerSauvegarde(e.target.files[0]); } });
   sur('#btn_purger', 'onclick', purgerTout);
   sur('#btn_enregistrer_reglages', 'onclick', sauvegarderReglages);
+  sur('#btn_recharger_enqueteurs', 'onclick', function () { chargerEnqueteurs(false); });
 
   /* saisie : recalcul du total en direct et sauvegarde du brouillon */
   function reactionSaisie(e) {
@@ -2536,14 +2602,20 @@ function demarrer() {
 
   Promise.all([
     DB.lireMeta('enqueteur', ''),
-    DB.lireMeta('zoneDefaut', 'Dakar')
+    DB.lireMeta('zoneDefaut', 'Dakar'),
+    DB.lireMeta('enqueteurId', ''),
+    DB.lireMeta('enqueteurs', '')
   ]).then(function (r) {
     ETAT.enqueteur = r[0] || DB.secoursLocal.lire('sn2i_enqueteur', '') || '';
     ETAT.zoneDefaut = r[1] || 'Dakar';
-    $('#r_enqueteur').value = ETAT.enqueteur;
+    ETAT.enqueteurId = r[2] || '';
+    try { ETAT.enqueteurs = JSON.parse(r[3] || DB.secoursLocal.lire('sn2i_enqueteurs', '') || '[]') || []; }
+    catch (e) { ETAT.enqueteurs = []; }
+    remplirEnqueteurs('#r_enqueteur', ETAT.enqueteurId, ETAT.enqueteur);
+    chargerEnqueteurs(true);
     $('#r_zone').value = ETAT.zoneDefaut;
     $('#f_date').value = jourISO();
-    $('#f_enqueteur').value = ETAT.enqueteur;
+    remplirEnqueteurs('#f_enqueteur', ETAT.enqueteurId, ETAT.enqueteur);
     $('#liste_secteurs').innerHTML = SECTEURS.map(function (s) { return '<option value="' + esc(s) + '">'; }).join('');
     $('#f_type_pdv').innerHTML = '<option value="">— non précisé —</option>' +
       TYPES_PDV.map(function (t) { return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');

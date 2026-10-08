@@ -2263,6 +2263,14 @@ table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td
       <p>Ce que les enquêteurs ont relevé, qui l'a relevé, et ce que cela a créé comme boutique.</p>
     </div>
     <div class="cartes-console" id="fiches_chiffres"></div>
+    <div class="bloc-console" id="bloc_enqueteurs" style="display:none">
+      <h3>Les enquêteurs <span class="compte" id="enqueteurs_compte"></span></h3>
+      <p class="aide">La liste que le formulaire de terrain propose. Un enquêteur désactivé n'y apparaît plus ; ses fiches
+         restent à son nom. Le formulaire recharge la liste dès qu'il a du réseau.</p>
+      <div class="enveloppe" id="enqueteurs_tableau"></div>
+      <div class="pa-prix-ajout" style="margin-top:12px"><input class="pa-champ" id="enq_nom" placeholder="Prénom et NOM du nouvel enquêteur">
+        <button class="btn-console accent" id="enq_ajouter">Ajouter</button></div>
+    </div>
     <div class="bloc-console">
       <h3>Par enquêteur <span class="compte" id="fiches_par_enqueteur_compte"></span></h3>
       <div class="enveloppe" id="fiches_par_enqueteur"><div class="chargement">Chargement…</div></div>
@@ -3816,7 +3824,57 @@ function chargerBoutiques() {
 /* Ce que les enquêteurs ont relevé : qui, quand, où, et la boutique créée.
    Le DGA voulait pouvoir cliquer sur le nombre de fiches et voir « qui les a
    renseignées » — c'est cet écran. */
+/* Les enquêteurs (base/0027) : la direction et le superviseur tiennent la
+   liste que le formulaire de terrain propose. */
+function chargerEnqueteursConsole() {
+  var bloc = $('#bloc_enqueteurs');
+  if (!aLeDroit(['dga', 'superviseur'])) { bloc.style.display = 'none'; return; }
+  bloc.style.display = '';
+  Promise.all([
+    requete('/enqueteurs?select=*&order=actif.desc,nom'),
+    requete('/fiches_cartographie?select=enqueteur_id,date_visite&limit=5000')
+  ]).then(function (r) {
+    var liste = r[0] || [], fiches = r[1] || [], compte = {}, derniere = {};
+    fiches.forEach(function (f) {
+      if (!f.enqueteur_id) { return; }
+      compte[f.enqueteur_id] = (compte[f.enqueteur_id] || 0) + 1;
+      if (!derniere[f.enqueteur_id] || f.date_visite > derniere[f.enqueteur_id]) { derniere[f.enqueteur_id] = f.date_visite; }
+    });
+    $('#enqueteurs_compte').textContent = liste.filter(function (e) { return e.actif; }).length + ' actif(s)';
+    $('#enqueteurs_tableau').innerHTML = '<table class="tablo fl-flotte carte-mobile"><thead><tr><th>Enquêteur</th><th>État</th>' +
+      '<th>Fiches</th><th>Dernière fiche</th><th></th></tr></thead><tbody>' + liste.map(function (e) {
+        return '<tr class="' + (e.actif ? '' : 'fl-inactif') + '"><td><b>' + esc(e.nom) + '</b><br><span class="aide">ajouté par ' +
+          esc(e.cree_par || '—') + '</span></td>' +
+          '<td>' + (e.actif ? '<span class="etiquette-statut fini">actif</span>' : '<span class="etiquette-statut attente">désactivé</span>') +
+            (e.maj_par ? '<br><span class="aide">' + esc(e.maj_par) + ', ' + esc(dateCourte(e.maj_le)) + '</span>' : '') + '</td>' +
+          '<td class="num">' + formater(compte[e.id] || 0) + '</td>' +
+          '<td class="num">' + (derniere[e.id] ? esc(dateCourte(derniere[e.id])) : '—') + '</td>' +
+          '<td><button class="btn-mini' + (e.actif ? ' discret' : '') + '" data-enq="' + esc(e.id) + '" data-actif="' + (e.actif ? '0' : '1') + '">' +
+            (e.actif ? 'Désactiver' : 'Réactiver') + '</button></td></tr>';
+      }).join('') + '</tbody></table>';
+    etiqueterTableaux($('#enqueteurs_tableau'));
+    $$('[data-enq]').forEach(function (b) {
+      b.onclick = function () {
+        var actif = b.dataset.actif === '1';
+        if (!actif && !window.confirm('Désactiver cet enquêteur ? Il ne pourra plus être choisi dans le formulaire.')) { return; }
+        b.disabled = true;
+        rpc('regler_enqueteur', { p_id: b.dataset.enq, p_nom: null, p_actif: actif })
+          .then(function (e) { message(esc(e.nom) + (e.actif ? ' réactivé.' : ' désactivé.'), 'ok'); chargerEnqueteursConsole(); })
+          .catch(function (err) { b.disabled = false; message('Non enregistré : ' + esc(err.message), 'ko'); });
+      };
+    });
+    $('#enq_ajouter').onclick = function () {
+      var nom = $('#enq_nom').value.trim();
+      if (nom.length < 3) { message('Prénom et nom de l\'enquêteur requis.', 'ko'); return; }
+      rpc('regler_enqueteur', { p_id: null, p_nom: nom, p_actif: true })
+        .then(function (e) { $('#enq_nom').value = ''; message(esc(e.nom) + ' ajouté : il apparaît dans le formulaire dès qu\'il a du réseau.', 'ok'); chargerEnqueteursConsole(); })
+        .catch(function (err) { message('Non ajouté : ' + esc(err.message), 'ko'); });
+    };
+  }).catch(function (e) { $('#enqueteurs_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
 function chargerFiches() {
+  chargerEnqueteursConsole();
   $('#fiches_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
   requete('/fiches_cartographie?select=id_client,nom_prenom,zone,secteur,localisation,' +
           'enqueteur,date_visite,gps_latitude,gps_longitude,telephone_1,recu_le,traite_le,' +

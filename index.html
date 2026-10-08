@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<link rel="manifest" href="manifest.json">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#442A19">
 <meta name="description" content="Formulaire de cartographie clients SN2I — aliments de bétail, zone Dakar, Mbour, Thiès.">
@@ -488,6 +489,16 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
   .ecran { max-width: none; padding: 0; }
   a[href^="tel:"] { color: inherit; text-decoration: none; }
 }
+
+/* --- 08/10/2026 : l'état d'envoi de chaque fiche, la précision du GPS */
+.tag.recue { background: var(--vert-pale); color: var(--vert); border-color: var(--vert-bord); }
+.tag.attente { background: var(--ambre-pale); color: var(--ambre); }
+.tag.refusee { background: var(--rouge-pale); color: var(--rouge); border-color: var(--rouge-bord); }
+.motif-refus { font-size: 13px; color: var(--rouge); margin-top: 4px; }
+#avis_attente .btn { margin-top: 8px; width: auto; min-height: 44px; }
+.gps-precision.bonne { color: var(--vert); font-weight: 700; }
+.gps-precision.moyenne { color: var(--ambre); font-weight: 700; }
+.gps-precision.faible { color: var(--rouge); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -574,6 +585,7 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
     <div class="champ">
       <label class="intitule" for="f_enqueteur">Enquêteur <span class="req">*</span></label>
       <select id="f_enqueteur"></select>
+      <input type="text" id="f_enqueteur_texte" placeholder="Votre prénom et votre nom" style="display:none">
     </div>
   </div>
 
@@ -664,6 +676,7 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
     <div class="champ">
       <label class="intitule" for="r_enqueteur">Qui êtes-vous ?</label>
       <select id="r_enqueteur"></select>
+      <input type="text" id="r_enqueteur_texte" placeholder="Votre prénom et votre nom (liste pas encore reçue)" style="display:none">
       <span class="aide-champ" id="aide_enqueteurs">Choisissez votre nom : il est inscrit sur chaque fiche, pour la traçabilité.
         Votre nom n'est pas dans la liste ? Demandez à votre superviseur de vous ajouter.</span>
       <button class="btn btn-secondaire" id="btn_recharger_enqueteurs" type="button">↻ Recharger la liste des enquêteurs</button>
@@ -1609,7 +1622,9 @@ function lireFormulaire(silencieux) {
   var f = ETAT.brouillon || ficheVide();
   f.date_visite = $('#f_date').value || jourISO();
   var choix = enqueteurDe($('#f_enqueteur').value);
+  var tape = $('#f_enqueteur_texte') && !ETAT.enqueteurs.length ? $('#f_enqueteur_texte').value.trim() : '';
   if (choix) { f.enqueteur_id = choix.id; f.enqueteur = choix.nom; }
+  else if (tape) { f.enqueteur_id = ''; f.enqueteur = tape; }
   else if (!f.enqueteur_id) { f.enqueteur = ''; }
   f.zone = ($('input[name="zone"]:checked') || {}).value || '';
   f.secteur = $('#f_secteur').value.trim();
@@ -1670,6 +1685,11 @@ function enregistrerFiche() {
     f.id = prochainIdentifiant(f.date_visite);
     f.cree_le = new Date().toISOString();
   }
+  /* Chaque fiche porte un identifiant propre au téléphone : deux téléphones qui
+     numérotent tous deux « -001 » ne se volent plus leur fiche (recette du 08/10). */
+  if (!f.id_local) { f.id_local = nouvelIdLocal(); }
+  /* Modifiée : elle repart vers le bureau (corriger_fiche). */
+  if (!nouvelle) { f.envoyee = false; f.refus = ''; }
   f.maj_le = new Date().toISOString();
   f.heure_saisie = heureCourte();
 
@@ -1691,6 +1711,13 @@ function enregistrerFiche() {
     return null;
   }).then(function () { afficherEcran('liste'); })
     .catch(function (e) { alert('Enregistrement impossible : ' + (e && e.message ? e.message : e)); });
+}
+
+function nouvelIdLocal() {
+  if (window.crypto && crypto.randomUUID) { return crypto.randomUUID(); }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
 }
 
 function prochainIdentifiant(dateVisite) {
@@ -1727,19 +1754,27 @@ function rendreListe() {
   if (MODE_PUBLIE) {
     var avis = $('#avis_attente');
     avis.style.display = 'block';
-    var enAttente = fiches.filter(function (f) { return !f.envoyee; }).length;
+    var enAttente = fiches.filter(function (f) { return !f.envoyee && !f.refus; }).length;
+    var refusees = fiches.filter(function (f) { return !f.envoyee && f.refus; }).length;
     if (!SYNCHRO.active()) {
       avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s) sur ce téléphone.</b> ' +
         'La remontée automatique n\'est pas encore configurée : vos fiches sont conservées ici, ' +
         'ne supprimez pas l\'application.';
+    } else if (!fiches.length) {
+      avis.innerHTML = '<b>Aucune fiche sur ce téléphone.</b> Chaque fiche enregistrée part seule vers le bureau dès qu\'il y a du réseau.';
+    } else if (refusees) {
+      avis.innerHTML = '<b>' + refusees + ' fiche(s) refusée(s) par le bureau</b> : ouvrez-les (bandeau rouge), corrigez, ' +
+        'enregistrez — elles repartent. ' + (enAttente ? enAttente + ' autre(s) en attente d\'envoi.' : '') +
+        ' <button class="btn btn-secondaire" id="btn_envoyer_maintenant" type="button">Envoyer maintenant</button>';
     } else if (enAttente) {
       avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s), dont ' + enAttente +
         ' en attente d\'envoi.</b> Elles partent automatiquement dès que le réseau le permet. ' +
-        'Vous n\'avez rien à envoyer.';
+        'Vous n\'avez rien à envoyer. <button class="btn btn-secondaire" id="btn_envoyer_maintenant" type="button">Envoyer maintenant</button>';
     } else {
-      avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s), toutes remontées.</b> ' +
-        'Le bureau les a reçues.';
+      avis.innerHTML = '<b>' + fiches.length + ' fiche(s) enregistrée(s), toutes reçues par le bureau.</b>';
     }
+    var envoi = $('#btn_envoyer_maintenant');
+    if (envoi) { envoi.onclick = function () { envoi.disabled = true; synchroniser(false).then(rafraichirListe); }; }
   }
 
   $('#stats').innerHTML =
@@ -1766,7 +1801,10 @@ function rendreListe() {
           '<span class="tag ' + esc((f.categorie || '').toLowerCase()) + '">' + esc(f.categorie || '—') + '</span>' +
           '<span class="tag">' + formaterNombre(total) + ' kg/mois</span>' +
           (f.tel1 ? '<span class="tag">' + esc(telephoneAffiche(f.tel1)) + '</span>' : '') +
+          (MODE_PUBLIE ? (f.envoyee ? '<span class="tag recue">✓ reçue</span>'
+            : f.refus ? '<span class="tag refusee">✗ refusée</span>' : '<span class="tag attente">en attente</span>') : '') +
         '</div>' +
+        (f.refus && !f.envoyee ? '<div class="motif-refus">' + esc(f.refus) + '</div>' : '') +
       '</div></div>';
   });
   $('#liste').innerHTML = html;
@@ -1793,7 +1831,8 @@ function ouvrirDetail(id) {
     ETAT.ficheOuverte = f;
     var total = totalFiche(f);
     var lignes = [
-      ['Identifiant', f.id],
+      ['Identifiant', f.id + (f.id_bureau ? ' (au bureau : ' + f.id_bureau + ')' : '')],
+      ['Envoi', f.envoyee ? 'reçue par le bureau' + (f.note_bureau ? ' — ' + f.note_bureau : '') : f.refus ? 'REFUSÉE : ' + f.refus : 'en attente d\'envoi'],
       ['Date de visite', f.date_visite],
       ['Enquêteur', f.enqueteur],
       ['Zone', f.zone],
@@ -1837,7 +1876,10 @@ function ouvrirDetail(id) {
 
     $('#btn_modifier').onclick = function () { ouvrirFormulaire(JSON.parse(JSON.stringify(f))); };
     $('#btn_supprimer').onclick = function () {
-      if (confirm('Supprimer définitivement la fiche ' + f.id + ' ?\n\nCette action est irréversible.')) {
+      var texte = f.envoyee
+        ? 'Retirer la fiche ' + f.id + ' de ce téléphone ?\n\nElle reste au bureau : rien n\'est perdu.'
+        : 'ATTENTION : la fiche ' + f.id + ' n\'a PAS ENCORE été reçue par le bureau.\n\nLa supprimer maintenant, c\'est la PERDRE. Continuer ?';
+      if (confirm(texte)) {
         DB.supprimerFiche(f.id).then(function () { toast('Fiche supprimée'); return rafraichirListe(); })
           .then(function () { afficherEcran('liste'); });
       }
@@ -2180,7 +2222,7 @@ function ficheVersLigne(f) {
     autre_kg_mois: n(f.q_autre),
     produit_meilleure_vente: f.meilleure_vente || null,
     total_kg_mois: total || null,
-    photo_devanture: f.id + '.jpg',
+    id_local: f.id_local || null,
     autres_magasins: f.autres_magasins || null,
     nb_autres_magasins: f.nb_magasins ? nombre(f.nb_magasins) : null,
     localisation_autres_magasins: f.ou_magasins || null,
@@ -2202,22 +2244,31 @@ function ligneAvecPhoto(ligne, photoBase64) {
 }
 
 function envoyerFiche(f, photoBase64) {
-  /* Insertion pure, sans upsert : la clé publique n'a le droit que d'INSÉRER,
-     jamais de modifier une ligne. Si la fiche est déjà en base — cas d'un renvoi
-     après une coupure réseau — la base répond 409, ce qui est un succès. */
-  return fetch(SYNCHRO.url + '/rest/v1/fiches_cartographie', {
+  /* Par la fonction de la base (deposer_fiche / corriger_fiche, base/0029) : elle
+     contrôle les champs, reconnaît un renvoi par l'identifiant local, et attribue
+     un numéro libre si celui du téléphone est déjà pris. Réponse :
+       recue | deja_recue | corrigee  → la fiche est au bureau ;
+       deja_integree                  → au bureau, la correction se fera là-bas ;
+       erreur 400 (fiche refusée)     → motif gardé sur la fiche, les autres partent. */
+  if (!f.id_local) { f.id_local = nouvelIdLocal(); }
+  return fetch(SYNCHRO.url + '/rest/v1/rpc/' + (f.envoyee_le ? 'corriger_fiche' : 'deposer_fiche'), {
     method: 'POST',
     headers: {
       'apikey': SYNCHRO.cle,
       'Authorization': 'Bearer ' + SYNCHRO.cle,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify([ligneAvecPhoto(ficheVersLigne(f), photoBase64)])
+    body: JSON.stringify({ p: ligneAvecPhoto(ficheVersLigne(f), photoBase64) })
   }).then(function (r) {
-    if (r.status === 409) { return true; }
-    if (!r.ok) { throw new Error('HTTP ' + r.status); }
-    return true;
+    return r.text().then(function (t) {
+      var d = null;
+      try { d = t ? JSON.parse(t) : null; } catch (e) { d = null; }
+      if (r.ok) { return d || {}; }
+      if (r.status === 400 || (d && /^(22|P0)/.test(String(d.code || '')))) {
+        var refus = new Error((d && d.message) || 'fiche refusée'); refus.refus = true; throw refus;
+      }
+      throw new Error('HTTP ' + r.status);
+    });
   });
 }
 
@@ -2285,7 +2336,13 @@ function envoyerPhoto(id, blob) {
 function majEtatSynchro(enCours) {
   var el = $('#puce_synchro');
   if (!el) { return; }
-  var attente = ETAT.fiches.filter(function (f) { return !f.envoyee; }).length;
+  var attente = ETAT.fiches.filter(function (f) { return !f.envoyee && !f.refus; }).length;
+  var refusees = ETAT.fiches.filter(function (f) { return !f.envoyee && f.refus; }).length;
+  if (refusees) {
+    el.className = 'puce hors-ligne';
+    el.innerHTML = 'Envoi : <b>' + refusees + ' refusée(s)</b>';
+    return;
+  }
   if (!SYNCHRO.active()) {
     el.className = 'puce hors-ligne';
     el.innerHTML = 'Remontée : <b>non configurée</b>';
@@ -2298,11 +2355,11 @@ function majEtatSynchro(enCours) {
   }
   if (attente) {
     el.className = 'puce hors-ligne';
-    el.innerHTML = 'En attente d\'envoi : <b>' + attente + '</b>';
+    el.innerHTML = 'Envoi : <b>' + attente + ' en attente</b>';
     return;
   }
   el.className = 'puce';
-  el.innerHTML = 'Remontée : <b>à jour</b>';
+  el.innerHTML = ETAT.fiches.length ? 'Envoi : <b>tout est reçu</b>' : 'Envoi : <b>aucune fiche</b>';
 }
 
 /* Envoie les fiches non encore transmises, une par une, et s'arrête au premier
@@ -2314,7 +2371,7 @@ function synchroniser(silencieux) {
   try {
     if (typeof fetch !== 'function') { majEtatSynchro(); return Promise.resolve(0); }
     if (!SYNCHRO.active() || ETAT.synchroEnCours) { majEtatSynchro(); return Promise.resolve(0); }
-    var attente = ETAT.fiches.filter(function (f) { return !f.envoyee; });
+    var attente = ETAT.fiches.filter(function (f) { return !f.envoyee && (!f.refus || !silencieux); });
     if (!attente.length) { majEtatSynchro(); return Promise.resolve(0); }
 
     ETAT.synchroEnCours = true;
@@ -2326,7 +2383,8 @@ function synchroniser(silencieux) {
         if (i >= attente.length) {
           ETAT.synchroEnCours = false;
           majEtatSynchro();
-          if (envoyees && !silencieux) { toast(envoyees + ' fiche(s) remontée(s)'); }
+          if (typeof rendreListe === 'function' && ETAT.ecran === 'liste') { rendreListe(); }
+          if (envoyees && !silencieux) { toast(envoyees + ' fiche(s) reçue(s) par le bureau'); }
           return Promise.resolve(envoyees);
         }
         var f = attente[i++];
@@ -2336,16 +2394,24 @@ function synchroniser(silencieux) {
         return DB.lirePhoto(f.id)
           .then(function (blob) { return photoEnBase64(blob); })
           .then(function (b64) { return envoyerFiche(f, b64); })
-          .then(function () { return DB.lirePhoto(f.id); })
-          .then(function (blob) { return envoyerPhoto(f.id, blob); })
-          .then(function () {
+          .then(function (r) {
             f.envoyee = true;
             f.envoyee_le = new Date().toISOString();
+            f.refus = '';
+            /* La base a pu donner un autre numéro (collision avec un autre téléphone). */
+            f.id_bureau = r && r.id_client && r.id_client !== f.id ? r.id_client : (f.id_bureau || '');
+            f.note_bureau = r && r.statut === 'deja_integree' ? (r.message || '') : '';
             envoyees++;
             return DB.ecrireFiche(f);
           })
           .then(suivant)
           .catch(function (e) {
+            if (e && e.refus) {
+              /* Refusée par la base : on le dit sur la fiche, et on passe à la
+                 suivante — une fiche fautive ne bloque plus les autres. */
+              f.refus = e.message;
+              return DB.ecrireFiche(f).then(suivant);
+            }
             // Réseau ou base indisponible : on s'arrête là. La fiche reste en
             // attente et repartira au prochain essai.
             i = attente.length;
@@ -2383,7 +2449,15 @@ function remplirEnqueteurs(selecteur, id, nomGarde) {
   var sel = $(selecteur); if (!sel) { return; }
   var liste = ETAT.enqueteurs.slice();
   /* Une fiche ancienne porte un nom qui n'est plus dans la liste : on le montre, sans le proposer aux autres. */
-  var garde = id && !enqueteurDe(id) && nomGarde ? '<option value="' + esc(id) + '" selected>' + esc(nomGarde) + ' (plus dans la liste)</option>' : '';
+  var garde = id && !enqueteurDe(id) && nomGarde && liste.length
+    ? '<option value="' + esc(id) + '"' + (selecteur === '#f_enqueteur' ? ' selected' : '') + '>' + esc(nomGarde) + ' (plus dans la liste)</option>' : '';
+  /* Liste jamais reçue (premier démarrage hors réseau) : le nom se tape, la base le rattachera. */
+  var texte = $(selecteur + '_texte');
+  if (texte) {
+    texte.style.display = liste.length ? 'none' : '';
+    sel.style.display = liste.length ? '' : 'none';
+    if (!liste.length && nomGarde && !texte.value) { texte.value = nomGarde; }
+  }
   sel.innerHTML = '<option value="">' + (liste.length ? '— choisir dans la liste —' : '— liste non chargée : connectez-vous une fois —') + '</option>' +
     garde + liste.map(function (e) {
       return '<option value="' + esc(e.id) + '"' + (e.id === id ? ' selected' : '') + '>' + esc(e.nom) + '</option>';
@@ -2405,6 +2479,11 @@ function chargerEnqueteurs(silencieux) {
     DB.ecrireMeta('enqueteurs', JSON.stringify(ETAT.enqueteurs));
     DB.secoursLocal.ecrire('sn2i_enqueteurs', JSON.stringify(ETAT.enqueteurs));
     /* Un ancien réglage tapé à la main retrouve son nom dans la liste, sans tenir compte des majuscules. */
+    if (ETAT.enqueteurId && !enqueteurDe(ETAT.enqueteurId)) {
+      /* Retiré de la liste par le superviseur : plus présélectionné. */
+      ETAT.enqueteurId = ''; DB.ecrireMeta('enqueteurId', '');
+      toast('Votre nom n\'est plus dans la liste des enquêteurs : voyez votre superviseur.');
+    }
     if (!ETAT.enqueteurId && ETAT.enqueteur) {
       var trouve = ETAT.enqueteurs.filter(function (e) {
         return e.nom.toLowerCase().trim() === ETAT.enqueteur.toLowerCase().trim();
@@ -2424,10 +2503,11 @@ function chargerEnqueteurs(silencieux) {
 
 function sauvegarderReglages() {
   var choix = enqueteurDe($('#r_enqueteur').value);
-  if (!choix) { toast('Choisissez votre nom dans la liste'); return; }
-  ETAT.enqueteurId = choix.id;
-  DB.ecrireMeta('enqueteurId', choix.id);
-  ETAT.enqueteur = choix.nom;
+  var tape = !ETAT.enqueteurs.length && $('#r_enqueteur_texte') ? $('#r_enqueteur_texte').value.trim() : '';
+  if (!choix && tape.length < 3) { toast(ETAT.enqueteurs.length ? 'Choisissez votre nom dans la liste' : 'Écrivez votre prénom et votre nom'); return; }
+  ETAT.enqueteurId = choix ? choix.id : '';
+  DB.ecrireMeta('enqueteurId', ETAT.enqueteurId);
+  ETAT.enqueteur = choix ? choix.nom : tape;
   ETAT.zoneDefaut = $('#r_zone').value;
   DB.ecrireMeta('enqueteur', ETAT.enqueteur);
   DB.ecrireMeta('zoneDefaut', ETAT.zoneDefaut);
@@ -2493,14 +2573,17 @@ function releverPosition() {
     f.gps_lon = pos.coords.longitude;
     f.gps_prec = pos.coords.accuracy;
     ETAT.brouillon = f;
+    var p = Math.round(pos.coords.accuracy);
+    $('#f_gps').className = 'gps-precision ' + (p <= 30 ? 'bonne' : p <= 100 ? 'moyenne' : 'faible');
     $('#f_gps').textContent = 'Position relevée : ' + pos.coords.latitude.toFixed(5) + ', ' +
-      pos.coords.longitude.toFixed(5) + ' (± ' + Math.round(pos.coords.accuracy) + ' m)';
+      pos.coords.longitude.toFixed(5) + ' (± ' + p + ' m)' +
+      (p > 30 ? (p <= 100 ? ' — précision moyenne : approchez-vous de la devanture et actualisez' : ' — trop imprécise : sortez à découvert et actualisez') : '');
     bouton.textContent = 'Actualiser ma position';
     toast('Position enregistrée');
   }, function (e) {
     bouton.textContent = 'Ma position';
     toast(e.code === 1 ? 'Position refusée par le téléphone' : 'Signal GPS introuvable ici');
-  }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });   // jamais la position de la boutique précédente
 }
 
 /* -------------------------------------------------------------- démarrage */
@@ -2595,7 +2678,18 @@ function appliquerMode() {
   }
 }
 
+/* Version publiée seulement : la page est gardée par le navigateur pour s'ouvrir
+   hors réseau (src/sw.js). Sans effet sur la version enquêteur ouverte en fichier. */
+function garderHorsReseau() {
+  try {
+    if (MODE_PUBLIE && 'serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* sans effet sur la saisie */ });
+    }
+  } catch (e) { /* sans effet */ }
+}
+
 function demarrer() {
+  garderHorsReseau();
   brancherEvenements();
   surveillerReseau();
   appliquerMode();

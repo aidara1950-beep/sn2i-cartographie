@@ -1,0 +1,10 @@
+{
+  "name": "SN2I — Fiche client terrain",
+  "short_name": "SN2I Terrain",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FAF7F3",
+  "theme_color": "#442A19",
+  "lang": "fr"
+}

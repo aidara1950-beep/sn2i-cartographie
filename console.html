@@ -2127,6 +2127,10 @@ table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td
 table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
 .fl-ajout { margin: 10px 0; }
 .fl-ajout summary { cursor: pointer; color: var(--principal); }
+
+/* 0031 : liens de tournée */
+.lt-ligne { border-bottom: 1px solid var(--bord); padding: 10px 0; display: grid; gap: 6px; }
+.lt-res .pa-champ { margin: 6px 0; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -2389,6 +2393,12 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
       <h3>☎ Un client appelle — où en est sa commande ?</h3>
       <div id="liv_suivi_contenu"></div>
     </div>
+    <div class="bloc-console" id="bloc_liens_tournee" style="display:none">
+      <h3>Liens de tournée des chauffeurs</h3>
+      <p class="aide">Chaque chauffeur reçoit le lien de SA tournée du jour : il y fait signer le client et signe à son tour, avec le numéro
+         du BL papier. Le bon de livraison et la facture de livraison signés arrivent dans l'onglet Documents.</p>
+      <div id="liens_tournee"></div>
+    </div>
     <div class="bloc-console">
       <div class="ligne-actions" style="margin-bottom:10px"><button class="btn-console" id="liv_bascule">Voir tout l'historique</button></div>
       <div class="enveloppe" id="livraisons_tableau"><div class="chargement">Chargement…</div></div>
@@ -2412,6 +2422,18 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
   </section>
 
   <!-- -------------------------------------------------- utilisateurs -->
+  <!-- ------------------------------------------------------- documents -->
+  <section class="ecran-console" data-ecran="documents">
+    <div class="entete-ecran">
+      <h2>Documents signés</h2>
+      <p>Les remises signées chez le client : bon de livraison et facture de livraison, à imprimer et à rapprocher de la facture du logiciel.</p>
+    </div>
+    <div class="bloc-console">
+      <div class="pl-bascule" id="doc_bascule" style="margin-bottom:10px"></div>
+      <div class="enveloppe" id="documents_tableau"></div>
+    </div>
+  </section>
+
   <!-- ------------------------------------------------------------ prix -->
   <section class="ecran-console" data-ecran="prix">
     <div class="entete-ecran">
@@ -2419,6 +2441,7 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
       <p>Le barème du phoning, en FCFA. Changé ici par la direction, appliqué au client suivant.</p>
     </div>
     <div class="bloc-console"><div id="prix_tableau"></div></div>
+    <div class="bloc-console"><h3>Coordonnées de la société (en-tête des documents)</h3><div id="societe_bloc"></div></div>
   </section>
 
   <section class="ecran-console" data-ecran="utilisateurs">
@@ -2619,7 +2642,7 @@ var SESSION = { jeton: null, rafraichissement: null, profil: null, onglet: 'bord
 
 var LIBELLES_ROLES = {
   dga: 'Direction', phoning: 'Phoning', logistique: 'Logistique',
-  superviseur: 'Superviseur', lecture: 'Lecture seule', aucun: 'Sans rôle'
+  superviseur: 'Superviseur', lecture: 'Lecture seule', comptable: 'Comptabilité', aucun: 'Sans rôle'
 };
 
 /* Ce que chaque rôle a le droit de voir dans la console.
@@ -2628,8 +2651,10 @@ var LIBELLES_ROLES = {
    exactement la même page ». Chaque métier a désormais son écran. */
 var ONGLETS_PAR_ROLE = {
   dga: ['bord', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
-        'boutiques', 'prix', 'utilisateurs'],
-  logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'commandes', 'boutiques'],
+        'boutiques', 'documents', 'prix', 'utilisateurs'],
+  logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'documents', 'commandes', 'boutiques'],
+  /* 08/10/2026 (DGA) : la comptabilité imprime les BL et factures signés et les rapproche. */
+  comptable: ['documents', 'livraisons', 'commandes'],
   /* 08/10/2026 (DGA) : le phoning voit aussi les livraisons en cours et les
      camions, pour dire à un client qui appelle où en est son camion. */
   phoning: ['bord', 'phoning', 'livraisons', 'camions', 'commandes', 'boutiques', 'fiches'],
@@ -2640,7 +2665,7 @@ var TITRES_ONGLETS = {
   bord: 'Carte', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
   fiches: 'Fiches de terrain',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
-  prix: 'Prix', utilisateurs: 'Utilisateurs'
+  prix: 'Prix', documents: 'Documents', utilisateurs: 'Utilisateurs'
 };
 /* Qui voit quoi, dit une fois pour toutes. */
 var VOIT_FLOTTE = ['dga', 'logistique', 'phoning', 'superviseur'];   // carte des camions
@@ -2877,7 +2902,8 @@ function ouvrirOnglet(nom) {
   if (nom === 'commandes') { chargerCommandes(); }
   if (nom === 'livraisons') { chargerLivraisons(); }
   if (nom === 'utilisateurs') { chargerUtilisateurs(); }
-  if (nom === 'prix') { chargerPrix(); }
+  if (nom === 'prix') { chargerPrix(); if (aLeDroit(['dga'])) { chargerSociete(); } }
+  if (nom === 'documents') { chargerDocuments(); }
   if (nom === 'boutiques') { chargerZones(); }
 }
 
@@ -3861,6 +3887,7 @@ function classeStatut(s) {
 var LIV_VUE = 'cours';   // cours | encaisser | tout
 
 function chargerLivraisons() {
+  chargerLiensTournee();
   if (!$('#liv_suivi_q')) { $('#liv_suivi_contenu').innerHTML = blocSuiviClient('liv_suivi'); brancherSuiviClient('liv_suivi'); }
   $('#livraisons_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
   var gere = aLeDroit(PEUT_DISPATCHER);
@@ -6340,6 +6367,175 @@ function ouvrirFicheDepuisLaCarte(code) {
   }).catch(function (e) {
     zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
+}
+
+/* --------------------------------------------- remises signées : documents
+
+   Une remise signée chez le client (page de tournée, base/0031) s'imprime en
+   BON DE LIVRAISON et en FACTURE DE LIVRAISON, avec les deux signatures. La
+   comptabilité note en face le numéro de la facture du logiciel interne. */
+
+var DOC_VUE = 'a_rapprocher';
+
+function chargerDocuments() {
+  var zone = $('#documents_tableau');
+  zone.innerHTML = '<div class="chargement">Chargement…</div>';
+  var peutRapprocher = aLeDroit(['dga', 'comptable']);
+  var filtre = DOC_VUE === 'a_rapprocher' ? '&rapprochee=eq.false' : '';
+  $('#doc_bascule').innerHTML = [['a_rapprocher', 'À rapprocher'], ['tout', 'Toutes les remises']].map(function (x) {
+    return '<button class="' + (DOC_VUE === x[0] ? 'actif' : '') + '" data-doc-vue="' + x[0] + '">' + x[1] + '</button>';
+  }).join('');
+  $$('[data-doc-vue]').forEach(function (b) { b.onclick = function () { DOC_VUE = b.dataset.docVue; chargerDocuments(); }; });
+  requete('/documents_livraison?select=id,livraison_id,numero_facture,bl_papier,qte_livree,montant_livre,montant_recu,' +
+          'nom_client_signataire,chauffeur_nom,signe_le,verdict_position,contenu,facture_logiciel,rapprochee,rapprochee_par,rapprochee_le,observations' +
+          filtre + '&order=signe_le.desc&limit=300').then(function (docs) {
+    docs = docs || [];
+    if (!docs.length) {
+      zone.innerHTML = '<div class="vide">' + (DOC_VUE === 'a_rapprocher' ? 'Aucune remise à rapprocher.' : 'Aucune remise signée pour l\'instant.') + '</div>';
+      return;
+    }
+    zone.innerHTML = '<table class="tablo fl-flotte carte-mobile"><thead><tr><th>Remise</th><th>Client</th><th>Livré</th><th>Reçu</th>' +
+      '<th>Documents</th><th>Facture du logiciel</th></tr></thead><tbody>' + docs.map(function (d) {
+        var c = d.contenu || {}, cl = c.client || {};
+        return '<tr><td><b>' + esc(d.numero_facture) + '</b><br><span class="aide">' + esc(new Date(d.signe_le).toLocaleString('fr-FR', { timeZone: 'Africa/Dakar' }).slice(0, 16)) +
+            ' · BL papier <b>' + esc(d.bl_papier) + '</b><br>' + esc(c.livraison || '') + ' · ' + esc(d.chauffeur_nom || '') + '</span></td>' +
+          '<td>' + esc(cl.nom || '—') + '<br><span class="aide">signé par ' + esc(d.nom_client_signataire) + '</span></td>' +
+          '<td class="num">' + (d.montant_livre ? francs(d.montant_livre) : '—') + '<br><span class="aide">' + esc(formater(d.qte_livree)) + ' unité(s)</span></td>' +
+          '<td class="num">' + (d.montant_recu ? francs(d.montant_recu) : '—') + '</td>' +
+          '<td><button class="btn-mini" data-imprimer="' + d.id + '" data-type="bl">Bon de livraison</button> ' +
+            '<button class="btn-mini" data-imprimer="' + d.id + '" data-type="facture">Facture</button></td>' +
+          '<td>' + (peutRapprocher
+            ? '<input class="pa-champ dp-mini" data-fl-log="' + d.id + '" value="' + esc(d.facture_logiciel || '') + '" placeholder="N° du logiciel" aria-label="Numéro de facture du logiciel pour ' + esc(d.numero_facture) + '">' +
+              '<label class="aide" style="display:block"><input type="checkbox" data-fl-ok="' + d.id + '"' + (d.rapprochee ? ' checked' : '') + '> rapprochée</label>' +
+              '<button class="btn-mini" data-fl-rapprocher="' + d.id + '">Enregistrer</button>'
+            : esc(d.facture_logiciel || '—') + (d.rapprochee ? ' ✓' : '')) +
+            (d.rapprochee_par ? '<br><span class="aide">' + esc(d.rapprochee_par) + ', ' + esc(dateCourte(d.rapprochee_le)) + '</span>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    etiqueterTableaux(zone);
+    $$('[data-imprimer]').forEach(function (b) { b.onclick = function () { imprimerRemise(b.dataset.imprimer, b.dataset.type); }; });
+    $$('[data-fl-rapprocher]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.flRapprocher;
+        rpc('rapprocher_remise', { p_id: id, p_facture_logiciel: $('[data-fl-log="' + id + '"]').value, p_rapprochee: $('[data-fl-ok="' + id + '"]').checked, p_observations: null })
+          .then(function (r) { message('Remise ' + esc(r.numero_facture) + (r.rapprochee ? ' rapprochée de ' + esc(r.facture_logiciel) : ' enregistrée') + '.', 'ok'); chargerDocuments(); })
+          .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+      };
+    });
+  }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+/* Le document imprimable : une page à part, mise en page A4, qui s'imprime ou
+   s'enregistre en PDF depuis le navigateur. Tout vient de la remise figée. */
+function imprimerRemise(id, type) {
+  var fenetre = window.open('', '_blank');
+  if (!fenetre) { message('Autorisez l\'ouverture de fenêtres pour imprimer.', 'ko'); return; }
+  fenetre.document.write('<p style="font-family:sans-serif">Préparation du document…</p>');
+  requete('/documents_livraison?select=*&id=eq.' + encodeURIComponent(id)).then(function (r) {
+    var d = r && r[0]; if (!d) { throw new Error('Remise introuvable.'); }
+    var c = d.contenu || {}, cl = c.client || {}, so = c.societe || {};
+    var facture = type === 'facture';
+    var lignes = (c.lignes || []).map(function (x) {
+      var q = c.qte_commandee ? nombre(x.quantite) * nombre(c.qte_livree) / nombre(c.qte_commandee) : nombre(x.quantite);
+      return '<tr><td>' + esc(x.designation) + '</td><td class="n">' + esc(formater(q)) + ' ' + esc(x.unite) + '</td>' +
+        (facture ? '<td class="n">' + (x.prix ? francs(x.prix) : '—') + '</td><td class="n">' + (x.prix ? francs(q * nombre(x.prix)) : '—') + '</td>' : '') + '</tr>';
+    }).join('');
+    var quand = new Date(d.signe_le).toLocaleString('fr-FR', { timeZone: 'Africa/Dakar' });
+    var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>' + esc((facture ? 'Facture ' : 'BL ') + d.numero_facture) + '</title>' +
+      '<style>body{font-family:Arial,sans-serif;color:#222;margin:28px;font-size:13px}h1{font-size:20px;margin:0 0 4px}' +
+      '.tete{display:flex;justify-content:space-between;border-bottom:2px solid #442A19;padding-bottom:10px;margin-bottom:14px}' +
+      '.soc b{font-size:16px;color:#442A19}table{width:100%;border-collapse:collapse;margin:12px 0}td,th{border:1px solid #bbb;padding:6px;text-align:left}' +
+      '.n{text-align:right;white-space:nowrap}.bloc{border:1px solid #bbb;padding:8px 10px;margin:8px 0}.sig{display:flex;gap:16px;margin-top:16px}' +
+      '.sig div{flex:1;border:1px solid #bbb;padding:8px;min-height:140px}.sig img{max-width:100%;max-height:110px;display:block}' +
+      '.mention{font-size:11px;color:#555;margin-top:14px}@media print{button{display:none}body{margin:12mm}}</style></head><body>' +
+      '<button onclick="window.print()" style="float:right;padding:8px 14px">Imprimer / PDF</button>' +
+      '<div class="tete"><div class="soc"><b>' + esc(so.raison_sociale || 'SN2I') + '</b><br>' + esc(so.adresse || '') +
+        (so.telephone ? '<br>Tél. ' + esc(so.telephone) : '') + (so.ninea ? '<br>NINEA ' + esc(so.ninea) : '') + (so.rccm ? ' · RCCM ' + esc(so.rccm) : '') + '</div>' +
+      '<div style="text-align:right"><h1>' + (facture ? 'FACTURE DE LIVRAISON' : 'BON DE LIVRAISON') + '</h1>' +
+        '<b>' + esc(facture ? d.numero_facture : (c.livraison || '')) + '</b><br>BL papier de l\'entrepôt n° <b>' + esc(d.bl_papier) + '</b>' +
+        (facture ? '<br>Livraison ' + esc(c.livraison || '') : '<br>Facture de livraison ' + esc(d.numero_facture)) + '<br>Commande ' + esc(c.commande || '—') + '</div></div>' +
+      '<div class="bloc"><b>Client :</b> ' + esc(cl.nom || '—') + (cl.code ? ' (' + esc(cl.code) + ')' : '') + (cl.telephone ? ' · Tél. ' + esc(cl.telephone) : '') +
+        '<br><b>Lieu de livraison :</b> ' + esc(cl.repere || '—') + (cl.zone ? ' — ' + esc(cl.zone) : '') +
+        '<br><b>Livré le :</b> ' + esc(quand) + ' · <b>Camion :</b> ' + esc(c.camion || '—') + ' · <b>Chauffeur :</b> ' + esc(d.chauffeur_nom || '—') + '</div>' +
+      '<table><tr><th>Produit</th><th class="n">Quantité livrée</th>' + (facture ? '<th class="n">Prix unitaire</th><th class="n">Montant</th>' : '') + '</tr>' + lignes +
+        (facture ? '<tr><td colspan="3"><b>Total livré</b></td><td class="n"><b>' + (d.montant_livre ? francs(d.montant_livre) : '—') + '</b></td></tr>' +
+          '<tr><td colspan="3">Reçu à la livraison</td><td class="n">' + (d.montant_recu ? francs(d.montant_recu) : '0 FCFA') + '</td></tr>' +
+          '<tr><td colspan="3">Reste à payer</td><td class="n">' + francs(Math.max(0, nombre(d.montant_livre) - nombre(d.montant_recu))) + '</td></tr>' : '') + '</table>' +
+      (nombre(c.qte_livree) < nombre(c.qte_commandee) ? '<p><b>Livraison partielle :</b> ' + esc(formater(c.qte_livree)) + ' sur ' + esc(formater(c.qte_commandee)) +
+        ' unité(s) commandées ; le reste fait l\'objet d\'une nouvelle livraison.</p>' : '') +
+      (d.observations ? '<p><b>Remarque :</b> ' + esc(d.observations) + '</p>' : '') +
+      '<div class="sig"><div><b>Le client</b> — ' + esc(d.nom_client_signataire) + '<br><img alt="Signature du client" src="data:image/png;base64,' +
+        (/^[A-Za-z0-9+/=]+$/.test(d.signature_client) ? d.signature_client : '') + '"></div>' +
+      '<div><b>Le chauffeur</b> — ' + esc(d.chauffeur_nom || '') + '<br><img alt="Signature du chauffeur" src="data:image/png;base64,' +
+        (/^[A-Za-z0-9+/=]+$/.test(d.signature_chauffeur) ? d.signature_chauffeur : '') + '"></div></div>' +
+      '<p class="mention">Signé électroniquement sur la plateforme SN2I le ' + esc(quand) +
+        (d.latitude ? ' à la position ' + (+d.latitude).toFixed(5) + ', ' + (+d.longitude).toFixed(5) + ' (± ' + Math.round(nombre(d.precision_m)) + ' m)' : ' (position non relevée)') + '.' +
+        (facture ? ' Facture de livraison à rapprocher de la facture n° <b>' + esc(d.facture_logiciel || '____________') + '</b> du logiciel de facturation de ' + esc(so.raison_sociale || 'SN2I') + ', qui fait foi.' : '') +
+        (so.mentions ? '<br>' + esc(so.mentions) : '') + '</p></body></html>';
+    fenetre.document.open(); fenetre.document.write(html); fenetre.document.close();
+  }).catch(function (e) { fenetre.close(); message('Document indisponible : ' + esc(e.message), 'ko'); });
+}
+
+/* ------------------------------------------------ liens de tournée (logistique) */
+
+function chargerLiensTournee() {
+  var zone = $('#liens_tournee');
+  if (!zone) { return; }
+  if (!aLeDroit(PEUT_DISPATCHER)) { $('#bloc_liens_tournee').style.display = 'none'; return; }
+  $('#bloc_liens_tournee').style.display = '';
+  Promise.all([
+    requete('/livraisons?select=chauffeur_id,chauffeur_nom,date_livraison,statut&statut=in.(programmee,en_route)&date_livraison=lte.' + jourPlus(1)),
+    requete('/v_chauffeurs_gestion?select=id,nom_complet,telephone,actif')
+  ]).then(function (r) {
+    var par = {};
+    (r[0] || []).forEach(function (l) { if (l.chauffeur_id) { par[l.chauffeur_id] = (par[l.chauffeur_id] || 0) + 1; } });
+    var ch = (r[1] || []).filter(function (c) { return c.actif !== false && par[c.id]; });
+    zone.innerHTML = ch.length ? ch.map(function (c) {
+      return '<div class="lt-ligne"><div><b>' + esc(c.nom_complet) + '</b> · ' + par[c.id] + ' livraison(s) en cours' +
+        (c.telephone ? ' · ' + lienTel(c.telephone) : ' · <span class="aide">téléphone à renseigner</span>') + '</div>' +
+        '<button class="btn-mini" data-lien="' + c.id + '" data-tel="' + esc(c.telephone || '') + '">Créer le lien du jour</button><div class="lt-res" data-lien-res="' + c.id + '"></div></div>';
+    }).join('') : '<div class="vide">Aucun chauffeur n\'a de livraison en cours.</div>';
+    $$('[data-lien]').forEach(function (b) {
+      b.onclick = function () {
+        if (!window.confirm('Créer le lien de tournée de ce chauffeur pour aujourd\'hui ? Un lien déjà envoyé ne marchera plus.')) { return; }
+        rpc('creer_lien_tournee', { p_chauffeur: b.dataset.lien, p_jour: aujourdhui() }).then(function (r) {
+          var url = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '') + 'livraison.html#j=' + r.jeton;
+          var texte = 'Bonjour ' + r.chauffeur + ', voici votre tournée SN2I du jour : ' + url;
+          var t = String(r.telephone || b.dataset.tel || '').replace(/\D/g, '').slice(-9);
+          $('[data-lien-res="' + b.dataset.lien + '"]').innerHTML =
+            '<input class="pa-champ" readonly value="' + esc(url) + '" aria-label="Lien de tournée">' +
+            '<button class="btn-mini" data-copier>Copier</button> ' +
+            (t.length === 9 ? '<a class="btn-mini" target="_blank" rel="noopener" href="https://wa.me/221' + t + '?text=' + encodeURIComponent(texte) + '">Envoyer par WhatsApp</a>' : '') +
+            '<div class="aide">Valable aujourd\'hui pour ' + esc(r.chauffeur) + ' seulement. À envoyer à lui seul.</div>';
+          var cp = $('[data-lien-res="' + b.dataset.lien + '"] [data-copier]');
+          cp.onclick = function () {
+            var champ = $('[data-lien-res="' + b.dataset.lien + '"] input'); champ.select();
+            try { navigator.clipboard.writeText(champ.value); } catch (e) { document.execCommand('copy'); }
+            message('Lien copié.', 'ok');
+          };
+        }).catch(function (e) { message('Lien non créé : ' + esc(e.message), 'ko'); });
+      };
+    });
+  }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+/* --------------------------------------------- coordonnées de la société */
+
+function chargerSociete() {
+  var zone = $('#societe_bloc');
+  if (!zone) { return; }
+  requete('/parametres_societe?select=*').then(function (r) {
+    var s = (r && r[0]) || {};
+    zone.innerHTML = '<p class="aide">Elles figurent en tête du bon de livraison et de la facture de livraison. Rien n\'est inventé : laissez vide ce que vous ne voulez pas imprimer.</p>' +
+      '<div class="grille-formulaire">' + [['raison_sociale', 'Raison sociale'], ['adresse', 'Adresse'], ['telephone', 'Téléphone'],
+        ['ninea', 'NINEA'], ['rccm', 'RCCM'], ['mentions', 'Mentions en pied de document']].map(function (x) {
+        return '<label>' + x[1] + '<input data-soc="' + x[0] + '" value="' + esc(s[x[0]] || '') + '"></label>';
+      }).join('') + '</div><div class="ligne-actions"><button class="btn-console accent" id="soc_enregistrer">Enregistrer</button></div>';
+    $('#soc_enregistrer').onclick = function () {
+      var p = {}; $$('[data-soc]').forEach(function (i) { p[i.dataset.soc] = i.value; });
+      rpc('regler_societe', { p: p }).then(function () { message('Coordonnées enregistrées.', 'ok'); })
+        .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+    };
+  }).catch(function () {});
 }
 
 /* La photo de devanture. Trois cas, dans l'ordre :

@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#442A19">
+<meta name="robots" content="noindex">
+<title>SN2I — Ma tournée</title>
+<link rel="icon" href="data:image/png;base64,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">
+<style>/* ==========================================================================
+   SN2I — Cartographie clients · aliments de bétail
+   Feuille de style unique. Aucune ressource externe : tout doit fonctionner
+   hors ligne, sur un téléphone d'entrée de gamme, en plein soleil.
+
+   Cette feuille porte la charte commune aux trois outils (formulaire de
+   terrain, poste de phoning, console de pilotage). Les deux autres feuilles
+   sont chargées APRÈS celle-ci et ne font que la compléter.
+   ========================================================================== */
+
+:root {
+  /* ---- couleurs de marque ------------------------------------------- */
+  --principal:        #442A19;
+  --principal-clair:  #5C3A22;
+  --principal-pale:   #F4EDE5;
+  --accent:       #C79D67;
+  --accent-pale:  #FBF4EA;
+  --fond:        #FAF7F3;
+  --carte:       #FFFFFF;
+  --texte:       #2B1C10;
+  --gris:        #7A6A5B;
+  --bord:        #E6DCCF;
+
+  /* ---- couleurs d'état, communes aux trois outils -------------------- */
+  --rouge:       #B3261E;
+  --rouge-pale:  #FCEBEA;
+  --rouge-bord:  #E9BDB9;
+  --vert:        #1F5A38;
+  --vert-pale:   #E8F3EC;
+  --vert-bord:   #BFDCCB;
+  --bleu:        #1B4F8A;
+  --bleu-pale:   #E7F0FB;
+  --ambre:       #6B4A22;
+  --ambre-pale:  #FEF6E4;
+
+  /* ---- échelle d'espacement -----------------------------------------
+     Une seule échelle pour les trois outils : 4 · 8 · 12 · 16 · 24 · 32.
+     Toute marge ou tout écart doit se prendre dans cette liste.          */
+  --e1: 4px;
+  --e2: 8px;
+  --e3: 12px;
+  --e4: 16px;
+  --e6: 24px;
+  --e8: 32px;
+
+  /* ---- rayons -------------------------------------------------------- */
+  --rayon:    14px;  /* cartes et blocs                                   */
+  --rayon-m:  12px;  /* boutons, zones de saisie hautes                   */
+  --rayon-s:  10px;  /* contrôles courts, vignettes, encarts              */
+
+  /* ---- hauteurs de contrôle -----------------------------------------
+     48 px est le minimum confortable pour un pouce sur téléphone.        */
+  --h-champ: 48px;   /* champ de saisie, bouton de choix                  */
+  --h-btn:   52px;   /* bouton d'action pleine largeur                    */
+  --h-mini:  40px;   /* contrôle secondaire, de tableau ou de barre       */
+  --h-barre: 84px;   /* barre d'onglets inférieure du formulaire          */
+
+  /* ---- ombres et anneaux de focus ------------------------------------ */
+  --ombre:       0 1px 3px rgba(68,42,25,.10), 0 4px 14px rgba(68,42,25,.06);
+  --ombre-forte: 0 4px 10px rgba(68,42,25,.14), 0 12px 28px rgba(68,42,25,.10);
+  --ombre-basse: 0 1px 2px rgba(68,42,25,.08);
+  --anneau:       0 0 0 3px rgba(199,157,103,.55);
+  --anneau-rouge: 0 0 0 3px rgba(179,38,30,.22);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Aucun outil ne doit déborder latéralement, même sur un écran de 320 px.
+   On ne met pas « overflow-x: hidden » sur html/body : cela désactiverait le
+   maintien en haut (position: sticky) de l'en-tête. Le débordement est traité
+   là où il naît — les tableaux, qui défilent dans leur propre cadre. */
+html, body { max-width: 100%; }
+
+body { padding-bottom: calc(var(--h-barre) + env(safe-area-inset-bottom)); }
+
+/* Un seul anneau de focus pour les trois outils. */
+:focus-visible { outline: none; box-shadow: var(--anneau); }
+
+/* ------------------------------------------------------------- en-tête */
+
+.entete {
+  background: linear-gradient(135deg, var(--principal) 0%, var(--principal-clair) 100%);
+  color: #fff;
+  padding: var(--e3) var(--e4) var(--e4);
+  position: sticky; top: 0; z-index: 20;
+  box-shadow: 0 2px 12px rgba(68,42,25,.22);
+}
+
+.entete-ligne { display: flex; align-items: center; gap: var(--e3); }
+
+.bloc-marque {
+  background: #fff; border-radius: var(--rayon-s); padding: var(--e1) var(--e2);
+  display: flex; align-items: center; justify-content: center;
+  min-width: 76px; height: 44px; flex: 0 0 auto;
+}
+.bloc-marque img { max-height: 32px; max-width: 116px; display: block; }
+.bloc-marque .marque-texte {
+  font-weight: 800; font-size: 22px; letter-spacing: .5px; color: var(--principal); line-height: 1;
+}
+.bloc-marque .marque-texte span { color: var(--accent); }
+
+.entete-titres { min-width: 0; }
+.entete h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .2px; line-height: 1.3; }
+.entete p { margin: var(--e1) 0 0; font-size: 12px; color: #E8DCCB; line-height: 1.35; }
+
+.entete-bandeau { margin-top: var(--e3); display: flex; gap: var(--e2); flex-wrap: wrap; }
+
+.puce {
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.20);
+  border-radius: 999px; padding: var(--e1) var(--e3); font-size: 12px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: var(--e1);
+  min-height: 26px; line-height: 1.4;
+}
+.puce b { color: #FFFFFF; }   /* 08/10/2026 : lisible en plein soleil (2,7:1 avant) */
+.puce.hors-ligne { background: rgba(247,174,23,.22); border-color: rgba(247,174,23,.5); }
+
+/* --------------------------------------------------------------- écrans */
+
+.ecran {
+  display: none;
+  padding: var(--e4) var(--e4) var(--e6);
+  max-width: 720px; margin: 0 auto;
+}
+.ecran.actif { display: block; }
+
+.titre-section {
+  display: flex; align-items: center; gap: var(--e2);
+  margin: var(--e6) 0 var(--e3); font-size: 13px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .7px; color: var(--principal);
+}
+.titre-section:first-child { margin-top: var(--e1); }
+.titre-section .num {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
+  color: var(--principal); font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.titre-section .filet { flex: 1; height: 1px; background: var(--bord); }
+
+.carte {
+  background: var(--carte); border: 1px solid var(--bord);
+  border-radius: var(--rayon); padding: var(--e4); box-shadow: var(--ombre);
+  margin-bottom: var(--e3);
+}
+.carte:last-child { margin-bottom: 0; }
+.carte.aide { background: var(--accent-pale); border-color: #E8D3B4; font-size: 13px; color: var(--ambre); }
+
+/* ------------------------------------------------- titres et textes courants
+   Ces trois classes remplacent les styles écrits dans les balises : un seul
+   endroit décide de la taille, de la couleur et de la marge, pour les trois
+   outils à la fois. */
+
+/* 18 px : c'est la taille de titre d'écran des trois outils. */
+.titre-ecran {
+  margin: 0 0 var(--e1); font-size: 18px; line-height: 1.3;
+  font-weight: 700; color: var(--principal);
+}
+.sous-ecran {
+  margin: 0 0 var(--e4); font-size: 12.5px; color: var(--gris); line-height: 1.5;
+}
+.texte-bloc {
+  margin: 0 0 var(--e3); font-size: 13.5px; color: var(--gris); line-height: 1.55;
+}
+.texte-bloc:last-child { margin-bottom: 0; }
+
+/* Écart d'un cran, pris dans l'échelle, quand un bloc doit se détacher. */
+.espace { margin-top: var(--e4); }
+
+/* ---------------------------------------------------------------- champs */
+
+.champ { margin-bottom: var(--e4); }
+.champ:last-child { margin-bottom: 0; }
+
+label.intitule {
+  display: block; font-size: 13px; font-weight: 700;
+  margin-bottom: var(--e2); color: var(--principal); letter-spacing: .2px;
+}
+.req { color: var(--rouge); font-weight: 700; }
+label.intitule .req { margin-left: 2px; }
+.aide-champ {
+  font-size: 12px; color: var(--gris); margin-top: var(--e2);
+  display: block; line-height: 1.45;
+}
+
+input[type="text"], input[type="tel"], input[type="number"], input[type="date"],
+input[type="password"], input[type="search"], textarea, select {
+  width: 100%; padding: var(--e3) var(--e3); font-size: 16px; font-family: inherit;
+  color: var(--texte); background: #fff;
+  border: 1.5px solid var(--bord); border-radius: var(--rayon-m);
+  outline: none; transition: border-color .15s, box-shadow .15s, background-color .15s;
+  min-height: var(--h-champ);
+}
+input:hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) {
+  border-color: #D8C9B4;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--principal); box-shadow: var(--anneau);
+}
+input:disabled, textarea:disabled, select:disabled {
+  background: var(--principal-pale); color: var(--gris); cursor: not-allowed;
+}
+input.erreur, textarea.erreur, select.erreur {
+  border-color: var(--rouge); background: var(--rouge-pale);
+}
+input.erreur:focus, textarea.erreur:focus, select.erreur:focus {
+  border-color: var(--rouge); box-shadow: var(--anneau-rouge);
+}
+textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); background-image:
+  linear-gradient(45deg, transparent 50%, var(--gris) 50%),
+  linear-gradient(135deg, var(--gris) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% + 1px), calc(100% - 13px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
+
+.ligne-champs { display: flex; gap: var(--e3); }
+.ligne-champs > * { flex: 1; min-width: 0; }
+.ligne-champs > .large { flex: 2; }
+
+/* boutons de choix (zone, catégorie, oui/non) */
+.choix { display: flex; gap: var(--e2); flex-wrap: wrap; }
+.choix input { position: absolute; opacity: 0; pointer-events: none; }
+.choix label {
+  flex: 1 1 88px; text-align: center; padding: var(--e3) var(--e2); cursor: pointer;
+  border: 1.5px solid var(--bord); border-radius: var(--rayon-m); background: #fff;
+  font-size: 15px; font-weight: 600; color: var(--gris);
+  min-height: var(--h-champ); display: flex; align-items: center; justify-content: center;
+  gap: var(--e1); transition: border-color .15s, background-color .15s, color .15s;
+}
+.choix input:checked + label {
+  border-color: var(--principal); background: var(--principal); color: #fff;
+  box-shadow: 0 2px 8px rgba(68,42,25,.25);
+}
+.choix input:focus-visible + label { box-shadow: var(--anneau); }
+
+/* produits */
+.produit {
+  display: flex; align-items: center; gap: var(--e3);
+  padding: var(--e3) 0; border-bottom: 1px dashed var(--bord);
+}
+.produit:last-of-type { border-bottom: none; }
+.produit .nom-produit { flex: 1; font-size: 15px; font-weight: 600; min-width: 0; }
+.produit .nom-produit small {
+  display: block; font-weight: 400; font-size: 12px; color: var(--gris);
+  margin-top: 2px; line-height: 1.35;
+}
+.produit .saisie-kg { flex: 0 0 116px; position: relative; }
+.produit .saisie-kg input { padding-right: var(--e8); text-align: right; font-weight: 700; }
+.produit .saisie-kg::after {
+  content: "kg"; position: absolute; right: var(--e3); top: 50%; transform: translateY(-50%);
+  font-size: 12px; color: var(--gris); font-weight: 700; pointer-events: none;
+}
+.produit.mieux {
+  background: var(--accent-pale); border-radius: var(--rayon-s);
+  padding: var(--e3); margin: 0 calc(-1 * var(--e3));
+}
+.etoile {
+  flex: 0 0 auto; border: 1.5px solid var(--bord); background: #fff; color: var(--gris);
+  border-radius: var(--rayon-s); padding: 0 var(--e3); font-size: 14px; font-weight: 700;
+  cursor: pointer; min-height: var(--h-mini); min-width: var(--h-mini);
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.etoile.actif { background: var(--accent); border-color: var(--accent); color: var(--principal); }
+
+.total-kg {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--e3);
+  margin-top: var(--e4); padding: var(--e3) var(--e4); background: var(--principal-pale);
+  border-radius: var(--rayon-m); font-weight: 800; color: var(--principal);
+  min-height: var(--h-champ);
+}
+.total-kg .valeur { font-size: 20px; font-variant-numeric: tabular-nums; }
+.total-kg .valeur small { font-size: 12px; font-weight: 600; }
+
+/* photo */
+.zone-photo {
+  border: 2px dashed var(--bord); border-radius: var(--rayon-m); padding: var(--e6) var(--e4);
+  text-align: center; background: #FDFBF8; cursor: pointer; display: block;
+  transition: border-color .15s, background-color .15s;
+}
+.zone-photo:active { background: var(--principal-pale); }
+.zone-photo .icone { font-size: 30px; line-height: 1; }
+.zone-photo .libelle { font-weight: 700; color: var(--principal); margin-top: var(--e2); font-size: 14px; }
+.zone-photo .sous { font-size: 12px; color: var(--gris); margin-top: var(--e1); }
+.apercu-photo {
+  position: relative; border-radius: var(--rayon-m); overflow: hidden; border: 1px solid var(--bord);
+}
+.apercu-photo img { width: 100%; display: block; max-height: 300px; object-fit: cover; }
+.apercu-photo .retirer {
+  position: absolute; top: var(--e2); right: var(--e2); background: rgba(0,0,0,.66); color: #fff;
+  border: none; border-radius: 999px; padding: var(--e2) var(--e3); font-size: 12px;
+  font-weight: 700; cursor: pointer; min-height: 36px; font-family: inherit;
+}
+
+/* --------------------------------------------------------------- boutons */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--e2);
+  width: 100%; padding: var(--e3) var(--e4); font-size: 16px; font-weight: 700; font-family: inherit;
+  border-radius: var(--rayon-m); border: 1.5px solid transparent; cursor: pointer;
+  min-height: var(--h-btn); text-decoration: none; line-height: 1.25;
+  transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.btn-principal { background: var(--principal); color: #fff; box-shadow: 0 3px 10px rgba(68,42,25,.24); }
+.btn-principal:active { background: var(--principal-clair); box-shadow: var(--ombre-basse); }
+.btn-accent { background: var(--accent); color: var(--principal); box-shadow: 0 3px 10px rgba(199,157,103,.32); }
+.btn-accent:active { background: #B98D57; box-shadow: var(--ombre-basse); }
+.btn-secondaire { background: #fff; color: var(--principal); border-color: var(--principal); }
+.btn-secondaire:active { background: var(--principal-pale); }
+.btn-discret { background: transparent; color: var(--gris); border-color: var(--bord); }
+.btn-discret:active { background: var(--principal-pale); }
+.btn-danger { background: transparent; color: var(--rouge); border-color: var(--rouge-bord); }
+.btn-danger:active { background: var(--rouge-pale); }
+
+.btn:disabled, .btn[disabled] {
+  opacity: .45; cursor: not-allowed; box-shadow: none; filter: grayscale(.2);
+}
+.btn + .btn { margin-top: var(--e2); }
+.duo { display: flex; gap: var(--e3); }
+.duo .btn { margin-top: 0; }
+
+@media (hover: hover) {
+  .btn-principal:hover:not(:disabled) { background: var(--principal-clair); box-shadow: var(--ombre-forte); }
+  .btn-accent:hover:not(:disabled) { background: #D3AC7C; }
+  .btn-secondaire:hover:not(:disabled) { background: var(--principal-pale); }
+  .btn-discret:hover:not(:disabled) { border-color: var(--accent); color: var(--principal); }
+  .btn-danger:hover:not(:disabled) { background: var(--rouge-pale); }
+  .choix label:hover { border-color: var(--accent); color: var(--principal); }
+  .etoile:hover { border-color: var(--accent); color: var(--principal); }
+  .zone-photo:hover { border-color: var(--accent); background: var(--accent-pale); }
+}
+
+/* ------------------------------------------------------------ barre basse */
+
+.barre-basse {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  background: #fff; border-top: 1px solid var(--bord);
+  display: flex; padding: var(--e2) var(--e2) calc(var(--e2) + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 14px rgba(68,42,25,.08);
+}
+.onglet {
+  flex: 1; background: none; border: none; font-family: inherit; cursor: pointer;
+  padding: var(--e2) var(--e1); color: var(--gris); font-size: 11px; font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--e1); position: relative; min-height: var(--h-champ);
+  border-radius: var(--rayon-s); transition: color .15s, background-color .15s;
+}
+.onglet .picto { font-size: 20px; line-height: 1; }
+.onglet.actif { color: var(--principal); background: var(--principal-pale); }
+.onglet .pastille {
+  position: absolute; top: var(--e1); left: 58%;
+  background: var(--accent); color: var(--principal); border-radius: 999px;
+  font-size: 10px; padding: 1px 6px; font-weight: 800;
+}
+
+/* ------------------------------------------------------------ liste fiches */
+
+.stats { display: flex; gap: var(--e2); margin-bottom: var(--e3); }
+.stat {
+  flex: 1; min-width: 0; background: #fff; border: 1px solid var(--bord);
+  border-radius: var(--rayon-m); padding: var(--e3) var(--e2);
+  text-align: center; box-shadow: var(--ombre);
+}
+.stat .n {
+  font-size: 20px; font-weight: 800; color: var(--principal);
+  line-height: 1.15; font-variant-numeric: tabular-nums;
+}
+.stat .l {
+  font-size: 11px; color: var(--gris); text-transform: uppercase;
+  letter-spacing: .4px; margin-top: var(--e1);
+}
+
+.fiche {
+  display: flex; gap: var(--e3); align-items: center;
+  background: #fff; border: 1px solid var(--bord); border-radius: var(--rayon);
+  padding: var(--e3); margin-bottom: var(--e2); box-shadow: var(--ombre); cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.fiche:active { border-color: var(--accent); }
+.fiche .vignette {
+  width: 60px; height: 60px; border-radius: var(--rayon-s); flex: 0 0 auto;
+  background: var(--principal-pale) center/cover no-repeat;
+  display: flex; align-items: center; justify-content: center; color: var(--principal); font-size: 22px;
+}
+.fiche .corps { flex: 1; min-width: 0; }
+.fiche .nom { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fiche .meta {
+  font-size: 12.5px; color: var(--gris); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fiche .tags { margin-top: var(--e2); display: flex; gap: var(--e1); flex-wrap: wrap; }
+.tag {
+  font-size: 11px; font-weight: 700; padding: 3px var(--e2); border-radius: 999px;
+  background: var(--principal-pale); color: var(--principal); line-height: 1.4;
+}
+.tag.grande { background: #F0E4D4; color: var(--ambre); }
+.tag.moyenne { background: var(--accent-pale); color: var(--ambre); }
+.tag.petite { background: #F0EDE9; color: var(--gris); }
+
+@media (hover: hover) {
+  .fiche:hover { border-color: var(--accent); box-shadow: var(--ombre-forte); }
+}
+
+.vide { text-align: center; padding: var(--e8) var(--e6); color: var(--gris); font-size: 14px; }
+.vide .icone { font-size: 44px; margin-bottom: var(--e3); line-height: 1; }
+
+/* ----------------------------------------------------- détail / divers */
+
+.filet-detail { border-top: 1px solid var(--bord); margin: var(--e3) 0; }
+.detail-ligne {
+  display: flex; justify-content: space-between; gap: var(--e3);
+  padding: var(--e2) 0; font-size: 14.5px; border-bottom: 1px solid #F2EBE1;
+}
+.detail-ligne:last-child { border-bottom: none; }
+.detail-ligne .cle { color: var(--gris); flex: 0 0 42%; }
+.detail-ligne .val { font-weight: 600; text-align: right; word-break: break-word; }
+
+.avis {
+  border-radius: var(--rayon-m); padding: var(--e3) var(--e4); font-size: 13.5px;
+  margin-bottom: var(--e3); border: 1px solid; line-height: 1.5;
+}
+.avis-info { background: var(--principal-pale); border-color: #E3D5C4; color: var(--principal); }
+.avis-alerte { background: var(--rouge-pale); border-color: var(--rouge-bord); color: var(--rouge); }
+.avis-ok { background: var(--vert-pale); border-color: var(--vert-bord); color: var(--vert); }
+
+.bascule-toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--h-barre) + var(--e3)); z-index: 60;
+  background: var(--principal); color: #fff; padding: var(--e3) var(--e6); border-radius: 999px;
+  font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(68,42,25,.3);
+  opacity: 0; pointer-events: none; transition: opacity .25s, bottom .25s;
+  max-width: calc(100vw - var(--e8)); text-align: center;
+}
+.bascule-toast.visible { opacity: 1; bottom: calc(var(--h-barre) + var(--e6)); }
+
+/* ------------------------------------------------------- grands écrans */
+
+@media (min-width: 620px) {
+  .ecran { padding: var(--e6) var(--e6) var(--e8); }
+  .choix label { flex: 1 1 auto; }
+}
+
+/* Sur ordinateur, la colonne de 720 px — juste pour un téléphone — paraît
+   étroite au milieu d'un écran vide. On l'élargit d'un cran, sans aller plus
+   loin : au-delà, les intitulés s'éloignent trop de leur champ et le
+   formulaire devient moins sûr à remplir. Le poste de phoning ne suit pas
+   cette règle, il la surcharge avec « .poste .ecran ». */
+@media (min-width: 900px) {
+  .ecran { max-width: 860px; padding: var(--e8) var(--e8); }
+  .produit .saisie-kg { flex: 0 0 140px; }
+  .stats { gap: var(--e3); }
+}
+
+/* ------------------------------------------------------------ très petits */
+
+@media (max-width: 360px) {
+  .ecran { padding: var(--e3) var(--e3) var(--e6); }
+  .carte { padding: var(--e3); }
+  .stats { gap: var(--e1); }
+  .produit .saisie-kg { flex: 0 0 96px; }
+}
+
+/* ------------------------------------------------------------ impression */
+
+@media print {
+  :root { --ombre: none; --ombre-forte: none; --ombre-basse: none; }
+  html, body { background: #fff; overflow: visible; }
+  body { padding-bottom: 0; }
+  .barre-basse, .entete, .bascule-toast { display: none !important; }
+  .carte { box-shadow: none; border: 1px solid #C9BCA9; break-inside: avoid; }
+  .ecran { max-width: none; padding: 0; }
+  a[href^="tel:"] { color: inherit; text-decoration: none; }
+}
+
+/* --- 08/10/2026 : l'état d'envoi de chaque fiche, la précision du GPS */
+.tag.recue { background: var(--vert-pale); color: var(--vert); border-color: var(--vert-bord); }
+.tag.attente { background: var(--ambre-pale); color: var(--ambre); }
+.tag.refusee { background: var(--rouge-pale); color: var(--rouge); border-color: var(--rouge-bord); }
+.motif-refus { font-size: 13px; color: var(--rouge); margin-top: 4px; }
+#avis_attente .btn { margin-top: 8px; width: auto; min-height: 44px; }
+.gps-precision.bonne { color: var(--vert); font-weight: 700; }
+.gps-precision.moyenne { color: var(--ambre); font-weight: 700; }
+.gps-precision.faible { color: var(--rouge); font-weight: 700; }
+
+/* 08/10/2026 (audit) : bord des champs visible en plein soleil (1,35:1 avant) */
+input[type="text"], input[type="number"], input[type="tel"], input[type="date"], select, textarea { border-color: #A8927A; }
+
+body { background: var(--fond); margin: 0; font-family: inherit; color: var(--texte); }
+.tn-tete { background: var(--principal); color: #fff; padding: 14px 16px; position: sticky; top: 0; z-index: 5; }
+.tn-tete h1 { font-size: 18px; margin: 0; }
+.tn-tete p { margin: 2px 0 0; font-size: 13px; opacity: .85; }
+.tn-corps { max-width: 640px; margin: 0 auto; padding: 12px 16px 80px; }
+.tn-carte { background: var(--carte); border: 1px solid var(--bord); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.tn-carte h2 { font-size: 17px; margin: 0 0 4px; color: var(--principal); }
+.tn-ligne { font-size: 14px; margin: 4px 0; }
+.tn-aide { font-size: 13px; color: var(--gris); }
+.tn-statut { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: var(--ambre-pale); color: var(--ambre); }
+.tn-statut.fait { background: var(--vert-pale); color: var(--vert); }
+.tn-btn { font: inherit; font-weight: 700; font-size: 16px; min-height: 52px; width: 100%; border-radius: 12px; border: 1px solid var(--bord);
+  background: var(--carte); color: var(--principal); cursor: pointer; margin-top: 8px; }
+.tn-btn.principal { background: var(--principal); color: #fff; border-color: var(--principal); }
+.tn-btn:disabled { opacity: .55; }
+.tn-appel { display: block; text-align: center; text-decoration: none; background: var(--vert); color: #fff; border-radius: 12px; padding: 12px; font-weight: 800; margin-top: 8px; }
+.tn-champ { font: inherit; font-size: 16px; width: 100%; box-sizing: border-box; min-height: 48px; padding: 10px 12px; border: 1px solid #A8927A; border-radius: 10px; }
+.tn-etiquette { display: block; font-weight: 700; font-size: 14px; color: var(--principal); margin: 12px 0 4px; }
+.tn-tableau { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tn-tableau td, .tn-tableau th { border-bottom: 1px solid var(--bord); padding: 6px 4px; text-align: left; }
+.tn-tableau .num { text-align: right; white-space: nowrap; }
+.tn-signature { border: 2px dashed var(--accent); border-radius: 12px; background: #fff; width: 100%; height: 220px; touch-action: none; display: block; }
+.tn-erreur { background: var(--rouge-pale); color: var(--rouge); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+.tn-ok { background: var(--vert-pale); color: var(--vert); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+.tn-etapes { display: flex; gap: 4px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 12px; }
+.tn-etapes li { flex: 1; text-align: center; padding: 6px 2px; border-radius: 8px; background: var(--principal-pale); color: var(--gris); }
+.tn-etapes li.actif { background: var(--principal); color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+<header class="tn-tete"><h1 id="tn_titre">Ma tournée</h1><p id="tn_sous">Chargement…</p></header>
+<main class="tn-corps" id="tn_corps"><div class="tn-carte">Chargement…</div></main>
+<script>
+var CONFIG_SN2I = { url: 'https://ynxjbsqkstfqsdunwofm.supabase.co', cle: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGpic3Frc3RmcXNkdW53b2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjY2ODksImV4cCI6MjEwNTY0MjY4OX0.wLlLlPpm9LWwohewWUcpJaF-HUhapE_pYZqyY-0Muq8' };
+/* =====================================================================
+   SN2I — La tournée du chauffeur (08/10/2026)
+   Ouvert depuis le lien que la logistique envoie : …/livraison.html#j=JETON.
+   Le jeton reste dans la partie « # » de l'adresse : le navigateur ne l'envoie
+   jamais au serveur de la page. La page n'embarque AUCUNE donnée : elle demande
+   à la base la tournée de CE lien (fonction tournee), et enregistre la remise
+   signée (signer_livraison). Hors réseau, une remise signée est gardée sur le
+   téléphone et repart seule dès que le réseau revient.
+   ===================================================================== */
+var CFG = CONFIG_SN2I;
+var JETON = (location.hash.match(/j=([0-9a-f]{40,})/) || [])[1] || '';
+var ETAT = { tournee: null, courant: null, etape: 1, saisie: {}, position: null };
+var ATTENTE_CLE = 'sn2i_remises_attente';
+
+function $(s) { return document.querySelector(s); }
+function esc(t) { return String(t === null || t === undefined ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function nb(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+function fcfa(n) { return String(Math.round(nb(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA'; }
+function tel(t) { var c = String(t || '').replace(/\D/g, '').slice(-9); return c.length === 9 ? c.replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4') : ''; }
+function lireAttente() { try { return JSON.parse(localStorage.getItem(ATTENTE_CLE) || '[]'); } catch (e) { return []; } }
+function ecrireAttente(l) { try { localStorage.setItem(ATTENTE_CLE, JSON.stringify(l)); } catch (e) { /* stockage indisponible */ } }
+
+function rpc(nom, args) {
+  return fetch(CFG.url + '/rest/v1/rpc/' + nom, {
+    method: 'POST', headers: { 'apikey': CFG.cle, 'Authorization': 'Bearer ' + CFG.cle, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args)
+  }).then(function (r) {
+    return r.text().then(function (t) {
+      var d = null; try { d = t ? JSON.parse(t) : null; } catch (e) { d = null; }
+      if (!r.ok) { var e = new Error((d && d.message) || ('Erreur ' + r.status)); e.definitif = r.status < 500; throw e; }
+      return d;
+    });
+  }, function () { var e = new Error('Pas de réseau'); e.reseau = true; throw e; });
+}
+
+function charger() {
+  if (!JETON) {
+    $('#tn_sous').textContent = '';
+    $('#tn_corps').innerHTML = '<div class="tn-erreur">Ce lien est incomplet. Ouvrez le lien de tournée que la logistique vous a envoyé.</div>';
+    return;
+  }
+  envoyerAttente();
+  rpc('tournee', { p_jeton: JETON }).then(function (t) {
+    ETAT.tournee = t;
+    $('#tn_titre').textContent = 'Tournée de ' + (t.chauffeur || '');
+    var faites = t.livraisons.filter(function (l) { return l.remise; }).length;
+    $('#tn_sous').textContent = (t.societe && t.societe.raison_sociale || 'SN2I') + ' · ' + new Date(t.jour + 'T12:00:00Z').toLocaleDateString('fr-FR') +
+      ' · ' + t.livraisons.length + ' livraison(s), ' + faites + ' remise(s)';
+    afficherListe();
+  }).catch(function (e) {
+    $('#tn_sous').textContent = '';
+    $('#tn_corps').innerHTML = '<div class="tn-erreur">' + esc(e.reseau ? 'Pas de réseau : la tournée s\'affichera dès qu\'il revient.' : e.message) + '</div>' +
+      '<button class="tn-btn" onclick="charger()">Réessayer</button>';
+  });
+}
+
+function afficherListe() {
+  var att = lireAttente();
+  var refusees = att.filter(function (a) { return a.erreur; });
+  var html = refusees.length ? '<div class="tn-erreur"><b>' + refusees.length + ' remise(s) refusée(s) par le bureau</b> : ' +
+    refusees.map(function (a) { return esc(a.erreur); }).join(' ; ') + '. Appelez la logistique : la signature est gardée sur ce téléphone.</div>' : '';
+  html += att.length ? '<div class="tn-erreur">' + att.length + ' remise(s) signée(s) en attente d\'envoi : elles partent dès que le réseau revient.' +
+    ' <button class="tn-btn" onclick="envoyerAttente(true)">Envoyer maintenant</button></div>' : '';
+  if (!ETAT.tournee.livraisons.length) { html += '<div class="tn-carte">Aucune livraison dans votre tournée pour ce jour.</div>'; }
+  ETAT.tournee.livraisons.forEach(function (l) {
+    var enAttente = att.some(function (a) { return a.p.livraison_id === l.id; });
+    html += '<div class="tn-carte"><h2>' + esc(l.client || 'Client') + '</h2>' +
+      '<div class="tn-ligne">' + (l.remise ? '<span class="tn-statut fait">✓ remise signée · ' + esc(l.remise.numero_facture) + '</span>'
+        : enAttente ? '<span class="tn-statut">signée, en attente d\'envoi</span>' : '<span class="tn-statut">à livrer</span>') +
+        (l.creneau ? ' · ' + esc({ matin: 'matin', apres_midi: 'après-midi', soir: 'soir' }[l.creneau] || l.creneau) : '') + '</div>' +
+      (l.repere ? '<div class="tn-ligne">📍 ' + esc(l.repere) + '</div>' : '') +
+      '<div class="tn-ligne">' + l.lignes.map(function (x) { return esc(nb(x.quantite) + ' ' + x.unite + ' ' + x.designation); }).join(' · ') + '</div>' +
+      (l.montant && !l.remise ? '<div class="tn-ligne"><b>' + fcfa(l.montant) + '</b> à encaisser</div>' : '') +
+      (tel(l.telephone) ? '<a class="tn-appel" href="tel:+221' + String(l.telephone).replace(/\D/g, '').slice(-9) + '">📞 ' + esc(tel(l.telephone)) + '</a>' : '') +
+      (l.latitude ? '<a class="tn-btn" style="display:block;text-align:center;line-height:52px;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' +
+        l.latitude + ',' + l.longitude + '">🗺 Itinéraire</a>' : '') +
+      (!l.remise && !enAttente ? '<button class="tn-btn principal" data-remettre="' + esc(l.id) + '">✍ Remettre et faire signer</button>' : '') +
+      '</div>';
+  });
+  $('#tn_corps').innerHTML = html;
+  document.querySelectorAll('[data-remettre]').forEach(function (b) { b.onclick = function () { ouvrirRemise(b.dataset.remettre); }; });
+}
+
+function releverPosition() {
+  ETAT.position = null;
+  if (!navigator.geolocation) { return; }
+  navigator.geolocation.getCurrentPosition(function (p) {
+    ETAT.position = { lat: p.coords.latitude, lng: p.coords.longitude, precision: p.coords.accuracy };
+  }, function () { ETAT.position = { refus: true }; }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+}
+
+function ouvrirRemise(id) {
+  ETAT.courant = ETAT.tournee.livraisons.filter(function (l) { return l.id === id; })[0];
+  ETAT.etape = 1;
+  ETAT.saisie = { qte: ETAT.courant.qte_commandee, bl: '', recu: '', nom: '', sigClient: '', sigChauffeur: '', observations: '' };
+  releverPosition();
+  etape();
+}
+
+function bandeauEtapes() {
+  return '<ol class="tn-etapes">' + ['Quantités', 'Client signe', 'Chauffeur signe', 'Envoi'].map(function (x, i) {
+    return '<li class="' + (ETAT.etape === i + 1 ? 'actif' : '') + '">' + (i + 1) + '. ' + x + '</li>';
+  }).join('') + '</ol>';
+}
+
+function etape() {
+  var l = ETAT.courant, s = ETAT.saisie, html = '';
+  if (ETAT.etape === 1) {
+    html = '<div class="tn-carte"><h2>' + esc(l.client) + '</h2>' +
+      '<table class="tn-tableau"><tr><th>Produit</th><th class="num">Qté</th><th class="num">Montant</th></tr>' +
+      l.lignes.map(function (x) { return '<tr><td>' + esc(x.designation) + '</td><td class="num">' + esc(nb(x.quantite) + ' ' + x.unite) + '</td><td class="num">' + (x.montant ? fcfa(x.montant) : '—') + '</td></tr>'; }).join('') +
+      '<tr><td><b>Total</b></td><td class="num"><b>' + esc(nb(l.qte_commandee)) + '</b></td><td class="num"><b>' + (l.montant ? fcfa(l.montant) : '—') + '</b></td></tr></table>' +
+      '<label class="tn-etiquette">N° du BL papier de l\'entrepôt *</label><input class="tn-champ" id="tn_bl" value="' + esc(s.bl) + '" placeholder="Écrit sur le bon papier">' +
+      '<label class="tn-etiquette">Quantité livrée (unités) *</label><input class="tn-champ" id="tn_qte" inputmode="numeric" value="' + esc(s.qte) + '">' +
+      '<div class="tn-aide">Moins que commandé ? Le reste repart au dispatch pour une prochaine livraison.</div>' +
+      '<label class="tn-etiquette">Argent reçu maintenant (FCFA)</label><input class="tn-champ" id="tn_recu" inputmode="numeric" value="' + esc(s.recu) + '" placeholder="0 si rien reçu">' +
+      '<label class="tn-etiquette">Remarque</label><input class="tn-champ" id="tn_obs" value="' + esc(s.observations) + '" placeholder="Facultatif">' +
+      '<div id="tn_msg"></div><button class="tn-btn principal" id="tn_suiv">Suivant : signature du client →</button>' +
+      '<button class="tn-btn" onclick="afficherListe()">← Retour à la tournée</button></div>';
+  } else if (ETAT.etape === 2 || ETAT.etape === 3) {
+    var client = ETAT.etape === 2;
+    html = '<div class="tn-carte"><h2>' + (client ? 'Signature du client' : 'Signature du chauffeur') + '</h2>' +
+      '<div class="tn-aide">' + (client ? 'Le client reconnaît avoir reçu ' + esc(s.qte) + ' unité(s)' + (l.montant ? ' pour un montant de ' + fcfa(l.montant * nb(s.qte) / Math.max(1, nb(l.qte_commandee))) : '') + '.'
+        : 'Le chauffeur ' + esc(ETAT.tournee.chauffeur) + ' certifie la remise.') + '</div>' +
+      (client ? '<label class="tn-etiquette">Nom de la personne qui signe *</label><input class="tn-champ" id="tn_nom" value="' + esc(s.nom) + '">' : '') +
+      '<label class="tn-etiquette">Signez dans le cadre</label><canvas class="tn-signature" id="tn_pad"></canvas>' +
+      '<button class="tn-btn" id="tn_effacer">Effacer et recommencer</button><div id="tn_msg"></div>' +
+      '<button class="tn-btn principal" id="tn_suiv">' + (client ? 'Suivant : signature du chauffeur →' : 'Suivant : vérifier et envoyer →') + '</button>' +
+      '<button class="tn-btn" id="tn_prec">← Étape précédente</button></div>';
+  } else {
+    html = '<div class="tn-carte"><h2>Vérifier et envoyer</h2>' +
+      '<div class="tn-ligne">Client : <b>' + esc(l.client) + '</b> — signé par ' + esc(s.nom) + '</div>' +
+      '<div class="tn-ligne">BL papier : <b>' + esc(s.bl) + '</b> · ' + esc(s.qte) + ' unité(s) livrée(s) sur ' + esc(nb(l.qte_commandee)) + '</div>' +
+      '<div class="tn-ligne">Argent reçu : <b>' + (nb(s.recu) ? fcfa(s.recu) : 'rien') + '</b></div>' +
+      '<div class="tn-ligne">Position : <span id="tn_pos">' + textePosition() + '</span></div>' +
+      '<div id="tn_msg"></div><button class="tn-btn principal" id="tn_envoyer">✓ Enregistrer la remise signée</button>' +
+      '<button class="tn-btn" id="tn_prec">← Étape précédente</button></div>';
+  }
+  $('#tn_corps').innerHTML = bandeauEtapes() + html;
+  window.scrollTo(0, 0);
+  if (ETAT.etape === 1) {
+    $('#tn_suiv').onclick = function () {
+      s.bl = $('#tn_bl').value.trim(); s.qte = $('#tn_qte').value.replace(/[^\d.]/g, ''); s.recu = $('#tn_recu').value.replace(/\D/g, '');
+      s.observations = $('#tn_obs').value.trim();
+      if (s.bl.length < 2) { return erreur('Écrivez le numéro du BL papier de l\'entrepôt.'); }
+      if (!nb(s.qte) || nb(s.qte) > nb(l.qte_commandee)) { return erreur('Quantité livrée : entre 1 et ' + nb(l.qte_commandee) + '.'); }
+      if (l.montant && nb(s.recu) > nb(l.montant)) { return erreur('Montant reçu supérieur au montant de la livraison.'); }
+      ETAT.etape = 2; etape();
+    };
+  } else if (ETAT.etape === 2 || ETAT.etape === 3) {
+    var pad = brancherSignature($('#tn_pad'));
+    $('#tn_effacer').onclick = pad.effacer;
+    $('#tn_prec').onclick = function () { ETAT.etape -= 1; etape(); };
+    $('#tn_suiv').onclick = function () {
+      if (ETAT.etape === 2) { s.nom = $('#tn_nom').value.trim(); if (s.nom.length < 2) { return erreur('Écrivez le nom de la personne qui signe.'); } }
+      if (!pad.signe()) { return erreur('Faites signer dans le cadre.'); }
+      if (ETAT.etape === 2) { s.sigClient = pad.image(); } else { s.sigChauffeur = pad.image(); }
+      ETAT.etape += 1; etape();
+    };
+  } else {
+    var maj = setInterval(function () { if ($('#tn_pos')) { $('#tn_pos').textContent = textePosition(); } else { clearInterval(maj); } }, 1500);
+    $('#tn_prec').onclick = function () { ETAT.etape = 3; etape(); };
+    $('#tn_envoyer').onclick = envoyerRemise;
+  }
+}
+function textePosition() {
+  var p = ETAT.position;
+  return !p ? 'recherche du signal…' : p.refus ? 'non relevée (localisation refusée)' : 'relevée à ± ' + Math.round(p.precision) + ' m';
+}
+function erreur(m) { $('#tn_msg').innerHTML = '<div class="tn-erreur">' + esc(m) + '</div>'; }
+
+function brancherSignature(c) {
+  var r = c.getBoundingClientRect(), echelle = window.devicePixelRatio || 1;
+  c.width = r.width * echelle; c.height = r.height * echelle;
+  var x = c.getContext('2d'); x.scale(echelle, echelle);
+  x.lineWidth = 2.5; x.lineCap = 'round'; x.strokeStyle = '#1a1a1a';
+  var dessine = false, traits = 0;
+  function point(e) { var b = c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; }
+  c.onpointerdown = function (e) { dessine = true; c.setPointerCapture(e.pointerId); var p = point(e); x.beginPath(); x.moveTo(p[0], p[1]); };
+  c.onpointermove = function (e) { if (!dessine) { return; } var p = point(e); x.lineTo(p[0], p[1]); x.stroke(); traits++; };
+  c.onpointerup = c.onpointercancel = function () { dessine = false; };
+  return {
+    effacer: function () { x.clearRect(0, 0, c.width, c.height); traits = 0; },
+    signe: function () { return traits > 8; },
+    image: function () { return c.toDataURL('image/png').split(',')[1]; }
+  };
+}
+
+function chargeRemise() {
+  var s = ETAT.saisie, p = ETAT.position || {};
+  return { livraison_id: ETAT.courant.id, bl_papier: s.bl, qte_livree: s.qte, montant_recu: s.recu || null, nom_client: s.nom,
+           signature_client: s.sigClient, signature_chauffeur: s.sigChauffeur, observations: s.observations || null,
+           latitude: p.lat || null, longitude: p.lng || null, precision_m: p.precision || null,
+           appareil: (navigator.userAgent || '').slice(0, 150) };
+}
+
+function envoyerRemise() {
+  var b = $('#tn_envoyer'); b.disabled = true; b.textContent = 'Envoi…';
+  var attendre = ETAT.position ? Promise.resolve() : new Promise(function (r) { setTimeout(r, 8000); });   // le GPS a 8 s de plus
+  attendre.then(function () {
+    var charge = chargeRemise();
+    return rpc('signer_livraison', { p_jeton: JETON, p: charge }).then(function (r) {
+      $('#tn_corps').innerHTML = '<div class="tn-ok"><b>Remise enregistrée : ' + esc(r.numero_facture || '') + '.</b><br>' +
+        'Le bon de livraison et la facture de livraison signés sont au bureau.' + (r.reliquat ? '<br>Le reste repart au dispatch (' + esc(r.reliquat) + ').' : '') +
+        '</div><button class="tn-btn principal" onclick="charger()">Retour à la tournée</button>';
+    }).catch(function (e) {
+      if (e.reseau || !e.definitif) {
+        var att = lireAttente(); att.push({ p: charge, le: new Date().toISOString() }); ecrireAttente(att);
+        $('#tn_corps').innerHTML = '<div class="tn-erreur"><b>Pas de réseau : la remise signée est gardée sur ce téléphone.</b><br>' +
+          'Elle partira seule dès que le réseau revient. Ne fermez pas cette page tant qu\'elle n\'est pas partie.</div>' +
+          '<button class="tn-btn principal" onclick="afficherListe()">Retour à la tournée</button>';
+      } else { b.disabled = false; b.textContent = '✓ Enregistrer la remise signée'; erreur(e.message); }
+    });
+  });
+}
+
+function envoyerAttente(montrer) {
+  var att = lireAttente(); if (!att.length) { return; }
+  var restant = [];
+  att.reduce(function (suite, a) {
+    return suite.then(function () {
+      /* Une remise refusée par la base n'est jamais jetée : elle reste, avec le motif, pour la logistique. */
+      return rpc('signer_livraison', { p_jeton: JETON, p: a.p }).catch(function (e) { a.erreur = e.reseau ? '' : e.message; restant.push(a); });
+    });
+  }, Promise.resolve()).then(function () {
+    ecrireAttente(restant);
+    if (montrer) { charger(); }
+  });
+}
+window.addEventListener('online', function () { envoyerAttente(true); });
+setInterval(function () { if (navigator.onLine) { envoyerAttente(false); } }, 30000);
+charger();
+</script>
+</body>
+</html>

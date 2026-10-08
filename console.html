@@ -791,7 +791,7 @@ body { padding-bottom: calc(var(--h-barre) + env(safe-area-inset-bottom)); }
   display: inline-flex; align-items: center; gap: var(--e1);
   min-height: 26px; line-height: 1.4;
 }
-.puce b { color: var(--accent); }
+.puce b { color: #FFFFFF; }   /* 08/10/2026 : lisible en plein soleil (2,7:1 avant) */
 .puce.hors-ligne { background: rgba(247,174,23,.22); border-color: rgba(247,174,23,.5); }
 
 /* --------------------------------------------------------------- écrans */
@@ -1159,6 +1159,9 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
 .gps-precision.bonne { color: var(--vert); font-weight: 700; }
 .gps-precision.moyenne { color: var(--ambre); font-weight: 700; }
 .gps-precision.faible { color: var(--rouge); font-weight: 700; }
+
+/* 08/10/2026 (audit) : bord des champs visible en plein soleil (1,35:1 avant) */
+input[type="text"], input[type="number"], input[type="tel"], input[type="date"], select, textarea { border-color: #A8927A; }
 
 /* ==========================================================================
    SN2I — Console d'administration.
@@ -2113,6 +2116,17 @@ table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td
   input[type="checkbox"] { width: 24px; height: 24px; }
   table.tablo a[href^="tel:"] { display: inline-block; min-height: 44px; line-height: 44px; }
 }
+
+/* 0030 : charge des camions, décalage, flotte modifiée */
+.pl-jauge { display: block; height: 4px; background: var(--sable-pale); border-radius: 2px; margin-top: 3px; overflow: hidden; }
+.pl-jauge span { display: block; height: 100%; background: var(--vert); }
+.pl-surcharge { color: var(--rouge); font-weight: 700; }
+.pl-surcharge .pl-jauge span { background: var(--rouge); }
+.pl-decaler { font: inherit; font-size: 11.5px; margin-top: 4px; padding: 3px 8px; border: 1px solid var(--bord); border-radius: 6px;
+  background: var(--carte); color: var(--principal); cursor: pointer; }
+table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
+.fl-ajout { margin: 10px 0; }
+.fl-ajout summary { cursor: pointer; color: var(--principal); }
 </style>
 </head>
 <body>
@@ -2847,6 +2861,8 @@ function construireOnglets() {
 }
 
 function ouvrirOnglet(nom) {
+  if (SESSION.onglet === 'camions' && nom !== 'camions' && typeof lignesModifiees === 'function' && lignesModifiees().length &&
+      !window.confirm(lignesModifiees().length + ' modification(s) de la flotte ne sont pas enregistrées. Quitter quand même ?')) { return; }
   var permis = ONGLETS_PAR_ROLE[monRole()] || [];
   if (permis.indexOf(nom) === -1) { nom = permis[0] || 'bord'; }
   if ($('#message')) { $('#message').style.display = 'none'; }
@@ -3120,13 +3136,13 @@ function ticketsDuPlanning(demandes, enCours) {
   var a = (demandes || []).map(function (d) {
     return { id: d.id, numero: d.numero, client: d.destinataire_nom, montant: d.montant_a_encaisser, unites: d.nb_unites,
              produits: d.produits, creneau: d.creneau, repere: d.repere || d.adresse_livraison, date_souhaitee: d.date_souhaitee,
-             date_demande: d.date_demande, lat: d.latitude, lng: d.longitude, precision: d.precision_position,
+             date_demande: d.date_demande, lat: d.latitude, lng: d.longitude, precision: d.precision_position, kg: d.poids_estime_kg,
              place: false, vehicule_id: null, statut: 'a_dispatcher' };
   });
   var b = (enCours || []).map(function (t) {
     return { id: t.id, numero: t.numero, client: t.destinataire_nom, montant: t.montant_a_encaisser, unites: t.nb_unites,
              produits: t.produits, creneau: t.creneau, repere: t.repere || t.adresse_livraison, date_souhaitee: t.date_souhaitee,
-             lat: t.destination_latitude, lng: t.destination_longitude, place: true, vehicule_id: t.vehicule_id,
+             lat: t.destination_latitude, lng: t.destination_longitude, place: true, vehicule_id: t.vehicule_id, kg: t.poids_estime_kg,
              statut: t.livraison_statut || 'programmee', arrivee: t.heure_arrivee_prevue };
   });
   return a.concat(b);
@@ -3188,9 +3204,14 @@ function ligneDuPlanning(v, colonnes, tickets) {
       return jourDuTicket(t) === c && (v ? (t.place && t.vehicule_id === v.id) : !t.place);
     });
     var unites = ici.reduce(function (n, t) { return n + nombre(t.unites); }, 0);
+    var kg = ici.reduce(function (n, t) { return n + nombre(t.kg); }, 0);
+    var cap = v ? nombre(v.capacite_kg) : 0;
+    var part = cap ? Math.round(100 * kg / cap) : null;
     return '<td class="pl-case' + (c === 'retard' ? ' pl-retard' : '') + '" data-pl-jour="' + c + '" data-pl-cible="' + (v ? v.id : '') + '">' +
       ici.map(ticketHtml).join('') +
-      (v && ici.length ? '<div class="pl-total">' + ici.length + ' livraison(s) · ' + formater(unites) + ' u.</div>' : '') + '</td>';
+      (v && ici.length ? '<div class="pl-total' + (part !== null && part > 100 ? ' pl-surcharge' : '') + '">' + ici.length + ' livraison(s) · ' +
+        (kg ? formater(kg) + ' kg' + (cap ? ' / ' + formater(cap) + ' (' + part + ' %)' : '') : formater(unites) + ' u.') +
+        (part !== null ? '<span class="pl-jauge"><span style="width:' + Math.min(100, part) + '%"></span></span>' : '') + '</div>' : '') + '</td>';
   }).join('') + '</tr>';
 }
 
@@ -3201,10 +3222,11 @@ function ticketHtml(t) {
   return '<div class="pl-ticket' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + '"' +
     (bloque ? '' : ' draggable="true"') + ' data-pl-ticket="' + t.id + '" title="' + esc(detail) + '">' +
     '<b>' + esc(t.client || 'Client') + '</b>' +
-    '<span>' + (t.montant ? francs(t.montant) + ' · ' : '') + formater(t.unites) + ' u.' +
+    '<span>' + (t.montant ? francs(t.montant) + ' · ' : '') + formater(t.unites) + ' u.' + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') +
       (t.creneau ? ' · ' + esc(LIBELLES_CRENEAU[t.creneau] || '') : '') + '</span>' +
     (t.repere ? '<span class="pl-repere">📍 ' + esc(t.repere) + '</span>' : '') +
     (t.place ? '<span class="pl-statut">' + (bloque ? '🚚 en route' : 'programmée' + (t.arrivee ? ' · ' + esc(heureLocale(t.arrivee)) : '')) + '</span>' : '') +
+    (bloque ? '' : '<button class="pl-decaler" data-pl-decaler="' + t.id + '" title="Changer la date de livraison" aria-label="Changer la date de livraison">📅 Décaler</button>') +
   '</div>';
 }
 
@@ -3234,6 +3256,14 @@ function choisirTicket(id) {
 function poserTicket(t, vehiculeId) {
   var v = DISPATCH.flotte.filter(function (x) { return x.id === vehiculeId; })[0];
   if (!t || !v) { return; }
+  /* La charge du camion ce jour-là, avec ce ticket : au-delà de sa capacité, on demande. */
+  var jour = jourDuTicket(t);
+  var charge = (PLANNING.tickets || []).filter(function (x) {
+    return x.place && x.vehicule_id === v.id && jourDuTicket(x) === jour && x.id !== t.id;
+  }).reduce(function (n, x) { return n + nombre(x.kg); }, 0) + nombre(t.kg);
+  if (nombre(v.capacite_kg) && charge > nombre(v.capacite_kg) &&
+      !window.confirm(v.immatriculation + ' serait chargé à ' + formater(charge) + ' kg pour ' + formater(v.capacite_kg) +
+                      ' kg de capacité. Le charger quand même ?')) { chargerDispatch(); return; }
   var faire = function (chauffeur) {
     var km = t.lat !== null && t.lat !== undefined && v.latitude !== null ? distanceKm({ lat: +v.latitude, lng: +v.longitude }, { lat: +t.lat, lng: +t.lng }) : null;
     var appel = t.place
@@ -3273,6 +3303,23 @@ function brancherPlanning() {
     };
   });
   if ($('#pl_voir14')) { $('#pl_voir14').onclick = function () { $('[data-pl-jours="14"]').click(); }; }
+  $$('[data-pl-decaler]').forEach(function (b) {
+    b.onclick = function (ev) {
+      ev.stopPropagation();
+      var t = (PLANNING.tickets || []).filter(function (x) { return x.id === b.dataset.plDecaler; })[0];
+      boite('Décaler la livraison de ' + (t.client || 'ce client'),
+        '<label class="pa-etiquette">Nouvelle date<input type="date" class="pa-champ" data-b="date" min="' + aujourdhui() + '" max="' + jourPlus(30) + '"></label>' +
+        '<label class="pa-etiquette">Pourquoi ?<input class="pa-champ" data-b="motif" placeholder="Ex. client absent, demande du client"></label>' +
+        (t.place ? '<p class="aide">Le ticket garde son camion ; l\'heure d\'arrivée est à refixer.</p>' : ''),
+        'Décaler', function (bx) {
+          var dt = bx.querySelector('[data-b="date"]').value, mo = bx.querySelector('[data-b="motif"]').value.trim();
+          if (!dt || mo.length < 3) { message('Choisissez la date et écrivez pourquoi.', 'ko'); return false; }
+          rpc('changer_date_livraison', { p_demande: t.id, p_date: dt, p_motif: mo })
+            .then(function () { message('Livraison de ' + esc(t.client || '') + ' décalée au ' + esc(dateCourte(dt)) + '.', 'ok'); chargerDispatch(); })
+            .catch(function (e) { message('Non décalée : ' + esc(e.message), 'ko'); });
+        });
+    };
+  });
   var peut = aLeDroit(PEUT_DISPATCHER);
   $$('.pl-ticket').forEach(function (e) {
     if (!peut || e.classList.contains('bloque')) { e.removeAttribute('draggable'); return; }
@@ -3641,24 +3688,82 @@ function tableauFlotte(flotte, gere) {
         '<td>' + (v.missions_en_cours > 0 ? '<span class="etiquette-statut cours">en livraison (' + v.missions_en_cours + ')</span>' +
             (v.prochaine_arrivee ? '<br><span class="aide">arrivée ' + esc(heureLocale(v.prochaine_arrivee)) + '</span>' : '')
             : (v.etat === 'actif' ? '<span class="etiquette-statut fini">libre</span>' : '<span class="aide">hors service</span>')) + '</td>' +
-        (gere ? '<td><button class="btn-mini" data-fl-enregistrer="' + v.id + '">Enregistrer</button></td>' : '') + '</tr>';
+        (gere ? '<td><button class="btn-mini" data-fl-enregistrer="' + v.id + '" disabled>Enregistrer</button></td>' : '') + '</tr>';
     }).join('') + '</tbody></table>' +
+    (gere ? '<div class="pl-alerte" id="fl_attente" style="display:none"></div>' +
+      '<details class="fl-ajout"><summary><b>＋ Ajouter un véhicule</b></summary><div class="pa-prix-ajout" style="margin-top:10px">' +
+      '<input class="pa-champ" id="fl_immat" placeholder="Immatriculation (AA-123-BC)">' +
+      '<select class="pa-champ" id="fl_type"><option value="camion">Camion</option><option value="camionnette">Camionnette</option>' +
+      '<option value="tricycle">Tricycle</option><option value="autre">Autre</option></select>' +
+      '<input class="pa-champ" id="fl_cap" inputmode="numeric" placeholder="Capacité (kg)">' +
+      '<select class="pa-champ" id="fl_ch"></select>' +
+      '<input class="pa-champ" id="fl_libelle" placeholder="Remarque (facultatif)">' +
+      '<button class="btn-console accent" id="fl_ajouter">Ajouter</button></div></details>' : '') +
     '<p class="aide">L\'état suit la balise (actif si elle a émis depuis moins de 72 h, immobilisé si elle est muette ' +
     'depuis plus de 7 jours) tant que personne ne l\'a fixé à la main ; un choix fait ici n\'est plus jamais écrasé ' +
     'par la balise. Un chauffeur ne conduit qu\'un véhicule : l\'assigner ailleurs le retire du premier.</p>';
 }
 
-function brancherFlotte(flotte) {
-  $$('[data-fl-enregistrer]').forEach(function (b) {
-    b.onclick = function () {
-      var id = b.dataset.flEnregistrer, v = flotte.filter(function (x) { return x.id === id; })[0];
+/* Recette QA et DGA (08/10/2026) : des changements faits sur plusieurs lignes se
+   perdaient si l'on n'enregistrait qu'une ligne. Désormais : la ligne modifiée
+   s'allume, son bouton s'active, un bandeau compte ce qui n'est pas enregistré et
+   « Tout enregistrer » envoie le tout ; quitter l'onglet avec des changements
+   en attente demande confirmation. */
+var FLOTTE_MODIFS = {};
+function lignesModifiees() { return Object.keys(FLOTTE_MODIFS).filter(function (k) { return FLOTTE_MODIFS[k]; }); }
+function majBandeauFlotte() {
+  var n = lignesModifiees().length, z = $('#fl_attente');
+  if (!z) { return; }
+  z.style.display = n ? '' : 'none';
+  z.innerHTML = '⚠ <b>' + n + '</b> modification(s) non enregistrée(s) — <button class="btn-mini" id="fl_tout">Tout enregistrer</button>';
+  if ($('#fl_tout')) { $('#fl_tout').onclick = function () { enregistrerFlotte(lignesModifiees()); }; }
+}
+function enregistrerFlotte(ids) {
+  var flotte = DISPATCH.flotteGestion || [];
+  var erreurs = [];
+  return ids.reduce(function (suite, id) {
+    return suite.then(function () {
+      var v = flotte.filter(function (x) { return x.id === id; })[0];
       var etat = $('[data-fl-etat="' + id + '"]').value, ch = $('[data-fl-chauffeur="' + id + '"]').value;
-      rpc('regler_vehicule', { p_vehicule: id, p_etat: etat !== v.etat ? etat : null,
-                               p_chauffeur: ch || null, p_retirer_chauffeur: !ch && !!v.chauffeur_id })
-        .then(function () { message(esc(v.immatriculation || 'Véhicule') + ' enregistré sous votre nom.', 'ok'); chargerCamions(); })
-        .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
-    };
+      return rpc('regler_vehicule', { p_vehicule: id, p_etat: etat !== v.etat ? etat : null,
+                                      p_chauffeur: ch || null, p_retirer_chauffeur: !ch && !!v.chauffeur_id })
+        .then(function () { FLOTTE_MODIFS[id] = false; })
+        .catch(function (e) { erreurs.push((v.immatriculation || 'véhicule') + ' : ' + e.message); });
+    });
+  }, Promise.resolve()).then(function () {
+    if (erreurs.length) { message('Non enregistré — ' + esc(erreurs.join(' ; ')), 'ko'); }
+    else { message(ids.length + ' véhicule(s) enregistré(s) sous votre nom.', 'ok'); }
+    chargerCamions();
   });
+}
+function brancherFlotte(flotte) {
+  DISPATCH.flotteGestion = flotte;
+  FLOTTE_MODIFS = {};
+  flotte.forEach(function (v) {
+    var selE = $('[data-fl-etat="' + v.id + '"]'), selC = $('[data-fl-chauffeur="' + v.id + '"]'), bt = $('[data-fl-enregistrer="' + v.id + '"]');
+    if (!selE || !selC) { return; }
+    var suivre = function () {
+      var modifie = selE.value !== v.etat || (selC.value || '') !== (v.chauffeur_id || '');
+      FLOTTE_MODIFS[v.id] = modifie;
+      bt.disabled = !modifie;
+      selE.closest('tr').classList.toggle('fl-modifiee', modifie);
+      majBandeauFlotte();
+    };
+    selE.onchange = suivre; selC.onchange = suivre;
+    bt.onclick = function () { enregistrerFlotte([v.id]); };
+  });
+  majBandeauFlotte();
+  var aj = $('#fl_ajouter');
+  if (aj) {
+    $('#fl_ch').innerHTML = '<option value="">— sans chauffeur pour l\'instant —</option>' + optionsChauffeurs(null).replace('<option value="">— chauffeur du véhicule —</option>', '');
+    aj.onclick = function () {
+      rpc('creer_vehicule', { p_immatriculation: $('#fl_immat').value, p_type: $('#fl_type').value,
+                              p_capacite_kg: +$('#fl_cap').value.replace(/\D/g, '') || null, p_chauffeur: $('#fl_ch').value || null,
+                              p_libelle: $('#fl_libelle').value || null })
+        .then(function (v) { message('Véhicule ' + esc(v.immatriculation) + ' ajouté à la flotte.', 'ok'); chargerCamions(); })
+        .catch(function (e) { message('Non ajouté : ' + esc(e.message), 'ko'); });
+    };
+  }
 }
 
 function tableauChauffeurs(chauffeurs) {
@@ -5969,9 +6074,10 @@ function envoyerAppel() {
     date_rappel: PH.issue === 'a_rappeler' ? PH.rappel : null,
     motif_refus: PH.issue === 'refus' ? PH.refus : null,
     commentaire: PH.commentaire.trim() || null,
-    duree_secondes: PH.debut ? Math.round((Date.now() - PH.debut) / 1000) : null
+    duree_secondes: PH.debut ? Math.round((Date.now() - PH.debut) / 1000) : null,
+    confirmer_doublon: !!PH.confirmerDoublon
   } }).then(function (r) {
-    PH.envoi = false;
+    PH.envoi = false; PH.confirmerDoublon = false;
     PH.seance.nb_appels = r.nb_appels; PH.seance.nb_commandes = r.nb_commandes;
     toast(r.commande
       ? 'Commande ' + r.commande + (r.montant ? ' · ' + francs(r.montant) : '') + ' · transport ' + r.demande_transport + ' demandé.'
@@ -5980,6 +6086,12 @@ function envoyerAppel() {
     prendreSuivant();
   }).catch(function (err) {
     PH.envoi = false;
+    if (/^DOUBLON/.test(err.message)) {
+      if (window.confirm(err.message.replace('DOUBLON : ', '') + '\n\nEnregistrer quand même cette seconde commande ?')) {
+        PH.confirmerDoublon = true; envoyerAppel();
+      } else if (bouton) { bouton.disabled = false; bouton.innerHTML = '✓ Valider et client suivant'; }
+      return;
+    }
     if (/Prix changé/.test(err.message)) {
       /* La direction a changé un prix pendant l'appel : on recharge le
          catalogue, on refait le total, et l'opérateur relit le nouveau total. */

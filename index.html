@@ -2374,7 +2374,7 @@ function synchroniser(silencieux) {
    La liste vient de la base (liste_enqueteurs : les actifs, nom et
    identifiant) et reste sur le téléphone : le formulaire marche hors réseau
    avec la dernière liste reçue. Plus de nom tapé à la main — le 08/10/2026,
-   « Kader Diallo », « Kader diallo » et « Kader » comptaient pour trois. */
+   le même enquêteur, écrit de trois façons, comptait pour trois. */
 
 function enqueteurDe(id) {
   return ETAT.enqueteurs.filter(function (e) { return e.id === id; })[0] || null;
@@ -2404,7 +2404,7 @@ function chargerEnqueteurs(silencieux) {
     ETAT.enqueteurs = (liste || []).map(function (e) { return { id: e.id, nom: e.nom }; });
     DB.ecrireMeta('enqueteurs', JSON.stringify(ETAT.enqueteurs));
     DB.secoursLocal.ecrire('sn2i_enqueteurs', JSON.stringify(ETAT.enqueteurs));
-    /* Un ancien réglage tapé à la main (« Kader Diallo ») retrouve son nom dans la liste. */
+    /* Un ancien réglage tapé à la main retrouve son nom dans la liste, sans tenir compte des majuscules. */
     if (!ETAT.enqueteurId && ETAT.enqueteur) {
       var trouve = ETAT.enqueteurs.filter(function (e) {
         return e.nom.toLowerCase().trim() === ETAT.enqueteur.toLowerCase().trim();

@@ -3919,8 +3919,8 @@ function chargerFiches() {
     var lignesEnqueteurs = Object.keys(parEnqueteur).sort(function (a, b) {
       return parEnqueteur[b].total - parEnqueteur[a].total;
     });
-    /* Le même enquêteur s'inscrit parfois de plusieurs façons : « Kader diallo »,
-       « Kader », « Kader Diallo ». Le total par personne est alors coupé en
+    /* Le même enquêteur s'inscrit parfois de plusieurs façons (majuscules,
+       prénom seul). Le total par personne est alors coupé en
        morceaux, et on le DIT plutôt que de laisser croire à trois enquêteurs. */
     var parPremierMot = {};
     lignesEnqueteurs.forEach(function (nom) {

@@ -131,7 +131,7 @@ body { padding-bottom: calc(var(--h-barre) + env(safe-area-inset-bottom)); }
   display: inline-flex; align-items: center; gap: var(--e1);
   min-height: 26px; line-height: 1.4;
 }
-.puce b { color: var(--accent); }
+.puce b { color: #FFFFFF; }   /* 08/10/2026 : lisible en plein soleil (2,7:1 avant) */
 .puce.hors-ligne { background: rgba(247,174,23,.22); border-color: rgba(247,174,23,.5); }
 
 /* --------------------------------------------------------------- écrans */
@@ -499,6 +499,9 @@ select { appearance: none; -webkit-appearance: none; padding-right: var(--e8); b
 .gps-precision.bonne { color: var(--vert); font-weight: 700; }
 .gps-precision.moyenne { color: var(--ambre); font-weight: 700; }
 .gps-precision.faible { color: var(--rouge); font-weight: 700; }
+
+/* 08/10/2026 (audit) : bord des champs visible en plein soleil (1,35:1 avant) */
+input[type="text"], input[type="number"], input[type="tel"], input[type="date"], select, textarea { border-color: #A8927A; }
 </style>
 </head>
 <body>
@@ -1321,7 +1324,7 @@ var DB = (function () {
     var defaut = (magasin === 'fiches') ? [] : {};
     var donnees = lsLire(cle, defaut);
     function sauver() {
-      if (!lsEcrire(cle, donnees)) { toast('Mémoire du téléphone saturée — exportez la tournée'); return false; }
+      if (!lsEcrire(cle, donnees)) { toast(MODE_PUBLIE ? 'Mémoire du téléphone saturée — reconnectez-vous au réseau pour envoyer les fiches au bureau' : 'Mémoire du téléphone saturée — exportez la tournée'); return false; }
       return true;
     }
     return {
@@ -1479,7 +1482,7 @@ function rendreProduits() {
       '<div class="nom-produit">' + esc(p.nom) +
       (p.cle === 'autre' ? ' <input type="text" id="autre_nom" placeholder="nom du produit" style="margin-top:6px;padding:9px 11px;min-height:42px;font-size:15px">' : '') +
       (p.sous ? '<small>' + esc(p.sous) + '</small>' : '') + '</div>' +
-      '<div class="saisie-kg"><input type="number" inputmode="numeric" min="0" step="1" id="q_' + p.cle + '" placeholder="0"></div>' +
+      '<div class="saisie-kg"><input type="number" inputmode="numeric" min="0" step="1" id="q_' + p.cle + '" placeholder="kg / mois" aria-label="' + esc(p.nom) + ' en kg par mois"></div>' +
       '<button type="button" class="etoile" data-etoile="' + p.cle + '" title="Produit qui se vend le mieux">★</button>' +
       '</div>';
   });
@@ -1585,7 +1588,7 @@ function afficherPhotoVide() {
     '<label class="zone-photo" for="f_photo">' +
     '<div class="icone">📷</div>' +
     '<div class="libelle">Prendre la photo de la devanture</div>' +
-    '<div class="sous">Le magasin, vu de la rue · obligatoire pour le visuel du CRM</div>' +
+    '<div class="sous">Le magasin, vu de la rue · fortement conseillée : elle aide le livreur à trouver la boutique</div>' +
     '</label>' +
     '<input type="file" id="f_photo" accept="image/*" capture="environment" style="display:none">';
   $('#f_photo').onchange = traiterPhoto;

@@ -1979,6 +1979,52 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
   .pa-dire { font-size: 16px; }
   .pa-souffleur { padding: var(--e3); }
 }
+
+/* ----------------------------------------- carte : le chemin à faire */
+.trajet-a-venir { stroke-dasharray: 14 10; animation: trajet-avance 0.9s linear infinite; }
+@keyframes trajet-avance { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { .trajet-a-venir { animation: none; } }
+.marqueur-destination span {
+  display: block; font-size: 26px; line-height: 26px; color: #B3261E;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+}
+.legende-trajet { display: inline-block; width: 30px; height: 0; border-top: 4px dashed #1B4F9C; vertical-align: middle; margin-right: 4px; }
+.legende-drapeau { color: #B3261E; font-size: 16px; margin-right: 2px; }
+
+/* ----------------------------------------- dispatch */
+.dp-resume { margin: 0 0 var(--e3); padding: 10px 14px; background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon); }
+.dp-cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--e3); }
+.dp-carte { border: 1px solid var(--bord); border-left: 5px solid var(--accent); border-radius: var(--rayon); padding: var(--e3) var(--e4); background: var(--carte); }
+.dp-tete { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 16px; color: var(--principal); }
+.dp-montant { font-weight: 800; font-size: 17px; white-space: nowrap; }
+.dp-ligne { font-size: 13.5px; margin-top: 4px; }
+.dp-numero { font-size: 11.5px; color: var(--texte-doux); margin-top: 6px; }
+.dp-avertissement { display: inline-block; font-size: 12px; color: var(--ambre); background: var(--ambre-pale); border-radius: 6px; padding: 1px 6px; }
+.dp-choix { display: grid; gap: 8px; margin-top: var(--e3); border-top: 1px dashed var(--bord); padding-top: var(--e3); }
+.dp-choix label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--principal); }
+.dp-choix label .aide { font-weight: 400; }
+.dp-choix .pa-champ { min-height: var(--h-mini); padding: 6px 10px; font-size: 14px; }
+.dp-mini { min-height: 34px !important; padding: 4px 6px !important; font-size: 12.5px !important; width: auto; max-width: 178px; }
+.dp-gestes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.dp-retard { color: var(--rouge); font-weight: 700; }
+.fl-inactif td { color: var(--texte-doux); background: #FAF7F3; }
+
+/* ----------------------------------------- un client appelle */
+.sc-bloc summary { cursor: pointer; font-size: 15px; color: var(--principal); }
+.sc-recherche { display: flex; gap: 8px; margin: var(--e3) 0; }
+.sc-recherche .pa-champ { flex: 1; }
+.sc-client { border: 1px solid var(--bord); border-radius: var(--rayon); padding: var(--e3); margin-top: var(--e2); background: var(--carte); }
+.sc-tete { font-size: 15px; color: var(--principal); margin-bottom: 6px; }
+.sc-commande { border-top: 1px dashed var(--bord); padding-top: 8px; margin-top: 8px; }
+.sc-dire { font-size: 16px; font-weight: 600; margin: 6px 0; color: var(--texte); }
+.sc-etapes { display: flex; gap: 4px; list-style: none; padding: 0; margin: 0; font-size: 12px; }
+.sc-etapes li { flex: 1; text-align: center; padding: 4px; border-radius: 6px; background: var(--sable-pale); color: var(--texte-doux); }
+.sc-etapes li.fait { background: var(--vert-pale); color: var(--vert); font-weight: 700; }
+
+/* Les tableaux du dispatch, de la flotte et des livraisons portent des
+   informations qu'on ne coupe pas (montant, téléphone, repère). */
+table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td { white-space: normal; overflow: visible; text-overflow: clip; max-width: none; }
+.fl-doublon { display: inline-block; margin-top: 3px; font-size: 12px; color: var(--rouge); background: var(--rouge-pale); border-radius: 6px; padding: 1px 6px; }
 </style>
 </head>
 <body>
@@ -2059,10 +2105,11 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
           30 minutes</span>
         <span><span class="pastille-carte pastille-jour"></span> position du jour</span>
         <span><span class="pastille-carte pastille-ancienne"></span> position ancienne</span>
-        <span><b>Chaque camion a sa propre couleur</b> : son rond, son étiquette et son
-          trajet du jour</span>
-        <span><span class="pastille-carte" style="background:#1B4F9C"></span> <b>itinéraire
-          restant</b> vers sa destination</span>
+        <span><b>Chaque camion a sa couleur</b> : son rond, son étiquette et, en trait fin, le
+          trajet <b>déjà parcouru</b> aujourd'hui</span>
+        <span><span class="legende-trajet"></span> tirets bleus qui avancent : le chemin <b>qui reste à faire</b>
+          jusqu'à la livraison (cliquez : camion, chauffeur, heure d'arrivée)</span>
+        <span><span class="legende-drapeau">⚑</span> lieu de livraison</span>
       </div>
       <p class="aide">
         La carte s'ouvre <b>avec toutes les boutiques géolocalisées</b> (leur couleur dit la
@@ -2093,15 +2140,20 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
   <section class="ecran-console" data-ecran="dispatch">
     <div class="entete-ecran">
       <h2>Dispatch des transports</h2>
-      <p>Affectez un véhicule et un chauffeur, puis passez la demande en « dispatchée ».</p>
+      <p>Le véhicule libre le plus proche est proposé en premier. Une demande dispatchée passe en « En route et à venir ».</p>
+    </div>
+    <div class="pa-compteurs dp-resume" id="dispatch_resume"></div>
+    <div class="bloc-console">
+      <h3>À dispatcher <span class="compte" id="dispatch_compte">0</span></h3>
+      <div id="dispatch_tableau"><div class="chargement">Chargement…</div></div>
     </div>
     <div class="bloc-console">
-      <h3>Demandes à dispatcher <span class="compte" id="dispatch_compte">0</span></h3>
-      <div class="enveloppe" id="dispatch_tableau"><div class="chargement">Chargement…</div></div>
+      <h3>En route et à venir <span class="compte" id="dispatch_en_cours_compte">0</span></h3>
+      <div class="enveloppe" id="dispatch_en_cours"><div class="chargement">Chargement…</div></div>
     </div>
 
-    <div class="bloc-console" id="bloc_nouveau_transport" style="display:none">
-      <h3>Créer un transport <span class="compte">décidé hors phoning</span></h3>
+    <details class="bloc-console" id="bloc_nouveau_transport" style="display:none">
+      <summary><h3 style="display:inline">Créer un transport <span class="compte">décidé hors phoning</span></h3></summary>
       <p class="aide">Un client, une adresse, un montant facturable. La position de la destination
          se place sur la carte : elle n'est jamais inventée. Le numéro est attribué par la base.</p>
       <div class="grille-formulaire">
@@ -2134,13 +2186,13 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
       </div>
       <p class="aide">Les photos sont horodatées et rattachées à votre nom : elles constituent la
          preuve de la remise. Elles s'attachent après la création du transport.</p>
-    </div>
+    </details>
   </section>
 
   <!-- -------------------------------------------------------- camions -->
   <section class="ecran-console" data-ecran="camions">
     <div class="entete-ecran">
-      <h2>Camions en direct</h2>
+      <h2>Camions et flotte</h2>
       <p id="camions_sous">Positions relevées chez le fournisseur GPS, toutes les quinze minutes.</p>
     </div>
     <div class="bloc-console">
@@ -2150,13 +2202,17 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
       <div id="carte_camions" class="carte-console"></div>
     </div>
     <div class="bloc-console">
-      <h3>Flotte suivie <span class="compte" id="camions_compte">0</span></h3>
+      <h3>La flotte <span class="compte" id="camions_compte">0</span></h3>
       <div class="enveloppe" id="camions_tableau"><div class="chargement">Chargement…</div></div>
     </div>
-    <div class="bloc-console">
-      <h3>Derniers relevés</h3>
-      <div class="enveloppe" id="camions_releves"><div class="chargement">Chargement…</div></div>
+    <div class="bloc-console" id="bloc_chauffeurs" style="display:none">
+      <h3>Les chauffeurs</h3>
+      <div class="enveloppe" id="chauffeurs_tableau"></div>
     </div>
+    <details class="bloc-console">
+      <summary><b>Derniers relevés des balises</b></summary>
+      <div class="enveloppe" id="camions_releves"><div class="chargement">Chargement…</div></div>
+    </details>
   </section>
 
   <!-- --------------------------------------------------------- phoning -->
@@ -2165,6 +2221,10 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
       <h2>Phoning</h2>
       <p id="ph_sous">Un client à la fois.</p>
     </div>
+    <details class="bloc-console sc-bloc" id="ph_suivi">
+      <summary><b>☎ Un client appelle — où en est sa commande, où est le camion ?</b></summary>
+      <div id="ph_suivi_contenu"></div>
+    </details>
     <div class="bloc-console" id="ph_consultation" style="display:none"></div>
     <div class="bloc-console pa-poste" id="ph_poste"><div class="chargement">Chargement…</div></div>
     <div class="bloc-console" id="ph_supervision" style="display:none">
@@ -2213,9 +2273,14 @@ table.tablo td .btn-mini + .btn-mini { margin-left: var(--e1); }
   <section class="ecran-console" data-ecran="livraisons">
     <div class="entete-ecran">
       <h2>Livraisons</h2>
-      <p>Du chargement à l'encaissement. Le reste à encaisser est signalé en rouge.</p>
+      <p>Du départ du camion à l'encaissement, avec l'heure d'arrivée prévue.</p>
+    </div>
+    <div class="bloc-console sc-bloc">
+      <h3>☎ Un client appelle — où en est sa commande ?</h3>
+      <div id="liv_suivi_contenu"></div>
     </div>
     <div class="bloc-console">
+      <div class="ligne-actions" style="margin-bottom:10px"><button class="btn-console" id="liv_bascule">Voir tout l'historique</button></div>
       <div class="enveloppe" id="livraisons_tableau"><div class="chargement">Chargement…</div></div>
     </div>
   </section>
@@ -2455,8 +2520,10 @@ var ONGLETS_PAR_ROLE = {
   dga: ['bord', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
         'boutiques', 'prix', 'utilisateurs'],
   logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'commandes', 'boutiques'],
-  phoning: ['bord', 'phoning', 'fiches', 'commandes', 'boutiques'],
-  superviseur: ['bord', 'phoning', 'fiches', 'commandes', 'boutiques'],
+  /* 08/10/2026 (DGA) : le phoning voit aussi les livraisons en cours et les
+     camions, pour dire à un client qui appelle où en est son camion. */
+  phoning: ['bord', 'phoning', 'livraisons', 'camions', 'commandes', 'boutiques', 'fiches'],
+  superviseur: ['bord', 'phoning', 'livraisons', 'camions', 'fiches', 'commandes', 'boutiques'],
   lecture: ['bord', 'fiches', 'commandes', 'boutiques']
 };
 var TITRES_ONGLETS = {
@@ -2466,7 +2533,7 @@ var TITRES_ONGLETS = {
   prix: 'Prix', utilisateurs: 'Utilisateurs'
 };
 /* Qui voit quoi, dit une fois pour toutes. */
-var VOIT_FLOTTE = ['dga', 'logistique'];      // carte des camions
+var VOIT_FLOTTE = ['dga', 'logistique', 'phoning', 'superviseur'];   // carte des camions
 var VOIT_TRAJETS = VOIT_FLOTTE;               // trajets parcourus
 var PEUT_DISPATCHER = ['dga', 'logistique'];  // création et affectation de transport
 var VOIT_PHONING = ['dga', 'phoning', 'superviseur'];   // voit l'écran Phoning
@@ -2697,7 +2764,9 @@ function chargerBord() {
 
   Promise.all([
     compter('/boutiques?select=id'),
-    requete('/commandes?select=id&date_commande=gte.' + aujourdhui),
+    /* 08/10/2026 : les commandes annulées ne comptent pas, et « à dispatcher » ne
+       compte que ce qui attend un camion (il comptait toutes les demandes). */
+    requete('/commandes?select=id&statut=neq.annulee&date_commande=gte.' + aujourdhui),
     requete('/demandes_transport?select=id,statut,nb_unites,date_demande'),
     requete('/livraisons?select=id,statut,restant,montant,encaissement'),
     requete('/seances_phoning?select=id,date_seance,operateur_nom,nb_appels,nb_commandes,fin_le&order=date_seance.desc&limit=60'),
@@ -2706,8 +2775,8 @@ function chargerBord() {
   ]).then(function (r) {
     var nbBoutiques = r[0] || 0;
     var commandesJour = (r[1] || []).length;
-    var aDispatcher = (r[2] || []);
-    var livraisons = (r[3] || []);
+    var aDispatcher = (r[2] || []).filter(function (d) { return d.statut === 'a_dispatcher'; });
+    var livraisons = (r[3] || []).filter(function (l) { return l.statut !== 'annulee'; });
     var seances = (r[4] || []);
     var nbFiches = r[5] || 0;
     var fichesJour = r[6] || 0;
@@ -2827,91 +2896,252 @@ function ligneAction(libelle, nombre_, action, onglet) {
     '<b class="compte">' + nombre_ + '</b>' + droite + '</div>';
 }
 
-/* ------------------------------------------------------------ dispatch */
+/* ------------------------------------------------------------ dispatch
+
+   Refonte du 08/10/2026, à la demande du DGA (« pas très lisible », « une
+   commande dispatchée reste active ») :
+     · « À dispatcher » ne montre QUE ce qui attend un camion — une carte par
+       demande, le véhicule libre le plus proche proposé en premier ;
+     · « En route et à venir » suit ce qui est parti : camion, chauffeur, heure
+       d'arrivée prévue, distance restante, et les gestes du suivi ;
+     · le dispatch part en une écriture (dispatcher_demande), qui refuse un
+       véhicule hors service ou un chauffeur inactif. */
+
+var LIBELLES_ETAT_VEHICULE = { actif: 'Actif', panne: 'En panne', immobilise: 'Immobilisé', sorti: 'Sorti de la flotte' };
+var LIBELLES_STATUT_LIVRAISON = { programmee: 'Programmée', en_route: 'En route', livree: 'Livrée',
+  livree_partielle: 'Livrée en partie', echec: 'Échec', annulee: 'Annulée' };
+var HEURE_CRENEAU = { matin: '10:00', apres_midi: '15:00', soir: '18:30' };
+
+/* Distance à vol d'oiseau, en km : elle CLASSE les camions ; la durée de route
+   réelle, elle, est demandée au service d'itinéraire quand on trace. */
+function distanceKm(a, b) {
+  if (!a || !b || a.lat === null || b.lat === null || a.lat === undefined || b.lat === undefined) { return null; }
+  var r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+function kmLisible(d) { return d === null ? '—' : (d < 10 ? d.toFixed(1).replace('.', ',') : Math.round(d)) + ' km'; }
+function ageLisible(min) {
+  if (min === null || min === undefined) { return 'jamais vu'; }
+  min = +min;
+  return min < 60 ? 'il y a ' + Math.round(min) + ' min' : min < 2880 ? 'il y a ' + Math.round(min / 60) + ' h'
+    : 'il y a ' + Math.round(min / 1440) + ' j';
+}
+function heureLocale(v) {
+  if (!v) { return '—'; }
+  var d = new Date(v), auj = new Date();
+  var h = d.toLocaleTimeString('fr-FR').slice(0, 5);
+  return d.toDateString() === auj.toDateString() ? h : d.toLocaleDateString('fr-FR').slice(0, 5) + ' ' + h;
+}
+/* Valeur d'un champ datetime-local, à l'heure du poste. */
+function versChampDate(d) {
+  var p = function (n) { return ('0' + n).slice(-2); };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+/* L'heure d'arrivée PROPOSÉE : aujourd'hui, maintenant + route estimée
+   (25 km/h en ville, 15 min de chargement) ; un autre jour, l'heure du créneau.
+   Elle est écrite « à confirmer » : c'est la logistique qui la fixe. */
+function arriveeProposee(d, km) {
+  var jour = d.date_souhaitee || aujourdhui();
+  if (jour > aujourdhui()) {
+    return new Date(jour + 'T' + (HEURE_CRENEAU[d.creneau] || '10:00') + ':00');
+  }
+  var minutes = 15 + (km === null ? 45 : km / 25 * 60);
+  var t = new Date(Date.now() + minutes * 60000);
+  t.setMinutes(Math.ceil(t.getMinutes() / 15) * 15, 0, 0);
+  return t;
+}
+
+var DISPATCH = { flotte: [], chauffeurs: [], demandes: [] };
 
 function chargerDispatch() {
   preparerCreationTransport();
   $('#dispatch_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
+  $('#dispatch_en_cours').innerHTML = '<div class="chargement">Chargement…</div>';
   Promise.all([
-    requete('/demandes_transport?select=*&order=date_demande.asc&limit=200'),
-    requete('/vehicules?select=id,immatriculation,type,libelle_usage,chauffeur_id&order=type'),
-    requete('/chauffeurs?select=id,prenom,nom&order=nom'),
-    requete('/zones?select=id,nom')
+    requete('/demandes_transport?select=*&statut=eq.a_dispatcher&order=date_souhaitee.asc.nullsfirst,date_demande.asc&limit=200'),
+    requete('/v_flotte_gestion?select=*&order=immatriculation'),
+    requete('/v_chauffeurs_gestion?select=*&order=nom'),
+    requete('/v_transports_en_cours?select=*&statut=eq.dispatchee&order=heure_arrivee_prevue.asc.nullslast&limit=200'),
+    requete('/livraisons?select=id,statut&date_livraison=eq.' + aujourdhui() + '&statut=in.(livree,livree_partielle)')
   ]).then(function (r) {
-    var demandes = (r[0] || []).filter(function (d) { return d.statut === 'a_dispatcher' || d.statut === 'dispatchee'; });
-    var vehicules = r[1] || [], chauffeurs = r[2] || [], zones = r[3] || [];
-    var role = SESSION.profil.role;
-    var peutDispatcher = role === 'dga' || role === 'logistique';
-    $('#dispatch_compte').textContent = demandes.length;
+    DISPATCH.demandes = r[0] || []; DISPATCH.flotte = r[1] || []; DISPATCH.chauffeurs = r[2] || [];
+    var enCours = r[3] || [], livreesAuj = (r[4] || []).length;
+    var peut = aLeDroit(PEUT_DISPATCHER);
+    $('#dispatch_compte').textContent = DISPATCH.demandes.length;
+    $('#dispatch_en_cours_compte').textContent = enCours.length;
+    $('#dispatch_resume').innerHTML =
+      '<span><b>' + DISPATCH.demandes.length + '</b> à dispatcher</span>' +
+      '<span><b>' + enCours.length + '</b> en route ou à venir</span>' +
+      '<span><b>' + livreesAuj + '</b> livrée(s) aujourd\'hui</span>' +
+      '<span><b>' + DISPATCH.flotte.filter(function (v) { return v.disponible; }).length + '</b> véhicule(s) libre(s)</span>';
 
-    if (!demandes.length) {
-      $('#dispatch_tableau').innerHTML = '<div class="vide">Aucune demande de transport en attente.</div>';
-      return;
-    }
-    var optionsVehicules = vehicules.map(function (v) {
-      return '<option value="' + v.id + '">' + esc(v.immatriculation || v.libelle_usage || v.type) + '</option>';
-    }).join('');
-    var optionsChauffeurs = chauffeurs.map(function (c) {
-      return '<option value="' + c.id + '">' + esc(c.prenom + ' ' + c.nom) + '</option>';
-    }).join('');
+    $('#dispatch_tableau').innerHTML = DISPATCH.demandes.length
+      ? '<div class="dp-cartes">' + DISPATCH.demandes.map(function (d) { return carteDemande(d, peut); }).join('') + '</div>'
+      : '<div class="vide">Rien à dispatcher : toutes les demandes ont un camion.</div>';
+    DISPATCH.demandes.forEach(function (d) { brancherCarteDemande(d); });
 
-    $('#dispatch_tableau').innerHTML = '<table class="tablo"><thead><tr>' +
-      '<th>Demande</th><th>Livrer le</th><th>Produits</th><th>Unités</th><th>À encaisser</th>' +
-      '<th>Destinataire et repère</th><th>Véhicule</th><th>Chauffeur</th><th>Statut</th><th></th>' +
-      '</tr></thead><tbody>' +
-      demandes.map(function (d) {
-        return '<tr><td class="num"><b>' + esc(d.numero) + '</b></td>' +
-          '<td class="num">' + (d.date_souhaitee ? dateCourte(d.date_souhaitee) : dateCourte(d.date_demande)) +
-            (d.creneau ? '<br><span class="aide">' + esc(LIBELLES_CRENEAU[d.creneau] || d.creneau) + '</span>' : '') + '</td>' +
-          '<td>' + esc((d.produits || '').slice(0, 46)) + '</td>' +
-          '<td class="num">' + formater(d.nb_unites) + '</td>' +
-          '<td class="num">' + (d.montant_a_encaisser ? '<b>' + formater(d.montant_a_encaisser) + ' F</b>' : '—') + '</td>' +
-          '<td>' + esc(d.destinataire_nom || '—') +
-            (d.repere ? '<br><span class="aide">' + esc(d.repere) + '</span>' : '') +
-            (d.telephone_livraison ? '<br><span class="aide">☎ ' + esc(telephoneLisible(d.telephone_livraison)) + '</span>' : '') +
-            (d.precision_position && d.precision_position !== 'relevee'
-              ? '<br><span class="aide" style="color:#6B4A22">position approximative : se fier au repère</span>' : '') +
-          '</td>' +
-          '<td>' + (peutDispatcher
-              ? '<select class="mini" data-vehicule="' + d.id + '"><option value="">— choisir —</option>' + optionsVehicules + '</select>'
-              : esc(d.vehicule_id ? 'affecté' : '—')) + '</td>' +
-          '<td>' + (peutDispatcher
-              ? '<select class="mini" data-chauffeur="' + d.id + '"><option value="">— choisir —</option>' + optionsChauffeurs + '</select>'
-              : esc(d.chauffeur_id ? 'affecté' : '—')) + '</td>' +
-          '<td><span class="etiquette-statut ' + (d.statut === 'dispatchee' ? 'cours' : 'attente') + '">' +
-            esc(d.statut === 'dispatchee' ? 'dispatchée' : 'à dispatcher') + '</span></td>' +
-          '<td>' + (peutDispatcher
-              ? '<button class="btn-mini" data-dispatcher="' + d.id + '">Dispatcher</button>' : '') + '</td></tr>';
-      }).join('') + '</tbody></table>';
-
-    $$('[data-dispatcher]').forEach(function (b) {
-      b.onclick = function () { dispatcher(b.dataset.dispatcher); };
-    });
+    $('#dispatch_en_cours').innerHTML = enCours.length ? tableauEnCours(enCours, peut)
+      : '<div class="vide">Aucun transport en route.</div>';
+    brancherEnCours();
   }).catch(function (e) {
     $('#dispatch_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
 }
 
-function dispatcher(id) {
-  var vehicule = $('[data-vehicule="' + id + '"]');
-  var chauffeur = $('[data-chauffeur="' + id + '"]');
-  if (!vehicule.value && !chauffeur.value) {
-    message('Choisissez au moins un véhicule ou un chauffeur.', 'ko'); return;
-  }
-  var donnees = {
-    statut: 'dispatchee',
-    date_dispatch: new Date().toISOString(),
-    dispatche_par: SESSION.profil.nom
+/* Les véhicules proposés pour une demande : les libres d'abord, du plus proche
+   au plus loin ; puis ceux déjà en livraison ; jamais un véhicule hors service. */
+function vehiculesProposes(d) {
+  var dest = d.latitude !== null && d.latitude !== undefined ? { lat: +d.latitude, lng: +d.longitude } : null;
+  return DISPATCH.flotte.filter(function (v) { return v.etat === 'actif'; }).map(function (v) {
+    var frais = v.age_minutes !== null && +v.age_minutes <= 120;
+    var km = frais && dest && v.latitude !== null ? distanceKm({ lat: +v.latitude, lng: +v.longitude }, dest) : null;
+    return { v: v, km: km, frais: frais };
+  }).sort(function (a, b) {
+    if (a.v.disponible !== b.v.disponible) { return a.v.disponible ? -1 : 1; }
+    if ((a.km === null) !== (b.km === null)) { return a.km === null ? 1 : -1; }
+    if (a.km !== null && b.km !== null && a.km !== b.km) { return a.km - b.km; }
+    if (a.v.type !== b.v.type) { return a.v.type === 'camion' ? -1 : 1; }
+    return String(a.v.immatriculation || 'zz').localeCompare(String(b.v.immatriculation || 'zz'));
+  });
+}
+function libelleVehicule(x) {
+  var v = x.v;
+  return (v.immatriculation || 'sans plaque') + ' · ' + (v.type === 'tricycle' ? 'tricycle' : 'camion') +
+    (v.chauffeur ? ' · ' + v.chauffeur : ' · sans chauffeur') +
+    ' · ' + (v.disponible ? 'libre' : 'en livraison (' + v.missions_en_cours + ')') +
+    (x.km !== null ? ' · ' + kmLisible(x.km) : (v.a_balise ? (x.frais ? '' : ' · position ancienne') : ' · sans balise'));
+}
+/* Les chauffeurs : actifs seulement ; les libres d'abord, ceux qui ont un
+   véhicule et qui ont livré récemment en tête. Les inactifs n'y sont pas. */
+function optionsChauffeurs(selection) {
+  var actifs = DISPATCH.chauffeurs.filter(function (c) { return c.actif !== false; });
+  var tri = function (a, b) {
+    if (!!a.vehicule !== !!b.vehicule) { return a.vehicule ? -1 : 1; }
+    if (+a.livraisons_30j !== +b.livraisons_30j) { return +b.livraisons_30j - +a.livraisons_30j; }
+    return String(a.nom_complet).localeCompare(String(b.nom_complet));
   };
-  if (vehicule.value) { donnees.vehicule_id = vehicule.value; }
-  if (chauffeur.value) { donnees.chauffeur_id = chauffeur.value; }
+  var opt = function (c) {
+    return '<option value="' + c.id + '"' + (c.id === selection ? ' selected' : '') + '>' + esc(c.nom_complet) +
+      (c.vehicule ? ' · ' + esc(c.vehicule) : '') + (c.telephone ? '' : ' · tél. à renseigner') + '</option>';
+  };
+  var libres = actifs.filter(function (c) { return !c.en_mission; }).sort(tri);
+  var occupes = actifs.filter(function (c) { return c.en_mission; }).sort(tri);
+  return '<option value="">— chauffeur du véhicule —</option>' +
+    (libres.length ? '<optgroup label="Disponibles">' + libres.map(opt).join('') + '</optgroup>' : '') +
+    (occupes.length ? '<optgroup label="Déjà en livraison">' + occupes.map(opt).join('') + '</optgroup>' : '');
+}
 
-  requete('/demandes_transport?id=eq.' + id, { methode: 'PATCH', donnees: donnees })
-    .then(function () {
-      message('Demande dispatchée. Elle est enregistrée sous votre nom.', 'ok');
-      chargerDispatch();
-    })
-    .catch(function (e) { message(esc(e.message), 'ko'); });
+function carteDemande(d, peut) {
+  var proposes = vehiculesProposes(d);
+  var premier = proposes[0];
+  var arrivee = arriveeProposee(d, premier ? premier.km : null);
+  return '<div class="dp-carte" data-demande="' + d.id + '">' +
+    '<div class="dp-tete"><b>' + esc(d.destinataire_nom || 'Client') + '</b>' +
+      (d.montant_a_encaisser ? '<span class="dp-montant">' + francs(d.montant_a_encaisser) + '</span>' : '') + '</div>' +
+    '<div class="dp-ligne">' + esc(d.produits || '—') + ' · <b>' + formater(d.nb_unites) + '</b> unité(s)</div>' +
+    '<div class="dp-ligne">📅 ' + esc(dateCourte(d.date_souhaitee || d.date_demande)) +
+      (d.creneau ? ' · ' + esc(LIBELLES_CRENEAU[d.creneau] || d.creneau) : '') +
+      (d.telephone_livraison ? ' · ☎ ' + esc(telephoneLisible(d.telephone_livraison)) : '') + '</div>' +
+    '<div class="dp-ligne">📍 ' + esc(d.repere || d.adresse_livraison || 'adresse non précisée') +
+      (d.precision_position && d.precision_position !== 'relevee'
+        ? ' <span class="dp-avertissement">position approximative : se fier au repère</span>' : '') + '</div>' +
+    '<div class="dp-numero">' + esc(d.numero) + ' · demandée par ' + esc(d.demandeur_nom || '—') + '</div>' +
+    (peut ? '<div class="dp-choix">' +
+      '<label>Véhicule <span class="aide">le plus proche et libre en premier</span>' +
+        '<select class="pa-champ" data-dp-vehicule="' + d.id + '">' + (proposes.length ? proposes.map(function (x, i) {
+          return '<option value="' + x.v.id + '"' + (i === 0 ? ' selected' : '') + '>' + esc(libelleVehicule(x)) + '</option>';
+        }).join('') : '<option value="">aucun véhicule actif</option>') + '</select></label>' +
+      '<label>Chauffeur<select class="pa-champ" data-dp-chauffeur="' + d.id + '">' +
+        optionsChauffeurs(premier ? premier.v.chauffeur_id : null) + '</select></label>' +
+      '<label>Arrivée prévue <span class="aide">proposée, à confirmer</span>' +
+        '<input type="datetime-local" class="pa-champ" data-dp-arrivee="' + d.id + '" value="' + versChampDate(arrivee) + '"></label>' +
+      '<button class="pa-btn pa-principal" data-dp-dispatcher="' + d.id + '">Dispatcher</button>' +
+    '</div>' : '') +
+  '</div>';
+}
+
+function brancherCarteDemande(d) {
+  var selV = $('[data-dp-vehicule="' + d.id + '"]'), selC = $('[data-dp-chauffeur="' + d.id + '"]');
+  if (!selV) { return; }
+  selV.onchange = function () {
+    var v = DISPATCH.flotte.filter(function (x) { return x.id === selV.value; })[0];
+    selC.innerHTML = optionsChauffeurs(v ? v.chauffeur_id : null);
+  };
+  $('[data-dp-dispatcher="' + d.id + '"]').onclick = function () {
+    var bouton = this;
+    if (!selV.value) { message('Choisissez un véhicule.', 'ko'); return; }
+    var v = DISPATCH.flotte.filter(function (x) { return x.id === selV.value; })[0];
+    if (!selC.value && !(v && v.chauffeur_id)) { message('Ce véhicule n\'a pas de chauffeur : choisissez-en un.', 'ko'); return; }
+    var arr = $('[data-dp-arrivee="' + d.id + '"]').value;
+    bouton.disabled = true; bouton.textContent = 'Envoi…';
+    rpc('dispatcher_demande', { p_demande: d.id, p_vehicule: selV.value, p_chauffeur: selC.value || null,
+                                p_arrivee: arr ? new Date(arr).toISOString() : null })
+      .then(function (r) {
+        message('Demande ' + esc(r.demande) + ' confiée à ' + esc(r.vehicule || '') + ' · ' + esc(r.chauffeur || '') +
+                ' — livraison ' + esc(r.livraison || '') + ' créée.', 'ok');
+        chargerDispatch();
+      })
+      .catch(function (e) { bouton.disabled = false; bouton.textContent = 'Dispatcher'; message('Dispatch refusé : ' + esc(e.message), 'ko'); });
+  };
+}
+
+function tableauEnCours(lignes, peut) {
+  var flotte = {}; DISPATCH.flotte.forEach(function (v) { flotte[v.id] = v; });
+  return '<table class="tablo dp-en-cours"><thead><tr><th>Client</th><th>Camion et chauffeur</th><th>Arrivée prévue</th>' +
+    '<th>Où est le camion</th><th>Statut</th>' + (peut ? '<th>Suivi</th>' : '') + '</tr></thead><tbody>' +
+    lignes.map(function (t) {
+      var v = flotte[t.vehicule_id] || {};
+      var dest = t.destination_latitude !== null ? { lat: +t.destination_latitude, lng: +t.destination_longitude } : null;
+      var km = v.latitude !== null && v.latitude !== undefined ? distanceKm({ lat: +v.latitude, lng: +v.longitude }, dest) : null;
+      var retard = t.heure_arrivee_prevue && new Date(t.heure_arrivee_prevue) < new Date();
+      return '<tr><td><b>' + esc(t.destinataire_nom || '—') + '</b><br><span class="aide">' + esc(t.livraison_numero || t.numero) +
+          (t.montant_a_encaisser ? ' · ' + francs(t.montant_a_encaisser) : '') + '</span>' +
+          (t.repere ? '<br><span class="aide">📍 ' + esc(t.repere) + '</span>' : '') + '</td>' +
+        '<td><b>' + esc(t.camion || '—') + '</b><br>' + esc(t.chauffeur || '—') +
+          (t.chauffeur_telephone ? ' · <a href="tel:+221' + esc(String(t.chauffeur_telephone).replace(/\D/g, '').slice(-9)) + '">' +
+            esc(telephoneLisible(t.chauffeur_telephone)) + '</a>' : ' · <span class="aide">tél. à renseigner</span>') + '</td>' +
+        '<td class="num' + (retard ? ' dp-retard' : '') + '">' + esc(heureLocale(t.heure_arrivee_prevue)) +
+          (retard ? '<br><span class="aide">dépassée</span>' : '') +
+          (peut ? '<br><input type="datetime-local" class="pa-champ dp-mini" data-eta="' + t.livraison_id + '" value="' +
+            (t.heure_arrivee_prevue ? versChampDate(new Date(t.heure_arrivee_prevue)) : '') + '">' : '') + '</td>' +
+        '<td>' + (km !== null ? '<b>' + kmLisible(km) + '</b> de la destination<br>' : '') +
+          '<span class="aide">' + (v.a_balise ? 'balise ' + ageLisible(v.age_minutes) + (nombre(v.vitesse_kmh) ? ' · ' + formater(v.vitesse_kmh) + ' km/h' : ' · à l\'arrêt')
+            : 'pas de balise GPS') + '</span></td>' +
+        '<td><span class="etiquette-statut ' + (t.livraison_statut === 'en_route' ? 'cours' : 'attente') + '">' +
+          esc(LIBELLES_STATUT_LIVRAISON[t.livraison_statut] || t.livraison_statut || '—') + '</span></td>' +
+        (peut && t.livraison_id ? '<td class="dp-gestes">' +
+          (t.livraison_statut !== 'en_route' ? '<button class="btn-mini" data-geste="en_route" data-liv="' + t.livraison_id + '">Parti</button>' : '') +
+          '<button class="btn-mini" data-geste="livree" data-liv="' + t.livraison_id + '">Livrée</button>' +
+          '<button class="btn-mini discret" data-geste="echec" data-liv="' + t.livraison_id + '">Échec</button>' +
+          '<button class="btn-mini discret" data-geste="eta" data-liv="' + t.livraison_id + '">Heure ✓</button></td>' : (peut ? '<td></td>' : '')) +
+      '</tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function brancherEnCours() {
+  $$('[data-geste]').forEach(function (b) {
+    b.onclick = function () {
+      var id = b.dataset.liv, geste = b.dataset.geste;
+      var champ = $('[data-eta="' + id + '"]');
+      var eta = champ && champ.value ? new Date(champ.value).toISOString() : null;
+      var commentaire = null;
+      if (geste === 'echec') {
+        commentaire = window.prompt('Pourquoi la livraison a-t-elle échoué ?');
+        if (!commentaire) { return; }
+      }
+      if (geste === 'livree' && !window.confirm('Confirmer la livraison ? Elle ne pourra plus être modifiée.')) { return; }
+      rpc('maj_livraison', { p_livraison: id, p_statut: geste === 'eta' ? null : geste, p_arrivee: eta,
+                             p_commentaire: commentaire })
+        .then(function (l) {
+          message('Livraison ' + esc(l.numero) + ' : ' + esc(LIBELLES_STATUT_LIVRAISON[l.statut] || l.statut) +
+                  (l.heure_arrivee_prevue ? ' · arrivée prévue ' + esc(heureLocale(l.heure_arrivee_prevue)) : '') + '.', 'ok');
+          if (SESSION.onglet === 'dispatch') { chargerDispatch(); } else { chargerLivraisons(); }
+        })
+        .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+    };
+  });
 }
 
 /* -------------------------------------------------------------- camions */
@@ -2919,60 +3149,26 @@ function dispatcher(id) {
 function chargerCamions() {
   $('#camions_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
   $('#camions_releves').innerHTML = '<div class="chargement">Chargement…</div>';
-
+  var gere = aLeDroit(PEUT_DISPATCHER);
+  $('#bloc_chauffeurs').style.display = gere ? '' : 'none';
   Promise.all([
     requete('/v_flotte_en_direct?select=*&order=immatriculation'),
-    requete('/positions_vehicules?select=immatriculation,boitier,horodatage_gps,latitude,longitude,vitesse_kmh,moteur_allume&order=horodatage_gps.desc&limit=40')
+    requete('/positions_vehicules?select=immatriculation,boitier,horodatage_gps,latitude,longitude,vitesse_kmh,moteur_allume&order=horodatage_gps.desc&limit=40'),
+    requete('/v_flotte_gestion?select=*&order=type,immatriculation'),
+    gere ? requete('/v_chauffeurs_gestion?select=*&order=nom') : Promise.resolve([])
   ]).then(function (r) {
-    var flotte = r[0] || [];
-    var releves = r[1] || [];
+    var direct = r[0] || [], releves = r[1] || [], flotte = r[2] || [], chauffeurs = r[3] || [];
+    DISPATCH.chauffeurs = chauffeurs.length ? chauffeurs : DISPATCH.chauffeurs;
+    var actifs = flotte.filter(function (v) { return v.etat === 'actif'; }).length;
     $('#camions_compte').textContent = flotte.length;
-    $('#camions_sous').textContent =
-      'Dernière position connue de chaque camion. Les relevés arrivent toutes les quinze minutes.';
-
-    if (!flotte.length) {
-      $('#camions_tableau').innerHTML =
-        '<div class="vide">Aucune position enregistrée.<br>' +
-        '<span style="font-size:12.5px">Le relevé tourne toutes les quinze minutes ; ' +
-        'appliquez <b>base/0007_positions_gps.sql</b> si ce message persiste.</span></div>';
-    } else {
-      $('#camions_tableau').innerHTML = '<table class="tablo"><thead><tr>' +
-        '<th>Camion</th><th>Chauffeur</th><th>Téléphone</th><th>Boîtier</th><th>Position</th>' +
-        '<th>Vitesse</th><th>Moteur</th><th>Relevé</th><th>Fraîcheur</th><th>Carte</th></tr></thead><tbody>' +
-        flotte.map(function (c) {
-          var age = c.age_minutes === null || c.age_minutes === undefined ? null : nombre(c.age_minutes);
-          var fraicheur = c.fraicheur || 'inconnue';
-          var classe = fraicheur === 'fraiche' ? 'fini' : (fraicheur === 'du jour' ? 'cours' : 'attente');
-          var lien = (c.latitude && c.longitude)
-            ? '<a class="btn-mini discret" target="_blank" rel="noopener" ' +
-              'href="https://www.openstreetmap.org/?mlat=' + c.latitude + '&mlon=' + c.longitude + '#map=16/' +
-              c.latitude + '/' + c.longitude + '">Voir</a>'
-            : '—';
-          return '<tr><td><b>' + esc(c.immatriculation || '—') + '</b></td>' +
-            '<td>' + (c.chauffeur ? esc(c.chauffeur)
-              : '<span style="color:#7A6A5B">non renseigné</span>') + '</td>' +
-            '<td class="num">' + (c.chauffeur_telephone
-              ? '<a href="tel:' + esc(c.chauffeur_telephone) + '">' + esc(c.chauffeur_telephone) + '</a>'
-              : '<span style="color:#B3261E">à renseigner</span>') + '</td>' +
-            '<td>' + esc(c.boitier || c.imei.slice(-6)) + '</td>' +
-            '<td class="num">' + (c.latitude ? (+c.latitude).toFixed(5) + ', ' + (+c.longitude).toFixed(5) : '—') + '</td>' +
-            '<td class="num">' + (nombre(c.vitesse_kmh) ? formater(c.vitesse_kmh) + ' km/h' : 'à l\'arrêt') + '</td>' +
-            '<td>' + (c.moteur_allume ? 'allumé' : 'arrêté') + '</td>' +
-            '<td class="num">' + (c.horodatage_gps ? new Date(c.horodatage_gps).toLocaleString('fr-FR').slice(0, 16) : '—') + '</td>' +
-            '<td><span class="etiquette-statut ' + classe + '">' +
-              (age === null ? 'inconnue' : (age < 60 ? 'il y a ' + Math.round(age) + ' min'
-                                                      : 'il y a ' + Math.round(age / 60) + ' h')) +
-            '</span></td><td>' + lien + '</td></tr>';
-        }).join('') + '</tbody></table>';
-    }
-
-    majCarteCamions(flotte);
-
-    if (!releves.length) {
-      $('#camions_releves').innerHTML = '<div class="vide">Aucun relevé.</div>';
-      return;
-    }
-    $('#camions_releves').innerHTML = '<table class="tablo"><thead><tr>' +
+    $('#camions_sous').textContent = actifs + ' véhicule(s) actif(s) sur ' + flotte.length + ' · ' +
+      flotte.filter(function (v) { return v.disponible; }).length + ' libre(s) · ' +
+      direct.length + ' balise(s) suivie(s). Les relevés arrivent toutes les quinze minutes.';
+    $('#camions_tableau').innerHTML = tableauFlotte(flotte, gere);
+    brancherFlotte(flotte);
+    if (gere) { $('#chauffeurs_tableau').innerHTML = tableauChauffeurs(chauffeurs); brancherChauffeurs(); }
+    majCarteCamions(direct);
+    $('#camions_releves').innerHTML = releves.length ? '<table class="tablo"><thead><tr>' +
       '<th>Horodatage GPS</th><th>Camion</th><th>Position</th><th>Vitesse</th><th>Moteur</th>' +
       '</tr></thead><tbody>' + releves.map(function (p) {
         return '<tr><td class="num">' + (p.horodatage_gps ? new Date(p.horodatage_gps).toLocaleString('fr-FR').slice(0, 19) : '—') + '</td>' +
@@ -2980,11 +3176,103 @@ function chargerCamions() {
           '<td class="num">' + (+p.latitude).toFixed(5) + ', ' + (+p.longitude).toFixed(5) + '</td>' +
           '<td class="num">' + (nombre(p.vitesse_kmh) ? formater(p.vitesse_kmh) + ' km/h' : 'à l\'arrêt') + '</td>' +
           '<td>' + (p.moteur_allume ? 'allumé' : 'arrêté') + '</td></tr>';
-      }).join('') + '</tbody></table>';
+      }).join('') + '</tbody></table>' : '<div class="vide">Aucun relevé.</div>';
   }).catch(function (e) {
     $('#camions_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
     $('#camions_releves').innerHTML = '';
   });
+}
+
+function sourceEtat(v) {
+  if (v.etat_source === 'balise') { return 'par la balise, ' + dateCourte(v.etat_le); }
+  if (v.etat_source === 'humain') { return 'par ' + (v.etat_par || '—') + ', ' + dateCourte(v.etat_le); }
+  return 'non revu depuis l\'inventaire';
+}
+
+function tableauFlotte(flotte, gere) {
+  var parChauffeur = {};
+  flotte.forEach(function (v) { if (v.chauffeur_id) { (parChauffeur[v.chauffeur_id] = parChauffeur[v.chauffeur_id] || []).push(v); } });
+  return '<table class="tablo fl-flotte"><thead><tr><th>Véhicule</th><th>État</th><th>Chauffeur</th>' +
+    '<th>Balise GPS</th><th>Aujourd\'hui</th>' + (gere ? '<th></th>' : '') + '</tr></thead><tbody>' +
+    flotte.map(function (v) {
+      var propose = v.etat_propose && v.etat_propose !== v.etat
+        ? '<br><span class="dp-avertissement">la balise propose : ' + esc(LIBELLES_ETAT_VEHICULE[v.etat_propose]) + '</span>' : '';
+      return '<tr class="' + (v.etat !== 'actif' ? 'fl-inactif' : '') + '"><td><b>' + esc(v.immatriculation || 'sans plaque') + '</b><br>' +
+          '<span class="aide">' + esc(v.type) + (v.capacite_kg ? ' · ' + formater(v.capacite_kg) + ' kg' : '') +
+          (v.libelle_usage ? ' · ' + esc(v.libelle_usage) : '') + '</span>' +
+          (!v.immatriculation ? '<br><span class="fl-doublon">sans plaque : à compléter, ou à sortir de la flotte si c\'est un doublon</span>' : '') +
+          (v.chauffeur_id && parChauffeur[v.chauffeur_id].length > 1 ? '<br><span class="fl-doublon">même chauffeur que ' +
+            esc(parChauffeur[v.chauffeur_id].filter(function (x) { return x.id !== v.id; }).map(function (x) {
+              return x.immatriculation || 'un véhicule sans plaque'; }).join(', ')) + '</span>' : '') + '</td>' +
+        '<td>' + (gere ? '<select class="pa-champ dp-mini" data-fl-etat="' + v.id + '">' +
+            Object.keys(LIBELLES_ETAT_VEHICULE).map(function (k) {
+              return '<option value="' + k + '"' + (v.etat === k ? ' selected' : '') + '>' + LIBELLES_ETAT_VEHICULE[k] + '</option>';
+            }).join('') + '</select>' : '<b>' + esc(LIBELLES_ETAT_VEHICULE[v.etat] || v.etat) + '</b>') +
+          '<br><span class="aide">' + esc(sourceEtat(v)) + '</span>' + propose + '</td>' +
+        '<td>' + (gere ? '<select class="pa-champ dp-mini" data-fl-chauffeur="' + v.id + '">' +
+            '<option value="">— aucun —</option>' + optionsChauffeurs(v.chauffeur_id).replace('<option value="">— chauffeur du véhicule —</option>', '') +
+            '</select>' : esc(v.chauffeur || 'aucun')) +
+          (v.chauffeur_telephone ? '<br><a href="tel:+221' + esc(String(v.chauffeur_telephone).slice(-9)) + '">' +
+            esc(telephoneLisible(v.chauffeur_telephone)) + '</a>' : (v.chauffeur ? '<br><span class="aide">tél. à renseigner</span>' : '')) + '</td>' +
+        '<td>' + (v.a_balise ? esc(ageLisible(v.age_minutes)) + (nombre(v.vitesse_kmh) ? ' · ' + formater(v.vitesse_kmh) + ' km/h' : '')
+            : '<span class="aide">pas de balise</span>') + '</td>' +
+        '<td>' + (v.missions_en_cours > 0 ? '<span class="etiquette-statut cours">en livraison (' + v.missions_en_cours + ')</span>' +
+            (v.prochaine_arrivee ? '<br><span class="aide">arrivée ' + esc(heureLocale(v.prochaine_arrivee)) + '</span>' : '')
+            : (v.etat === 'actif' ? '<span class="etiquette-statut fini">libre</span>' : '<span class="aide">hors service</span>')) + '</td>' +
+        (gere ? '<td><button class="btn-mini" data-fl-enregistrer="' + v.id + '">Enregistrer</button></td>' : '') + '</tr>';
+    }).join('') + '</tbody></table>' +
+    '<p class="aide">L\'état suit la balise (actif si elle a émis depuis moins de 72 h, immobilisé si elle est muette ' +
+    'depuis plus de 7 jours) tant que personne ne l\'a fixé à la main ; un choix fait ici n\'est plus jamais écrasé ' +
+    'par la balise. Un chauffeur ne conduit qu\'un véhicule : l\'assigner ailleurs le retire du premier.</p>';
+}
+
+function brancherFlotte(flotte) {
+  $$('[data-fl-enregistrer]').forEach(function (b) {
+    b.onclick = function () {
+      var id = b.dataset.flEnregistrer, v = flotte.filter(function (x) { return x.id === id; })[0];
+      var etat = $('[data-fl-etat="' + id + '"]').value, ch = $('[data-fl-chauffeur="' + id + '"]').value;
+      rpc('regler_vehicule', { p_vehicule: id, p_etat: etat !== v.etat ? etat : null,
+                               p_chauffeur: ch || null, p_retirer_chauffeur: !ch && !!v.chauffeur_id })
+        .then(function () { message((v.immatriculation || 'Véhicule') + ' enregistré sous votre nom.', 'ok'); chargerCamions(); })
+        .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+    };
+  });
+}
+
+function tableauChauffeurs(chauffeurs) {
+  return '<table class="tablo"><thead><tr><th>Chauffeur</th><th>Téléphone</th><th>Actif</th><th>Véhicule</th>' +
+    '<th>Livraisons (30 j)</th><th></th></tr></thead><tbody>' +
+    chauffeurs.map(function (c) {
+      return '<tr class="' + (c.actif === false ? 'fl-inactif' : '') + '"><td><b>' + esc(c.nom_complet) + '</b>' +
+          (c.en_mission ? '<br><span class="etiquette-statut cours">en livraison</span>' : '') + '</td>' +
+        '<td><input class="pa-champ dp-mini" inputmode="tel" data-ch-tel="' + c.id + '" value="' +
+          esc(c.telephone ? telephoneLisible(c.telephone) : '') + '" placeholder="à renseigner"></td>' +
+        '<td><input type="checkbox" data-ch-actif="' + c.id + '"' + (c.actif === false ? '' : ' checked') + '></td>' +
+        '<td>' + esc(c.vehicule || '—') + '</td><td class="num">' + formater(c.livraisons_30j) + '</td>' +
+        '<td><button class="btn-mini" data-ch-enregistrer="' + c.id + '">Enregistrer</button></td></tr>';
+    }).join('') + '</tbody></table>' +
+    '<div class="pa-prix-ajout" style="margin-top:12px"><input class="pa-champ" id="ch_prenom" placeholder="Prénom">' +
+    '<input class="pa-champ" id="ch_nom" placeholder="Nom"><input class="pa-champ" id="ch_tel" inputmode="tel" placeholder="Téléphone">' +
+    '<button class="btn-console accent" id="ch_ajouter">Ajouter un chauffeur</button></div>';
+}
+
+function brancherChauffeurs() {
+  $$('[data-ch-enregistrer]').forEach(function (b) {
+    b.onclick = function () {
+      var id = b.dataset.chEnregistrer;
+      rpc('regler_chauffeur', { p_chauffeur: id, p_prenom: null, p_nom: null,
+                                p_telephone: $('[data-ch-tel="' + id + '"]').value || null,
+                                p_actif: $('[data-ch-actif="' + id + '"]').checked })
+        .then(function (c) { message(esc(c.prenom + ' ' + c.nom) + ' enregistré sous votre nom.', 'ok'); chargerCamions(); })
+        .catch(function (e) { message('Non enregistré : ' + esc(e.message), 'ko'); });
+    };
+  });
+  $('#ch_ajouter').onclick = function () {
+    rpc('regler_chauffeur', { p_chauffeur: null, p_prenom: $('#ch_prenom').value, p_nom: $('#ch_nom').value,
+                              p_telephone: $('#ch_tel').value || null, p_actif: true })
+      .then(function (c) { message('Chauffeur ' + esc(c.prenom + ' ' + c.nom) + ' ajouté.', 'ok'); chargerCamions(); })
+      .catch(function (e) { message('Non ajouté : ' + esc(e.message), 'ko'); });
+  };
 }
 
 /* ----------------------------------------------------------- commandes */
@@ -3022,61 +3310,148 @@ function classeStatut(s) {
   return 'attente';
 }
 
-/* ---------------------------------------------------------- livraisons */
+/* ---------------------------------------------------------- livraisons
+
+   Par défaut, ce qui est EN COURS (programmé, en route) ; « tout l'historique »
+   d'un clic. L'heure d'arrivée prévue s'y lit et s'y corrige ; la photo du BL
+   signé relève la position du client (enregistrer_position_bl). Le phoning y
+   voit tout, sans pouvoir rien changer. */
+
+var LIV_TOUT = false;
 
 function chargerLivraisons() {
+  if (!$('#liv_suivi_q')) { $('#liv_suivi_contenu').innerHTML = blocSuiviClient('liv_suivi'); brancherSuiviClient('liv_suivi'); }
   $('#livraisons_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
-  requete('/livraisons?select=*&order=date_livraison.desc&limit=200').then(function (lignes) {
-    if (!lignes || !lignes.length) {
-      $('#livraisons_tableau').innerHTML = '<div class="vide">Aucune livraison enregistrée.</div>';
+  var gere = aLeDroit(PEUT_DISPATCHER);
+  var filtre = LIV_TOUT ? '' : '&statut=in.(programmee,en_route)';
+  $('#liv_bascule').textContent = LIV_TOUT ? 'Voir seulement les livraisons en cours' : 'Voir tout l\'historique';
+  $('#liv_bascule').onclick = function () { LIV_TOUT = !LIV_TOUT; chargerLivraisons(); };
+  Promise.all([
+    requete('/livraisons?select=*' + filtre + '&order=date_livraison.desc,heure_arrivee_prevue.asc.nullslast&limit=200'),
+    requete('/v_flotte_gestion?select=id,immatriculation,latitude,longitude,age_minutes,vitesse_kmh,a_balise,chauffeur_telephone')
+  ]).then(function (r) {
+    var lignes = r[0] || [], flotte = {};
+    (r[1] || []).forEach(function (v) { flotte[v.id] = v; });
+    if (!lignes.length) {
+      $('#livraisons_tableau').innerHTML = '<div class="vide">' + (LIV_TOUT ? 'Aucune livraison enregistrée.'
+        : 'Aucune livraison en cours.') + '</div>';
       return;
     }
     var totalReste = 0;
-    var peutPhotographier = ['dga', 'logistique'].indexOf(SESSION.profil.role) !== -1;
     var corps = lignes.map(function (l) {
       var reste = Math.max(0, nombre(l.montant) - nombre(l.encaissement));
       totalReste += reste;
-      var preuve = '<span style="color:#B3261E">manquante</span>';
-      if (peutPhotographier) {
-        preuve =
-          (l.bl_photo_url
-            ? '<span class="etiquette-statut fini">BL ✓</span> '
+      var v = flotte[l.vehicule_id] || {};
+      var dest = l.latitude !== null ? { lat: +l.latitude, lng: +l.longitude } : null;
+      var km = v.latitude !== null && v.latitude !== undefined && ['programmee', 'en_route'].indexOf(l.statut) !== -1
+        ? distanceKm({ lat: +v.latitude, lng: +v.longitude }, dest) : null;
+      var preuve = (l.bl_photo_url ? '<span class="etiquette-statut fini">BL ✓</span> ' : '') +
+                   (l.facture_photo_url ? '<span class="etiquette-statut fini">Facture ✓</span>' : '');
+      if (gere) {
+        preuve = (l.bl_photo_url ? '<span class="etiquette-statut fini">BL ✓</span> '
             : '<button class="btn-mini discret" data-photo="' + l.id + '" data-type="bl">Photo BL</button> ') +
-          (l.facture_photo_url
-            ? '<span class="etiquette-statut fini">Facture ✓</span>'
+          (l.facture_photo_url ? '<span class="etiquette-statut fini">Facture ✓</span>'
             : '<button class="btn-mini discret" data-photo="' + l.id + '" data-type="facture">Photo facture</button>');
-      } else if (l.bl_photo_url || l.facture_photo_url) {
-        preuve = (l.bl_photo_url ? '<span class="etiquette-statut fini">BL ✓</span> ' : '') +
-                 (l.facture_photo_url ? '<span class="etiquette-statut fini">Facture ✓</span>' : '');
-      }
-      return '<tr><td class="num">' + esc(l.numero) + '</td>' +
-        '<td class="num">' + dateCourte(l.date_livraison) + '</td>' +
-        '<td>' + esc((l.destination || '—').slice(0, 26)) + '</td>' +
-        '<td class="num">' + formater(l.qte_commandee) + '</td>' +
-        '<td class="num">' + formater(l.qte_livree) + '</td>' +
-        '<td class="num"><b>' + formater(l.restant) + '</b></td>' +
-        '<td>' + esc(l.chauffeur_nom || '—') + '</td>' +
-        '<td class="num">' + esc(l.camion || '—') + '</td>' +
+      } else if (!preuve) { preuve = '<span class="aide">à venir</span>'; }
+      var enCours = ['programmee', 'en_route'].indexOf(l.statut) !== -1;
+      return '<tr><td class="num"><b>' + esc(l.numero) + '</b><br><span class="aide">' + dateCourte(l.date_livraison) +
+          (l.creneau ? ' · ' + esc(LIBELLES_CRENEAU[l.creneau] || l.creneau) : '') + '</span>' +
+          (nombre(l.restant) > 0 ? '<br><span class="aide"><b>' + formater(l.restant) + '</b> unité(s) restant à livrer</span>' : '') + '</td>' +
+        '<td>' + esc((l.destination || '—').slice(0, 30)) + (l.repere ? '<br><span class="aide">📍 ' + esc(l.repere) + '</span>' : '') +
+          (l.telephone_livraison ? '<br><span class="aide">☎ ' + esc(telephoneLisible(l.telephone_livraison)) + '</span>' : '') + '</td>' +
+        '<td>' + esc(l.camion || '—') + '<br><span class="aide">' + esc(l.chauffeur_nom || '—') +
+          (v.chauffeur_telephone ? ' · <a href="tel:+221' + esc(String(v.chauffeur_telephone).slice(-9)) + '">' +
+            esc(telephoneLisible(v.chauffeur_telephone)) + '</a>' : '') + '</span>' +
+          (enCours ? '<br><span class="aide">' + (km !== null ? '<b>' + kmLisible(km) + '</b> de la destination · ' : '') +
+            (v.a_balise ? 'vu ' + ageLisible(v.age_minutes) : 'sans balise') + '</span>' : '') + '</td>' +
+        '<td class="num">' + esc(heureLocale(l.heure_arrivee_prevue)) +
+          (gere && enCours ? '<br><input type="datetime-local" class="pa-champ dp-mini" data-eta="' + l.id + '" value="' +
+            (l.heure_arrivee_prevue ? versChampDate(new Date(l.heure_arrivee_prevue)) : '') + '">' : '') + '</td>' +
+        '<td class="num">' + (l.montant ? francs(l.montant) : '—') + '<br><span class="aide">' +
+          (l.encaissement ? 'encaissé ' + formater(l.encaissement) : 'à encaisser') + '</span></td>' +
         '<td>' + preuve + '</td>' +
-        '<td class="num">' + (l.encaissement ? formater(l.encaissement) : '<span style="color:#B3261E">à encaisser</span>') + '</td>' +
-        '<td><span class="etiquette-statut ' + classeStatut(l.statut) + '">' + esc(l.statut) + '</span></td></tr>';
+        '<td><span class="etiquette-statut ' + classeStatut(l.statut) + '">' + esc(LIBELLES_STATUT_LIVRAISON[l.statut] || l.statut) + '</span>' +
+          (gere && enCours ? '<div class="dp-gestes">' +
+            (l.statut !== 'en_route' ? '<button class="btn-mini" data-geste="en_route" data-liv="' + l.id + '">Parti</button>' : '') +
+            '<button class="btn-mini" data-geste="livree" data-liv="' + l.id + '">Livrée</button>' +
+            '<button class="btn-mini discret" data-geste="echec" data-liv="' + l.id + '">Échec</button>' +
+            '<button class="btn-mini discret" data-geste="eta" data-liv="' + l.id + '">Heure ✓</button></div>' : '') + '</td></tr>';
     }).join('');
     $('#livraisons_tableau').innerHTML =
-      '<table class="tablo"><thead><tr><th>Numéro</th><th>Date</th><th>Destination</th><th>Qté com.</th>' +
-      '<th>Qté livrée</th><th>Restant</th><th>Chauffeur</th><th>Camion</th><th>Preuve (BL · facture)</th>' +
-      '<th>Encaissement</th><th>Statut</th></tr></thead><tbody>' + corps + '</tbody></table>' +
-      '<p style="margin:12px 0 0;font-size:13.5px;color:#442A19"><b>Reste à encaisser : ' +
-      formater(totalReste) + ' F</b></p>' +
-      '<p style="margin:6px 0 0;font-size:12.5px;color:#7A6A5B">' +
-      'La photo du bon de livraison signé et celle de la facture sont horodatées et rattachées ' +
-      'à votre nom. Elles constituent la preuve de la remise.</p>';
-
+      '<table class="tablo liv-tableau"><thead><tr><th>Livraison</th><th>Destination</th><th>Camion et chauffeur</th>' +
+      '<th>Arrivée prévue</th><th>Montant</th><th>Preuve (BL · facture)</th><th>Statut</th>' +
+      '</tr></thead><tbody>' + corps + '</tbody></table>' +
+      '<p style="margin:12px 0 0;font-size:13.5px;color:#442A19"><b>Reste à encaisser sur ces livraisons : ' +
+      francs(totalReste) + '</b></p>' +
+      '<p class="aide">La photo du BL signé, prise sur le téléphone chez le client, relève aussi sa position : elle ' +
+      'remplace celle de la fiche si elle est précise et plausible. Photos horodatées et rattachées à votre nom.</p>';
     $$('[data-photo]').forEach(function (b) {
       b.onclick = function () { prendrePhoto(b.dataset.photo, b.dataset.type); };
     });
+    brancherEnCours();
   }).catch(function (e) {
     $('#livraisons_tableau').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>';
   });
+}
+
+/* --------------------------------------------------- un client appelle
+
+   « Si un client les appelle, ils peuvent lui dire où en est le camion. »
+   Par son téléphone (6 chiffres suffisent) ou son nom : ses commandes du
+   mois, leur transport, le camion, le chauffeur, l'heure d'arrivée prévue et
+   la distance qui reste — tout ce qu'il faut pour répondre en dix secondes. */
+
+function blocSuiviClient(idZone) {
+  return '<div class="sc-recherche"><input class="pa-champ" id="' + idZone + '_q" inputmode="search" ' +
+    'placeholder="Téléphone ou nom du client qui appelle">' +
+    '<button class="pa-btn pa-principal" id="' + idZone + '_ok">Chercher</button></div>' +
+    '<div id="' + idZone + '_res"></div>';
+}
+function brancherSuiviClient(idZone) {
+  var q = $('#' + idZone + '_q'), ok = $('#' + idZone + '_ok');
+  if (!q) { return; }
+  var lancer = function () {
+    var zone = $('#' + idZone + '_res');
+    zone.innerHTML = '<div class="chargement">Recherche…</div>';
+    rpc('suivi_client', { p_recherche: q.value }).then(function (clients) {
+      zone.innerHTML = clients && clients.length ? clients.map(carteSuiviClient).join('')
+        : '<div class="vide">Aucun client trouvé pour « ' + esc(q.value) + ' ».</div>';
+    }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+  };
+  ok.onclick = lancer;
+  q.onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); lancer(); } };
+}
+function etapesSuivi(c) {
+  var e = [['Commandée', true],
+           ['Camion affecté', !!c.camion],
+           ['En route', c.livraison_statut === 'en_route' || /^livree/.test(c.livraison_statut || '')],
+           ['Livrée', /^livree/.test(c.livraison_statut || '')]];
+  return '<ol class="sc-etapes">' + e.map(function (x) {
+    return '<li class="' + (x[1] ? 'fait' : '') + '">' + x[0] + '</li>';
+  }).join('') + '</ol>';
+}
+function carteSuiviClient(cl) {
+  var cmds = cl.commandes || [];
+  return '<div class="sc-client"><div class="sc-tete"><b>' + esc(cl.nom) + '</b> · ' + esc(telephoneLisible(cl.telephone)) +
+    ' · ' + esc(cl.zone || '—') + '</div>' +
+    (cmds.length ? cmds.map(function (c) {
+      var phrase = /^livree/.test(c.livraison_statut || '') ? 'Livrée' + (c.arrivee_le ? ' à ' + heureLocale(c.arrivee_le) : '') + '.'
+        : c.livraison_statut === 'echec' ? 'La livraison a échoué : voir la logistique.'
+        : c.livraison_statut === 'annulee' || c.statut === 'annulee' ? 'Commande annulée.'
+        : !c.camion ? 'Pas encore de camion : la logistique va l\'affecter' + (c.livrer_le ? ' pour le ' + dateCourte(c.livrer_le) : '') + '.'
+        : (c.livraison_statut === 'en_route' ? 'Le camion est en route' : 'Le camion est affecté, départ à venir') +
+          (c.distance_km !== null && c.distance_km !== undefined ? ', à environ ' + String(c.distance_km).replace('.', ',') + ' km' : '') +
+          (c.arrivee_prevue ? ' ; arrivée prévue vers ' + heureLocale(c.arrivee_prevue) : ' ; heure d\'arrivée non fixée') + '.';
+      return '<div class="sc-commande">' + etapesSuivi(c) +
+        '<div class="sc-dire">« ' + esc(phrase) + ' »</div>' +
+        '<div class="aide">' + esc(c.numero) + ' du ' + esc(dateCourte(c.date)) + ' · ' + esc(c.produits || '—') +
+          (c.montant ? ' · ' + francs(c.montant) : '') + '</div>' +
+        (c.camion ? '<div class="aide">Camion ' + esc(c.camion) + ' · ' + esc(c.chauffeur || '—') +
+          (c.chauffeur_telephone ? ' · <a href="tel:+221' + esc(String(c.chauffeur_telephone).slice(-9)) + '">' +
+            esc(telephoneLisible(c.chauffeur_telephone)) + '</a>' : '') +
+          (c.camion_age_minutes !== null && c.camion_age_minutes !== undefined ? ' · position ' + esc(ageLisible(c.camion_age_minutes)) : ' · sans balise') +
+          '</div>' : '') + '</div>';
+    }).join('') : '<div class="aide">Aucune commande depuis 30 jours.</div>') + '</div>';
 }
 
 /* ------------------------------------------- preuve de livraison (photo) */
@@ -4003,11 +4378,17 @@ var OSRM = 'https://router.project-osrm.org/route/v1/driving/';
 function tracerItineraire(calque, depart, arrivee, resume) {
   var cle = [depart.lat.toFixed(4), depart.lng.toFixed(4),
              arrivee.lat.toFixed(4), arrivee.lng.toFixed(4)].join('|');
+  /* Le chemin À FAIRE (08/10/2026, DGA) : une seule couleur pour tous les
+     camions, des tirets qui avancent vers la destination — on voit d'un coup
+     d'œil que c'est là où il VA, pas là où il est passé. Un clic dit quel camion,
+     quel chauffeur et à quelle heure il est attendu. */
   function dessiner(points, info) {
-    L.polyline(points, { color: '#1B4F9C', weight: 4, opacity: 0.85 }).addTo(calque)
-      .bindPopup('<b>Itinéraire routier</b><br>' + esc(resume || '') +
-                 (info ? '<br>' + info : '') +
-                 '<br><span style="color:#7A6A5B;font-size:12px">calculé par OSRM</span>');
+    var bulle = '<b>En route vers la livraison</b><br>' + (resume || '') +
+      (info ? '<br>Reste : ' + info : '') +
+      '<br><span style="color:#7A6A5B;font-size:12px">itinéraire routier calculé par OSRM</span>';
+    L.polyline(points, { color: '#FFFFFF', weight: 9, opacity: 0.85, interactive: false }).addTo(calque);
+    L.polyline(points, { color: '#1B4F9C', weight: 5, opacity: 1, className: 'trajet-a-venir' })
+      .addTo(calque).bindPopup(bulle).bindTooltip('Vers la livraison — cliquez pour le détail', { sticky: true });
   }
   if (ITINERAIRES[cle]) { dessiner(ITINERAIRES[cle].points, ITINERAIRES[cle].info); return; }
   fetch(OSRM + depart.lng + ',' + depart.lat + ';' + arrivee.lng + ',' + arrivee.lat +
@@ -4065,7 +4446,7 @@ function tracerTrajetDuJour(calque, plaque, positions, depuis, jusqua) {
 
   function dessiner(points, info) {
     var couleur = couleurCamion(plaque);
-    L.polyline(points, { color: couleur, weight: 4, opacity: 0.8 }).addTo(calque)
+    L.polyline(points, { color: couleur, weight: 3, opacity: 0.55 }).addTo(calque)
       .bindTooltip('<b>' + esc(identiteCamion(CAMIONS_CONNUS[plaque] || { immatriculation: plaque })) +
                    '</b><br>' + esc(info || ''), { sticky: true })
       .bindPopup('<b>Trajet du jour — ' + esc(plaque) + '</b><br>' +
@@ -4112,8 +4493,8 @@ function chargerDestinationsCarte() {
     transports.forEach(function (t) {
       if (t.destination_latitude === null || t.destination_longitude === null) { return; }
       var dest = [+t.destination_latitude, +t.destination_longitude];
-      L.circleMarker(dest, { radius: 8, color: '#FFFFFF', weight: 2,
-        fillColor: '#B3261E', fillOpacity: 1 }).addTo(calque).bindPopup(
+      L.marker(dest, { icon: L.divIcon({ className: 'marqueur-destination', html: '<span>⚑</span>',
+        iconSize: [28, 28], iconAnchor: [6, 26] }) }).addTo(calque).bindPopup(
         '<b>Destination — ' + esc(t.destinataire_nom || 'client') + '</b><br>' +
         'Transport ' + esc(t.numero || '') + '<br>' +
         (t.adresse_livraison ? esc(t.adresse_livraison) + '<br>' : '') +
@@ -4128,7 +4509,11 @@ function chargerDestinationsCarte() {
         tracerItineraire(calque,
           { lat: +camion.latitude, lng: +camion.longitude },
           { lat: dest[0], lng: dest[1] },
-          'Camion ' + (t.camion || '') + ' → ' + (t.destinataire_nom || 'client'));
+          '<b>' + esc(t.camion || '') + '</b>' + (t.chauffeur ? ' · ' + esc(t.chauffeur) : '') +
+          (t.chauffeur_telephone ? ' · ' + esc(telephoneLisible(t.chauffeur_telephone)) : '') +
+          '<br>→ ' + esc(t.destinataire_nom || 'client') + (t.repere ? ' (' + esc(t.repere) + ')' : '') +
+          '<br>Arrivée prévue : <b>' + esc(t.heure_arrivee_prevue ? heureLocale(t.heure_arrivee_prevue) : 'non fixée') + '</b>' +
+          ' · ' + esc(LIBELLES_STATUT_LIVRAISON[t.livraison_statut] || ''));
       }
     });
   });
@@ -4184,6 +4569,10 @@ function preparerCreationTransport() {
   if (!aLeDroit(PEUT_DISPATCHER)) { bloc.style.display = 'none'; return; }
   bloc.style.display = '';
 
+  /* Le formulaire est replié : la carte ne prend sa taille qu'à l'ouverture. */
+  bloc.ontoggle = function () {
+    if (bloc.open && CARTES['carte_dispatch']) { setTimeout(function () { CARTES['carte_dispatch'].invalidateSize(); }, 60); }
+  };
   if (!CARTE_DISPATCH_PRET) {
     CARTE_DISPATCH_PRET = true;
     dessinerCamions('carte_dispatch', []);
@@ -4219,30 +4608,32 @@ function majCarteDispatch() {
   }).catch(function () {});
 }
 
+/* Les listes du formulaire : véhicules ACTIFS seulement (libres d'abord),
+   chauffeurs actifs seulement (libres, puis ceux qui ont un véhicule et ont
+   livré récemment). Plus jamais tout l'historique. */
 function chargerVehiculesEtChauffeurs() {
   Promise.all([
-    requete('/vehicules?select=id,immatriculation,type,libelle_usage&order=type,immatriculation'),
-    requete('/chauffeurs?select=id,prenom,nom&order=nom')
+    requete('/v_flotte_gestion?select=*&etat=eq.actif&order=type,immatriculation'),
+    requete('/v_chauffeurs_gestion?select=*&order=nom')
   ]).then(function (r) {
-    var vehicules = r[0] || [], chauffeurs = r[1] || [];
+    var vehicules = (r[0] || []).sort(function (a, b) {
+      return a.disponible === b.disponible ? 0 : (a.disponible ? -1 : 1);
+    });
+    DISPATCH.chauffeurs = r[1] || [];
     var sv = $('#nt_vehicule'), sc = $('#nt_chauffeur');
-    if (sv && sv.options.length <= 1) {
-      vehicules.forEach(function (v) {
-        var o = document.createElement('option');
-        o.value = v.immatriculation || '';
-        o.textContent = (v.immatriculation || '(sans plaque)') + ' — ' + (v.libelle_usage || v.type || '');
-        sv.appendChild(o);
-      });
-      sv.onchange = majCarteDispatch;
+    if (sv) {
+      sv.innerHTML = '<option value="">— à dispatcher plus tard —</option>' + vehicules.map(function (v) {
+        return '<option value="' + esc(v.immatriculation || '') + '" data-chauffeur="' + esc(v.chauffeur_id || '') + '">' +
+          esc((v.immatriculation || '(sans plaque)') + ' · ' + v.type + (v.chauffeur ? ' · ' + v.chauffeur : '') +
+          ' · ' + (v.disponible ? 'libre' : 'en livraison')) + '</option>';
+      }).join('');
+      sv.onchange = function () {
+        var o = sv.options[sv.selectedIndex];
+        if (sc && o && o.dataset.chauffeur) { sc.value = o.dataset.chauffeur; }
+        majCarteDispatch();
+      };
     }
-    if (sc && sc.options.length <= 1) {
-      chauffeurs.forEach(function (c) {
-        var o = document.createElement('option');
-        o.value = c.id;
-        o.textContent = ((c.prenom || '') + ' ' + (c.nom || '')).trim();
-        sc.appendChild(o);
-      });
-    }
+    if (sc) { sc.innerHTML = optionsChauffeurs(null).replace('— chauffeur du véhicule —', '—'); }
   }).catch(function () {});
 }
 
@@ -4444,6 +4835,7 @@ function chargerPhoning() {
       if (this.open) { chargerSupervisionPhoning($('#ph_supervision_repli_contenu')); }
     };
   }
+  if (!$('#ph_suivi_q')) { $('#ph_suivi_contenu').innerHTML = blocSuiviClient('ph_suivi'); brancherSuiviClient('ph_suivi'); }
   if (!actif) { return chargerSupervisionPhoning($('#ph_supervision_contenu')); }
   if (PH.seance && PH.courant) { afficherPoste(); return; }
   return retrouverSeance();

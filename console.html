@@ -2548,7 +2548,7 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
         <button type="button" data-ra-gravite="mineur">Détail</button>
       </div>
       <label class="ra-label">Ce que vous voulez dire
-        <textarea id="ra_texte" rows="5" maxlength="4000" placeholder="Ex. : sur l'écran Dispatch, le bouton Dispatcher ne fait rien quand je choisis le camion AA-584-VT."></textarea></label>
+        <textarea id="ra_texte" rows="5" maxlength="4000" placeholder="Ex. : sur l'écran Dispatch, le bouton Dispatcher ne fait rien quand je choisis le camion proposé."></textarea></label>
       <label class="ra-label">Capture d'écran ou photo (facultatif)
         <input type="file" id="ra_capture" accept="image/*"></label>
       <div class="ra-actions">
@@ -6686,7 +6686,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-09 11:01';
+var VERSION_CONSOLE = '2026-10-09 11:19';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

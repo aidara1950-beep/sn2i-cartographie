@@ -529,11 +529,28 @@ body { background: var(--fond); margin: 0; font-family: inherit; color: var(--te
 .tn-etapes { display: flex; gap: 4px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 12px; }
 .tn-etapes li { flex: 1; text-align: center; padding: 6px 2px; border-radius: 8px; background: var(--principal-pale); color: var(--gris); }
 .tn-etapes li.actif { background: var(--principal); color: #fff; font-weight: 700; }
+.tn-avis { max-width: 640px; margin: 0 auto; padding: 0 16px 24px; }
+.tn-genres { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.tn-genres button { font: inherit; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1.5px solid var(--bord); background: var(--carte); }
+.tn-genres button.actif { border-color: var(--principal); background: var(--principal-pale); font-weight: 700; }
 </style>
 </head>
 <body>
 <header class="tn-tete"><h1 id="tn_titre">Ma tournée</h1><p id="tn_sous">Chargement…</p></header>
 <main class="tn-corps" id="tn_corps"><div class="tn-carte">Chargement…</div></main>
+<!-- 09/10/2026 (0032) : le chauffeur dit ce qui ne va pas, sans compte, par son lien. -->
+<section class="tn-avis" id="tn_avis" style="display:none">
+  <button class="tn-btn" id="tn_avis_ouvrir" type="button">💬 Un problème ou une idée sur cette page ?</button>
+  <div class="tn-carte" id="tn_avis_form" style="display:none">
+    <div class="tn-genres">
+      <button type="button" data-tn-genre="probleme">⚠️ Problème</button><button type="button" data-tn-genre="idee">💡 Idée</button>
+      <button type="button" data-tn-genre="question">❓ Question</button><button type="button" data-tn-genre="bravo">👍 Ça marche</button>
+    </div>
+    <textarea class="tn-champ" id="tn_avis_texte" rows="4" maxlength="4000" placeholder="Ce qui ne va pas, ou ce qui manque"></textarea>
+    <div id="tn_avis_msg"></div>
+    <button class="tn-btn principal" id="tn_avis_envoyer" type="button">Envoyer à la logistique</button>
+  </div>
+</section>
 <script>
 var CONFIG_SN2I = { url: 'https://ynxjbsqkstfqsdunwofm.supabase.co', cle: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlueGpic3Frc3RmcXNkdW53b2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjY2ODksImV4cCI6MjEwNTY0MjY4OX0.wLlLlPpm9LWwohewWUcpJaF-HUhapE_pYZqyY-0Muq8' };
 /* =====================================================================
@@ -765,6 +782,35 @@ function envoyerAttente(montrer) {
     if (montrer) { charger(); }
   });
 }
+var AVIS_GENRE = null;
+function brancherAvis() {
+  if (!JETON) { return; }
+  $('#tn_avis').style.display = '';
+  $('#tn_avis_ouvrir').onclick = function () { $('#tn_avis_form').style.display = ''; this.style.display = 'none'; $('#tn_avis_texte').focus(); };
+  document.querySelectorAll('[data-tn-genre]').forEach(function (b) {
+    b.onclick = function () {
+      AVIS_GENRE = b.dataset.tnGenre;
+      document.querySelectorAll('[data-tn-genre]').forEach(function (x) { x.classList.toggle('actif', x === b); });
+    };
+  });
+  $('#tn_avis_envoyer').onclick = function () {
+    var texte = $('#tn_avis_texte').value.trim(), b = this, msg = $('#tn_avis_msg');
+    if (!AVIS_GENRE) { msg.innerHTML = '<div class="tn-erreur">Choisissez : problème, idée, question ou « ça marche ».</div>'; return; }
+    if (texte.length < 3) { msg.innerHTML = '<div class="tn-erreur">Écrivez quelques mots.</div>'; return; }
+    b.disabled = true;
+    rpc('deposer_retour_tournee', { p_jeton: JETON, p: { genre: AVIS_GENRE, texte: texte,
+      contexte: { ecran: window.innerWidth + '×' + window.innerHeight, navigateur: (navigator.userAgent || '').slice(0, 200),
+                  etape: ETAT.courant ? ETAT.etape : null, livraison: ETAT.courant ? ETAT.courant.numero : null } } })
+      .then(function (r) {
+        $('#tn_avis_texte').value = ''; AVIS_GENRE = null;
+        document.querySelectorAll('[data-tn-genre]').forEach(function (x) { x.classList.remove('actif'); });
+        msg.innerHTML = '<div class="tn-ok">Merci, retour ' + esc(r.numero) + ' envoyé.</div>';
+      })
+      .catch(function (e) { msg.innerHTML = '<div class="tn-erreur">Non envoyé : ' + esc(e.message) + ' Réessayez.</div>'; })
+      .then(function () { b.disabled = false; });
+  };
+}
+brancherAvis();
 window.addEventListener('online', function () { envoyerAttente(true); });
 setInterval(function () { if (navigator.onLine) { envoyerAttente(false); } }, 30000);
 charger();

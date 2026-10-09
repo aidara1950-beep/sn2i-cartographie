@@ -2131,6 +2131,51 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
 /* 0031 : liens de tournée */
 .lt-ligne { border-bottom: 1px solid var(--bord); padding: 10px 0; display: grid; gap: 6px; }
 .lt-res .pa-champ { margin: 6px 0; font-size: 13px; }
+
+/* ------------------------------------------- retours des utilisateurs (0032) */
+.ra-bouton {
+  position: fixed; right: 16px; bottom: 16px; z-index: 900;
+  min-height: var(--h-mini); padding: 0 16px; border-radius: 999px; border: 0;
+  background: var(--principal); color: #fff; font: inherit; font-weight: 700;
+  box-shadow: var(--ombre-forte); cursor: pointer;
+}
+.ra-bouton:hover, .ra-bouton:focus-visible { background: var(--principal-clair); outline: 3px solid var(--accent); }
+.ra-fond {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(43, 28, 16, .45);
+  align-items: flex-end; justify-content: center; padding: 16px;
+}
+.ra-panneau {
+  background: var(--carte); color: var(--texte); border-radius: var(--rayon); box-shadow: var(--ombre-forte);
+  width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto; padding: 16px 18px 18px;
+}
+@media (min-width: 700px) { .ra-fond { align-items: center; } }
+.ra-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ra-tete h3 { margin: 0; font-size: 1.05rem; }
+.ra-genres, .ra-gravites { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; align-items: center; }
+.ra-genres button, .ra-gravites button {
+  min-height: var(--h-mini); padding: 0 12px; border-radius: var(--rayon-s); border: 1.5px solid var(--bord);
+  background: var(--fond); color: var(--texte); font: inherit; cursor: pointer;
+}
+.ra-genres button.actif, .ra-gravites button.actif { border-color: var(--principal); background: var(--principal-pale); font-weight: 700; }
+.ra-label { display: block; margin-top: 12px; font-weight: 600; }
+.ra-label textarea, .ra-label input[type=file] { display: block; width: 100%; margin-top: 6px; box-sizing: border-box; font: inherit; }
+.ra-label textarea { padding: 10px; border: 1.5px solid var(--bord); border-radius: var(--rayon-s); resize: vertical; }
+.ra-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.ra-mes { margin-top: 16px; border-top: 1px solid var(--bord); padding-top: 10px; }
+.ra-mes summary { cursor: pointer; font-weight: 600; }
+.ra-mien, .ra-carte { border: 1px solid var(--bord); border-radius: var(--rayon-s); padding: 10px 12px; margin-top: 8px; }
+.ra-carte { border-left: 4px solid var(--accent); margin-top: 10px; }
+.ra-carte.ra-bloquant { border-left-color: var(--rouge); }
+.ra-texte { margin: 6px 0; white-space: pre-wrap; }
+.ra-reponse { margin-top: 6px; padding: 8px; background: var(--vert-pale); border-radius: var(--rayon-s); }
+.ra-statut { padding: 1px 8px; border-radius: 999px; font-size: .85em; background: var(--ambre-pale); color: var(--ambre); }
+.ra-statut.ra-corrige { background: var(--vert-pale); color: var(--vert); }
+.ra-statut.ra-sans_suite { background: var(--fond); color: var(--gris); }
+.ra-statut.ra-pris_en_compte { background: var(--bleu-pale); color: var(--bleu); }
+.ra-traiter { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.ra-traiter input { flex: 1 1 220px; }
+.ra-image { max-width: 100%; max-height: 320px; border-radius: var(--rayon-s); margin-top: 6px; }
+@media print { .ra-bouton, .ra-fond { display: none !important; } }
 </style>
 </head>
 <body>
@@ -2434,6 +2479,19 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
     </div>
   </section>
 
+  <!-- ------------------------------------------- retours des utilisateurs -->
+  <section class="ecran-console" data-ecran="retours">
+    <div class="entete-ecran">
+      <h2>Retours des utilisateurs</h2>
+      <p>Ce que les équipes signalent depuis le bouton « Un avis ? » : problèmes, idées, questions. Répondez : la personne voit votre réponse.</p>
+    </div>
+    <div class="cartes-console" id="retours_chiffres"></div>
+    <div class="bloc-console">
+      <div class="pl-bascule" id="retours_bascule" style="margin-bottom:10px"></div>
+      <div id="retours_liste"></div>
+    </div>
+  </section>
+
   <!-- ------------------------------------------------------------ prix -->
   <section class="ecran-console" data-ecran="prix">
     <div class="entete-ecran">
@@ -2468,6 +2526,39 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
 </div>
 
 <div class="bascule-toast" id="toast"></div>
+
+<!-- Retours des utilisateurs : le bouton suit la personne sur tous les écrans. -->
+<button class="ra-bouton" id="ra_ouvrir" type="button" style="display:none" aria-haspopup="dialog">💬 Un avis ?</button>
+<div class="ra-fond" id="ra_fond" style="display:none">
+  <div class="ra-panneau" role="dialog" aria-modal="true" aria-labelledby="ra_titre">
+    <div class="ra-tete"><h3 id="ra_titre">Votre avis sur la console</h3>
+      <button class="btn-mini discret" id="ra_fermer" type="button" aria-label="Fermer">×</button></div>
+    <div id="ra_formulaire">
+      <p class="aide">Ce qui ne marche pas, ce qui manque, ce qui n'est pas clair. L'écran où vous êtes et les derniers messages d'erreur sont joints tout seuls.</p>
+      <div class="ra-genres" id="ra_genres">
+        <button type="button" data-ra-genre="probleme">⚠️ Un problème</button>
+        <button type="button" data-ra-genre="idee">💡 Une idée</button>
+        <button type="button" data-ra-genre="question">❓ Une question</button>
+        <button type="button" data-ra-genre="bravo">👍 Ça marche bien</button>
+      </div>
+      <div class="ra-gravites" id="ra_gravites" style="display:none">
+        <span class="aide">Gêne :</span>
+        <button type="button" data-ra-gravite="bloquant">Je suis bloqué</button>
+        <button type="button" data-ra-gravite="gênant">Gênant</button>
+        <button type="button" data-ra-gravite="mineur">Détail</button>
+      </div>
+      <label class="ra-label">Ce que vous voulez dire
+        <textarea id="ra_texte" rows="5" maxlength="4000" placeholder="Ex. : sur l'écran Dispatch, le bouton Dispatcher ne fait rien quand je choisis le camion AA-584-VT."></textarea></label>
+      <label class="ra-label">Capture d'écran ou photo (facultatif)
+        <input type="file" id="ra_capture" accept="image/*"></label>
+      <div class="ra-actions">
+        <button class="btn-console accent" id="ra_envoyer" type="button">Envoyer</button>
+        <span class="aide" id="ra_etat"></span>
+      </div>
+    </div>
+    <details class="ra-mes" id="ra_mes"><summary>Mes retours et les réponses</summary><div id="ra_mes_liste"></div></details>
+  </div>
+</div>
 
 <script>/* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2651,7 +2742,7 @@ var LIBELLES_ROLES = {
    exactement la même page ». Chaque métier a désormais son écran. */
 var ONGLETS_PAR_ROLE = {
   dga: ['bord', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
-        'boutiques', 'documents', 'prix', 'utilisateurs'],
+        'boutiques', 'documents', 'prix', 'utilisateurs', 'retours'],
   logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'documents', 'commandes', 'boutiques'],
   /* 08/10/2026 (DGA) : la comptabilité imprime les BL et factures signés et les rapproche. */
   comptable: ['documents', 'livraisons', 'commandes'],
@@ -2665,7 +2756,7 @@ var TITRES_ONGLETS = {
   bord: 'Carte', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
   fiches: 'Fiches de terrain',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
-  prix: 'Prix', documents: 'Documents', utilisateurs: 'Utilisateurs'
+  prix: 'Prix', documents: 'Documents', utilisateurs: 'Utilisateurs', retours: 'Retours'
 };
 /* Qui voit quoi, dit une fois pour toutes. */
 var VOIT_FLOTTE = ['dga', 'logistique', 'phoning', 'superviseur'];   // carte des camions
@@ -2694,6 +2785,7 @@ function toast(m) {
    s'efface au bout de 6 s ; tout message s'efface en changeant d'onglet. */
 var MINUTEUR_MESSAGE = null;
 function message(texte, genre) {
+  if (genre === 'ko') { noterErreur(texte); }
   var el = $('#message');
   el.className = 'message-console ' + (genre || 'info');
   el.innerHTML = texte + (genre === 'ko' ? ' <button class="message-fermer" type="button" aria-label="Fermer le message">×</button>' : '');
@@ -2867,6 +2959,7 @@ function quitter() {
   ACCUEIL.boutiques = 0; ACCUEIL.transports = 0;
   BOUTIQUES_CARTE.total = 0; BOUTIQUES_CARTE.enCours = null;
   $('#vue_console').style.display = 'none';
+  $('#ra_ouvrir').style.display = 'none'; $('#ra_fond').style.display = 'none';
   $('#vue_connexion').style.display = 'flex';
   $('#motdepasse').value = '';
 }
@@ -2904,6 +2997,7 @@ function ouvrirOnglet(nom) {
   if (nom === 'utilisateurs') { chargerUtilisateurs(); }
   if (nom === 'prix') { chargerPrix(); if (aLeDroit(['dga'])) { chargerSociete(); } }
   if (nom === 'documents') { chargerDocuments(); }
+  if (nom === 'retours') { chargerRetours(); }
   if (nom === 'boutiques') { chargerZones(); }
 }
 
@@ -4565,6 +4659,7 @@ function entrerDansLaConsole() {
   $('#moi_nom').textContent = SESSION.profil.nom;
   $('#moi_role').textContent = LIBELLES_ROLES[SESSION.profil.role] || SESSION.profil.role;
   construireOnglets();
+  brancherRetours();
   ouvrirOnglet('bord');
   // Le bloc utilisateurs n'a de sens que pour la direction.
   $('#bloc_nouveau_compte').style.display = SESSION.profil.role === 'dga' ? 'block' : 'none';
@@ -6582,6 +6677,229 @@ function chargerPhotoDuBac(nom, idImage) {
   });
 }
 
+
+
+/* ------------------------------------------- retours des utilisateurs */
+/* 09/10/2026 (DGA, phase d'essai) : « que les utilisateurs puissent faire des
+   retours dans l'interface directement, et stocke-les ». Un bouton sur tous les
+   écrans ; la base garde le retour sous le nom de la personne (deposer_retour),
+   avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
+   d'erreur affichés, l'écran, la version de la page. */
+
+var VERSION_CONSOLE = '2026-10-09 11:01';
+var ERREURS_VUES = [];
+function noterErreur(texte) {
+  var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!t) { return; }
+  ERREURS_VUES.push({ a: new Date().toISOString(), onglet: SESSION.onglet, texte: t });
+  if (ERREURS_VUES.length > 5) { ERREURS_VUES.shift(); }
+}
+window.addEventListener('error', function (e) {
+  noterErreur('Erreur de la page : ' + (e && e.message ? e.message : 'inconnue') +
+              (e && e.lineno ? ' (ligne ' + e.lineno + ')' : ''));
+});
+
+var RA = { genre: null, gravite: null, branche: false };
+var RA_GENRES = { probleme: '⚠️ Problème', idee: '💡 Idée', question: '❓ Question', bravo: '👍 Ça marche bien' };
+var RA_STATUTS = { nouveau: 'Nouveau', pris_en_compte: 'Pris en compte', corrige: 'Corrigé', sans_suite: 'Sans suite' };
+
+function brancherRetours() {
+  $('#ra_ouvrir').style.display = '';
+  if (RA.branche) { return; }
+  RA.branche = true;
+  $('#ra_ouvrir').onclick = ouvrirRetour;
+  $('#ra_fermer').onclick = fermerRetour;
+  $('#ra_fond').onclick = function (e) { if (e.target === this) { fermerRetour(); } };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('#ra_fond').style.display !== 'none') { fermerRetour(); }
+  });
+  $$('[data-ra-genre]').forEach(function (b) {
+    b.onclick = function () {
+      RA.genre = b.dataset.raGenre;
+      $$('[data-ra-genre]').forEach(function (x) { x.classList.toggle('actif', x === b); });
+      $('#ra_gravites').style.display = RA.genre === 'probleme' ? '' : 'none';
+      if (RA.genre !== 'probleme') { RA.gravite = null; }
+    };
+  });
+  $$('[data-ra-gravite]').forEach(function (b) {
+    b.onclick = function () {
+      RA.gravite = b.dataset.raGravite;
+      $$('[data-ra-gravite]').forEach(function (x) { x.classList.toggle('actif', x === b); });
+    };
+  });
+  $('#ra_envoyer').onclick = envoyerRetour;
+  $('#ra_mes').ontoggle = function () { if (this.open) { chargerMesRetours(); } };
+}
+
+function ouvrirRetour() {
+  $('#ra_titre').textContent = 'Votre avis — écran « ' + (TITRES_ONGLETS[SESSION.onglet] || SESSION.onglet) + ' »';
+  $('#ra_etat').textContent = '';
+  $('#ra_fond').style.display = 'flex';
+  setTimeout(function () { $('#ra_texte').focus(); }, 30);
+}
+function fermerRetour() { $('#ra_fond').style.display = 'none'; }
+
+function viderRetour() {
+  RA.genre = null; RA.gravite = null;
+  $('#ra_texte').value = ''; $('#ra_capture').value = '';
+  $$('[data-ra-genre], [data-ra-gravite]').forEach(function (x) { x.classList.remove('actif'); });
+  $('#ra_gravites').style.display = 'none';
+}
+
+/* La capture est réduite à 1 400 px de large et envoyée dans le seau privé
+   « retours », dans le dossier de la personne. */
+function preparerCapture(fichier) {
+  if (!fichier) { return Promise.resolve(null); }
+  return new Promise(function (resoudre, rejeter) {
+    var lecteur = new FileReader();
+    lecteur.onload = function () {
+      var image = new Image();
+      image.onload = function () {
+        var max = 1400, l = image.width, h = image.height;
+        if (l > max) { h = Math.round(h * max / l); l = max; }
+        var toile = document.createElement('canvas');
+        toile.width = l; toile.height = h;
+        toile.getContext('2d').drawImage(image, 0, 0, l, h);
+        toile.toBlob(function (blob) { blob ? resoudre(blob) : rejeter(new Error('Capture illisible.')); }, 'image/jpeg', 0.8);
+      };
+      image.onerror = function () { rejeter(new Error('Capture illisible.')); };
+      image.src = lecteur.result;
+    };
+    lecteur.onerror = function () { rejeter(new Error('Capture illisible.')); };
+    lecteur.readAsDataURL(fichier);
+  }).then(function (blob) {
+    var nom = SESSION.utilisateur_id + '-' + Date.now() + '.jpg';
+    return fetch(CONFIG.url + '/storage/v1/object/retours/' + nom, {
+      method: 'POST',
+      headers: { 'apikey': CONFIG.cle, 'Authorization': 'Bearer ' + SESSION.jeton, 'Content-Type': 'image/jpeg' },
+      body: blob
+    }).then(function (r) {
+      if (!r.ok) { throw new Error('capture refusée (HTTP ' + r.status + ')'); }
+      return nom;
+    });
+  });
+}
+
+function envoyerRetour() {
+  var texte = $('#ra_texte').value.trim();
+  if (!RA.genre) { $('#ra_etat').textContent = 'Choisissez d\'abord : problème, idée, question ou « ça marche bien ».'; return; }
+  if (texte.length < 3) { $('#ra_etat').textContent = 'Écrivez quelques mots.'; $('#ra_texte').focus(); return; }
+  var bouton = $('#ra_envoyer');
+  bouton.disabled = true;
+  $('#ra_etat').textContent = 'Envoi…';
+  var fichier = $('#ra_capture').files && $('#ra_capture').files[0];
+  var avertissement = '';
+  preparerCapture(fichier).catch(function (e) {
+    avertissement = ' La capture n\'est pas partie (' + e.message + ') : le texte, lui, est envoyé.';
+    return null;
+  }).then(function (capture) {
+    return rpc('deposer_retour', { p: {
+      genre: RA.genre, gravite: RA.gravite, texte: texte, onglet: SESSION.onglet, capture: capture,
+      contexte: {
+        version: VERSION_CONSOLE, erreurs: ERREURS_VUES.slice(),
+        ecran: window.innerWidth + '×' + window.innerHeight,
+        navigateur: (navigator.userAgent || '').slice(0, 200),
+        heure_locale: new Date().toString().slice(0, 33)
+      }
+    } });
+  }).then(function (r) {
+    viderRetour();
+    $('#ra_etat').textContent = '';
+    fermerRetour();
+    message('Merci. Votre retour ' + esc(r.numero) + ' est enregistré ; la direction vous répondra ici (« Un avis ? » → Mes retours).' +
+            esc(avertissement), avertissement ? 'ko' : 'ok');
+  }).catch(function (e) {
+    $('#ra_etat').textContent = 'Non envoyé : ' + e.message + ' Votre texte reste à l\'écran, réessayez.';
+  }).then(function () { bouton.disabled = false; });
+}
+
+function chargerMesRetours() {
+  var zone = $('#ra_mes_liste');
+  zone.innerHTML = '<div class="chargement">Chargement…</div>';
+  requete('/retours_utilisateurs?select=numero,cree_le,genre,onglet,texte,statut,reponse,traite_par,traite_le' +
+          '&auteur_id=eq.' + encodeURIComponent(SESSION.utilisateur_id || SESSION.profil.id) + '&order=cree_le.desc&limit=30')
+    .then(function (l) {
+      l = l || [];
+      zone.innerHTML = l.length ? l.map(function (r) {
+        return '<div class="ra-mien"><div><b>' + esc(r.numero) + '</b> · ' + esc(RA_GENRES[r.genre] || r.genre) +
+          ' · <span class="ra-statut ra-' + esc(r.statut) + '">' + esc(RA_STATUTS[r.statut] || r.statut) + '</span></div>' +
+          '<div class="aide">' + esc(dateCourte(r.cree_le)) + ' · écran ' + esc(TITRES_ONGLETS[r.onglet] || r.onglet || '—') + '</div>' +
+          '<div>' + esc(r.texte) + '</div>' +
+          (r.reponse ? '<div class="ra-reponse"><b>Réponse de ' + esc(r.traite_par || 'la direction') + ' :</b> ' + esc(r.reponse) + '</div>' : '') +
+          '</div>';
+      }).join('') : '<div class="aide">Aucun retour envoyé pour l\'instant.</div>';
+    }).catch(function (e) { zone.innerHTML = '<div class="aide">' + esc(e.message) + '</div>'; });
+}
+
+/* ------------------------- onglet Retours (direction) : lire et répondre */
+var RETOURS_VUE = 'ouverts';
+function chargerRetours() {
+  var zone = $('#retours_liste');
+  zone.innerHTML = '<div class="chargement">Chargement…</div>';
+  $('#retours_bascule').innerHTML = [['ouverts', 'À traiter'], ['tout', 'Tous']].map(function (x) {
+    return '<button class="' + (RETOURS_VUE === x[0] ? 'actif' : '') + '" data-retours-vue="' + x[0] + '">' + x[1] + '</button>';
+  }).join('');
+  $$('[data-retours-vue]').forEach(function (b) { b.onclick = function () { RETOURS_VUE = b.dataset.retoursVue; chargerRetours(); }; });
+  requete('/retours_utilisateurs?select=*&order=cree_le.desc&limit=500').then(function (tous) {
+    tous = tous || [];
+    var ouverts = tous.filter(function (r) { return r.statut === 'nouveau' || r.statut === 'pris_en_compte'; });
+    var bloquants = ouverts.filter(function (r) { return r.gravite === 'bloquant'; }).length;
+    $('#retours_chiffres').innerHTML =
+      carte('Nouveaux', formater(tous.filter(function (r) { return r.statut === 'nouveau'; }).length), bloquants ? 'alerte' : '') +
+      carte('Bloquants ouverts', formater(bloquants), bloquants ? 'alerte' : '') +
+      carte('Pris en compte', formater(tous.filter(function (r) { return r.statut === 'pris_en_compte'; }).length)) +
+      carte('Corrigés', formater(tous.filter(function (r) { return r.statut === 'corrige'; }).length));
+    var liste = RETOURS_VUE === 'ouverts' ? ouverts : tous;
+    if (!liste.length) {
+      zone.innerHTML = '<div class="vide">' + (RETOURS_VUE === 'ouverts' ? 'Aucun retour à traiter.' : 'Aucun retour reçu pour l\'instant.') + '</div>';
+      return;
+    }
+    zone.innerHTML = liste.map(function (r) {
+      var c = r.contexte || {}, err = c.erreurs || [];
+      return '<div class="ra-carte' + (r.gravite === 'bloquant' ? ' ra-bloquant' : '') + '">' +
+        '<div class="ra-carte-tete"><b>' + esc(r.numero) + '</b> · ' + esc(RA_GENRES[r.genre] || r.genre) +
+          (r.gravite ? ' · <b>' + esc(r.gravite) + '</b>' : '') +
+          ' · <span class="ra-statut ra-' + esc(r.statut) + '">' + esc(RA_STATUTS[r.statut] || r.statut) + '</span></div>' +
+        '<div class="aide">' + esc(new Date(r.cree_le).toLocaleString('fr-FR', { timeZone: 'Africa/Dakar' }).slice(0, 16)) + ' · ' +
+          esc(r.auteur_nom) + ' (' + esc(LIBELLES_ROLES[r.auteur_role] || r.auteur_role || '—') + ') · écran ' +
+          esc(r.source === 'tournee' ? 'tournée du chauffeur' : (TITRES_ONGLETS[r.onglet] || r.onglet || '—')) + '</div>' +
+        '<div class="ra-texte">' + esc(r.texte) + '</div>' +
+        (err.length ? '<details class="ra-contexte"><summary>' + err.length + ' message(s) d\'erreur vu(s) avant</summary>' +
+          err.map(function (x) { return '<div class="aide">' + esc(String(x.a || '').slice(11, 16)) + ' · ' + esc(x.onglet || '') + ' · ' + esc(x.texte) + '</div>'; }).join('') +
+          '</details>' : '') +
+        (c.ecran || c.version ? '<div class="aide">Écran ' + esc(c.ecran || '—') + ' · version ' + esc(c.version || '—') + '</div>' : '') +
+        (r.capture ? '<div class="ra-capture" id="ra_cap_' + esc(r.id) + '"><button class="btn-mini" data-ra-cap="' + esc(r.capture) + '" data-ra-id="' + esc(r.id) + '">Voir la capture</button></div>' : '') +
+        '<div class="ra-traiter"><select class="pa-champ dp-mini" data-ra-statut="' + esc(r.id) + '" aria-label="Statut de ' + esc(r.numero) + '">' +
+          Object.keys(RA_STATUTS).map(function (k) { return '<option value="' + k + '"' + (k === r.statut ? ' selected' : '') + '>' + RA_STATUTS[k] + '</option>'; }).join('') +
+          '</select><input class="pa-champ" data-ra-reponse="' + esc(r.id) + '" value="' + esc(r.reponse || '') + '" placeholder="Réponse à la personne (elle la verra)" aria-label="Réponse à ' + esc(r.numero) + '">' +
+          '<button class="btn-mini" data-ra-enregistrer="' + esc(r.id) + '">Enregistrer</button></div>' +
+        (r.traite_par ? '<div class="aide">Traité par ' + esc(r.traite_par) + ', ' + esc(dateCourte(r.traite_le)) + '</div>' : '') +
+        '</div>';
+    }).join('');
+    $$('[data-ra-cap]').forEach(function (b) { b.onclick = function () { voirCapture(b.dataset.raCap, b.dataset.raId); }; });
+    $$('[data-ra-enregistrer]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.raEnregistrer;
+        rpc('traiter_retour', { p_id: id, p_statut: $('[data-ra-statut="' + id + '"]').value, p_reponse: $('[data-ra-reponse="' + id + '"]').value })
+          .then(function (r) { message('Retour ' + esc(r.numero) + ' : ' + esc(RA_STATUTS[r.statut]) + '.', 'ok'); chargerRetours(); })
+          .catch(function (e) { message(esc(e.message), 'ko'); });
+      };
+    });
+  }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+function voirCapture(nom, id) {
+  var cadre = document.getElementById('ra_cap_' + id);
+  fetch(CONFIG.url + '/storage/v1/object/authenticated/retours/' + encodeURIComponent(nom), {
+    headers: { 'apikey': CONFIG.cle, 'Authorization': 'Bearer ' + SESSION.jeton }
+  }).then(function (r) {
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    return r.blob();
+  }).then(function (blob) {
+    var url = URL.createObjectURL(blob);
+    cadre.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener"><img class="ra-image" src="' + url + '" alt="Capture jointe"></a>';
+  }).catch(function (e) { cadre.innerHTML = '<span class="aide">Capture introuvable (' + esc(e.message) + ').</span>'; });
+}
 </script>
 </body>
 </html>

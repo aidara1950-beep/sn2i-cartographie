@@ -2200,6 +2200,28 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
   .tg-carte { height: 220px; }
   .tg-boutons > * { flex: 1 1 100%; max-width: none; }
 }
+
+/* départ et arrivée : recherche de lieu (09/10/2026) */
+.tg-lieux { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.tg-lieu { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tg-lieu > label { font-weight: 600; font-size: .92rem; }
+.tg-lieu .pa-champ { width: 100%; box-sizing: border-box; min-width: 0; }
+.tg-suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 1200; margin-top: 2px; background: var(--carte);
+  border: 1.5px solid var(--bord); border-radius: var(--rayon-s); box-shadow: var(--ombre-forte); max-height: 320px; overflow-y: auto; }
+.tg-suggestions button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left;
+  padding: 8px 12px; border: 0; border-bottom: 1px solid var(--bord); background: transparent; font: inherit; color: var(--texte); cursor: pointer; }
+.tg-suggestions button:hover, .tg-suggestions button:focus-visible { background: var(--principal-pale); outline: none; }
+.tg-sugg-info { padding: 8px 12px; }
+.tg-point { overflow-wrap: anywhere; }
+.tg-soustitre { margin: 16px 0 6px; font-size: 1rem; }
+@media (max-width: 600px) {
+  .tg-detail thead { display: none; }
+  .tg-detail, .tg-detail tbody { display: block; width: 100%; }
+  .tg-detail tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 6px 0; border-bottom: 1px solid var(--bord); }
+  .tg-detail td { display: block; border: 0; padding: 0 4px; }
+  .tg-detail td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .tg-detail td:nth-child(3) { grid-column: 2; grid-row: 1; white-space: nowrap; }
+}
 </style>
 </head>
 <body>
@@ -6733,7 +6755,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-09 12:57';
+var VERSION_CONSOLE = '2026-10-09 15:12';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
@@ -6993,19 +7015,6 @@ function preparerTransportsGroupe() {
   if (voit) { chargerListeGroupe(); }
 }
 
-function optionsSites(choix) {
-  var parSoc = {};
-  TG.sites.forEach(function (s) { (parSoc[s.societe] = parSoc[s.societe] || []).push(s); });
-  return '<option value="">— choisir —</option><option value="carte"' + (choix === 'carte' ? ' selected' : '') + '>📍 Un point sur la carte</option>' +
-    TG.societes.map(function (so) {
-      var l = parSoc[so.code] || [];
-      return l.length ? '<optgroup label="' + esc(so.nom) + '">' + l.map(function (s) {
-        return '<option value="' + s.id + '"' + (choix === s.id ? ' selected' : '') + '>' + esc(s.nom) +
-          (s.latitude === null ? ' (non placé)' : '') + '</option>';
-      }).join('') + '</optgroup>' : '';
-    }).join('');
-}
-
 function afficherFormulaireGroupe() {
   var z = $('#tg_formulaire');
   z.innerHTML = '<div class="chargement">Chargement…</div>';
@@ -7019,12 +7028,12 @@ function afficherFormulaireGroupe() {
           }).join('') + '</select></label>' +
         '<label>Date<input class="pa-champ" type="date" id="tg_date" value="' + demain + '"></label>' +
         '<label>Créneau<select class="pa-champ" id="tg_creneau"><option value="">—</option><option value="matin">Matin</option><option value="apres_midi">Après-midi</option></select></label>' +
-        '<label>Départ<select class="pa-champ" id="tg_origine">' + optionsSites() + '</select></label>' +
-        '<label>Arrivée<select class="pa-champ" id="tg_destination">' + optionsSites() + '</select></label>' +
-        '<div class="tg-lien"><button type="button" class="btn-mini discret" id="tg_nouveau_site">＋ Nouveau site</button></div>' +
+      '</div>' +
+      '<div class="tg-grille tg-lieux">' + champLieu('origine', 'Départ') + champLieu('destination', 'Arrivée') +
+        '<div class="tg-lien"><button type="button" class="btn-mini discret" id="tg_nouveau_site">＋ Nouveau site du groupe</button></div>' +
       '</div>' +
       '<div id="tg_site_form" class="tg-site" style="display:none"></div>' +
-      '<p class="aide" id="tg_carte_aide">Les sites du groupe sont sur la carte. Choisissez le départ et l\'arrivée dans les listes, ou « Un point sur la carte ».</p>' +
+      '<p class="aide" id="tg_carte_aide">Tapez une ville, un quartier ou un site du groupe, puis choisissez dans la liste : le point GPS est proposé. Vous pouvez l\'ajuster sur la carte.</p>' +
       '<div id="tg_carte" class="carte-console tg-carte"></div>' +
       '<div class="tg-grille">' +
         '<label class="tg-large">Marchandise<input class="pa-champ" id="tg_marchandise" placeholder="Ex. : 200 sacs de mil décortiqué"></label>' +
@@ -7038,7 +7047,7 @@ function afficherFormulaireGroupe() {
           }).join('') + '</select></label>' +
         '<label>Chauffeur<select class="pa-champ" id="tg_chauffeur">' + optionsChauffeurs(null) + '</select></label>' +
         '<label>Distance route, aller (km)<input class="pa-champ" id="tg_distance" type="number" min="0" step="0.1" inputmode="decimal"><span class="aide" id="tg_distance_source"></span></label>' +
-        '<label>Péages par trajet (F)<input class="pa-champ" id="tg_peages" type="number" min="0" step="100" value="0"></label>' +
+        '<label class="tg-case"><input type="checkbox" id="tg_autoroute" checked> Autoroute à péage</label>' +
         '<label>Attente prévue sur place (h)<input class="pa-champ" id="tg_attente" type="number" min="0" step="0.5" value="0"></label>' +
         '<label class="tg-case"><input type="checkbox" id="tg_ar" checked> Retour à vide compté</label>' +
         '<label class="tg-large">Commentaire<input class="pa-champ" id="tg_commentaire" placeholder="Contact sur place, consignes…"></label>' +
@@ -7046,9 +7055,9 @@ function afficherFormulaireGroupe() {
       '<div id="tg_chiffrage" class="tg-chiffrage"><div class="aide">Renseignez le poids, le départ et l\'arrivée : le prix se calcule tout seul.</div></div>' +
       '<div class="tg-boutons"><button class="btn-console accent" id="tg_creer" type="button">Créer le transport</button>' +
       '<button class="btn-console" id="tg_annuler" type="button">Fermer</button></div>';
-    TG.origine = null; TG.destination = null; TG.distance = null; TG.sourceDistance = null; TG.dernier = null;
+    TG.origine = null; TG.destination = null; TG.distance = null; TG.sourceDistance = null; TG.dernier = null; TG.trace = null; TG.route = null;
     preparerCarteGroupe();
-    ['#tg_poids', '#tg_peages', '#tg_attente', '#tg_ar', '#tg_vehicule'].forEach(function (s) {
+    ['#tg_poids', '#tg_autoroute', '#tg_attente', '#tg_ar', '#tg_vehicule'].forEach(function (s) {
       $(s).addEventListener('input', planifierChiffrage); $(s).addEventListener('change', planifierChiffrage);
     });
     $('#tg_distance').addEventListener('input', function () {
@@ -7059,8 +7068,7 @@ function afficherFormulaireGroupe() {
       var o = this.options[this.selectedIndex];
       if (o && o.dataset.chauffeur) { $('#tg_chauffeur').value = o.dataset.chauffeur; }
     });
-    $('#tg_origine').onchange = function () { choisirPoint('origine', this.value); };
-    $('#tg_destination').onchange = function () { choisirPoint('destination', this.value); };
+    brancherLieu('origine'); brancherLieu('destination');
     $('#tg_nouveau_site').onclick = afficherFormulaireSite;
     $('#tg_creer').onclick = creerTransportGroupe;
     $('#tg_annuler').onclick = function () { $('#bloc_transport_groupe').style.display = 'none'; };
@@ -7076,7 +7084,11 @@ function preparerCarteGroupe() {
     if (!TG.placer) { return; }
     var pt = { lat: +ev.latlng.lat.toFixed(6), lng: +ev.latlng.lng.toFixed(6), nom: 'Point placé' };
     if (TG.placer === 'site') { TG.siteCoord = pt; $('#ts_pos').textContent = 'Placé : ' + pt.lat + ', ' + pt.lng; }
-    else { TG[TG.placer] = pt; majDistance(); }
+    else {
+      var avant = TG[TG.placer];
+      pt.nom = avant && avant.nom ? avant.nom + ' (point ajusté)' : 'Point placé sur la carte';
+      TG[TG.placer] = pt; afficherPointLieu(TG.placer); majDistance();
+    }
     TG.placer = null; $('#tg_carte_aide').textContent = 'Point enregistré.';
     dessinerGroupe();
   });
@@ -7095,23 +7107,11 @@ function dessinerGroupe() {
     var p = TG[x[0]]; if (!p) { return; }
     L.circleMarker([p.lat, p.lng], { radius: 10, color: x[2], weight: 3, fillOpacity: 0.2 }).bindTooltip(x[1] + ' : ' + esc(p.nom)).addTo(TG.calques);
   });
-  if (TG.origine && TG.destination) {
-    L.polyline([[TG.origine.lat, TG.origine.lng], [TG.destination.lat, TG.destination.lng]], { color: '#442A19', dashArray: '6 6', weight: 2 }).addTo(TG.calques);
+  if (TG.origine && TG.destination && TG.origine.lat !== undefined && TG.destination.lat !== undefined) {
+    L.polyline(TG.route || [[TG.origine.lat, TG.origine.lng], [TG.destination.lat, TG.destination.lng]],
+               TG.route ? { color: '#1B4F8A', weight: 4, opacity: 0.8 } : { color: '#442A19', dashArray: '6 6', weight: 2 }).addTo(TG.calques);
     try { TG.carte.fitBounds([[TG.origine.lat, TG.origine.lng], [TG.destination.lat, TG.destination.lng]], { padding: [30, 30], maxZoom: 12 }); } catch (e) {}
   }
-}
-
-function choisirPoint(sens, valeur) {
-  TG[sens] = null;
-  if (valeur === 'carte') {
-    TG.placer = sens;
-    $('#tg_carte_aide').innerHTML = '<b>Cliquez sur la carte</b> pour placer ' + (sens === 'origine' ? 'le départ' : 'l\'arrivée') + '.';
-  } else if (valeur) {
-    var s = TG.sites.filter(function (x) { return x.id === valeur; })[0];
-    if (s && s.latitude !== null) { TG[sens] = { lat: s.latitude, lng: s.longitude, nom: s.nom, site: s.id }; }
-    else if (s) { message('Le site « ' + esc(s.nom) + ' » n\'est pas encore placé sur la carte : placez-le (Prix → Sociétés du groupe) ou saisissez la distance.', 'ko'); TG[sens] = { site: s.id, nom: s.nom }; }
-  }
-  majDistance(); dessinerGroupe();
 }
 
 /* La distance : par la route (service d'itinéraire public OSRM) quand il répond,
@@ -7125,14 +7125,20 @@ function majDistance() {
   $('#tg_distance_source').textContent = 'calcul de l\'itinéraire…';
   var controle = typeof AbortController !== 'undefined' ? new AbortController() : null;
   var delai = setTimeout(function () { if (controle) { controle.abort(); } }, 7000);
-  fetch('https://router.project-osrm.org/route/v1/driving/' + o.lng + ',' + o.lat + ';' + d.lng + ',' + d.lat + '?overview=false',
+  TG.trace = null; TG.route = null;
+  fetch('https://router.project-osrm.org/route/v1/driving/' + o.lng + ',' + o.lat + ';' + d.lng + ',' + d.lat + '?overview=full&geometries=geojson',
         controle ? { signal: controle.signal } : {})
     .then(function (r) { return r.json(); })
     .then(function (j) {
       clearTimeout(delai);
       var m = j && j.routes && j.routes[0] && j.routes[0].distance;
       if (!m) { throw new Error('sans itinéraire'); }
-      if (TG.sourceDistance === 'saisie') { return; }
+      var c = (j.routes[0].geometry && j.routes[0].geometry.coordinates) || [];
+      var pas = Math.max(1, Math.ceil(c.length / 500));
+      TG.route = c.map(function (x) { return [x[1], x[0]]; });
+      TG.trace = TG.route.filter(function (x, i) { return i % pas === 0 || i === c.length - 1; });
+      dessinerGroupe();
+      if (TG.sourceDistance === 'saisie') { planifierChiffrage(); return; }
       TG.distance = Math.round(m / 100) / 10; TG.sourceDistance = 'itinéraire routier (OSRM)';
       $('#tg_distance').value = TG.distance; $('#tg_distance_source').textContent = 'par la route (itinéraire calculé)';
       planifierChiffrage();
@@ -7148,11 +7154,12 @@ function chargeChiffrage() {
   var p = {
     poids_kg: nombre($('#tg_poids').value) || null,
     aller_retour: $('#tg_ar').checked,
-    peages_fcfa: nombre($('#tg_peages').value),
+    autoroute: $('#tg_autoroute').checked,
     attente_h: nombre($('#tg_attente').value),
     vehicule: $('#tg_vehicule').value || null
   };
   if (TG.distance) { p.distance_km = TG.distance; p.source_distance = TG.sourceDistance; }
+  if (TG.trace && p.autoroute) { p.trace = TG.trace; }
   if (TG.origine && TG.origine.lat !== undefined) { p.origine_lat = TG.origine.lat; p.origine_lng = TG.origine.lng; }
   if (TG.destination && TG.destination.lat !== undefined) { p.destination_lat = TG.destination.lat; p.destination_lng = TG.destination.lng; }
   return p;
@@ -7228,6 +7235,7 @@ function creerTransportGroupe() {
   p.date = $('#tg_date').value || null; p.creneau = $('#tg_creneau').value || null;
   p.chauffeur = $('#tg_chauffeur').value || null; p.commentaire = $('#tg_commentaire').value.trim() || null;
   p.site_origine = TG.origine && TG.origine.site || null; p.site_destination = TG.destination && TG.destination.site || null;
+  p.adresse_origine = TG.origine && TG.origine.nom || null; p.adresse_destination = TG.destination && TG.destination.nom || null;
   if (!p.vehicule) { p.categorie = TG.dernier.categorie; }
   rpc('creer_transport_groupe', { p: p }).then(function (r) {
     message('Transport ' + esc(r.numero) + ' créé pour ' + esc(r.societe) + ' : coût ' + francs(r.cout_revient) +
@@ -7257,8 +7265,6 @@ function afficherFormulaireSite() {
       .then(function (s) {
         message('Site « ' + esc(s.nom) + ' » enregistré.', 'ok');
         return chargerReferentielGroupe().then(function () {
-          $('#tg_origine').innerHTML = optionsSites(TG.origine && TG.origine.site);
-          $('#tg_destination').innerHTML = optionsSites(TG.destination && TG.destination.site);
           z.style.display = 'none'; dessinerGroupe();
         });
       }).catch(function (e) { message(esc(e.message), 'ko'); });
@@ -7394,7 +7400,8 @@ function chargerParametresTransport() {
   bloc.style.display = dga ? '' : 'none'; blocS.style.display = dga ? '' : 'none';
   if (!dga) { return; }
   Promise.all([requete('/parametres_transport_communs?select=*'), requete('/parametres_transport?select=*&order=capacite_max_kg'),
-               requete('/societes_groupe?select=*&order=refacturable,nom'), requete('/sites_groupe?select=*&order=societe,nom')]).then(function (r) {
+               requete('/societes_groupe?select=*&order=refacturable,nom'), requete('/sites_groupe?select=*&order=societe,nom'),
+               requete('/gares_peage?select=*&order=autoroute,longitude')]).then(function (r) {
     var k = (r[0] || [])[0] || {}, cats = r[1] || [];
     var estK = k.source_autres === 'estimation';
     $('#param_transport').innerHTML =
@@ -7431,6 +7438,25 @@ function chargerParametresTransport() {
           .catch(function (e) { message(esc(e.message), 'ko'); });
       };
     });
+    var gares = r[4] || [];
+    $('#param_transport').insertAdjacentHTML('beforeend', '<h4 class="tg-soustitre">Gares de péage <span class="aide">(un trajet paie chaque gare que son itinéraire traverse, aller et retour)</span></h4>' +
+      '<div class="enveloppe"><table class="tablo tg-param"><thead><tr><th>Gare</th><th>Autoroute</th><th>Léger<br><span class="aide">F</span></th><th>Utilitaire (3 t)<br><span class="aide">F</span></th><th>Poids lourd<br><span class="aide">F</span></th><th>Active</th><th>Source</th><th></th></tr></thead><tbody>' +
+      gares.map(function (g) {
+        var est = /estimation|TollGuru/.test(g.source);
+        return '<tr' + (est ? ' class="tg-estime-ligne"' : '') + '><td><input class="pa-champ" data-gp-nom="' + g.id + '" value="' + esc(g.nom) + '" aria-label="Nom de la gare"></td><td class="aide">' + esc(g.autoroute || '') + '</td>' +
+          ['tarif_leger', 'tarif_utilitaire', 'tarif_poids_lourd'].map(function (k) {
+            return '<td><input class="pa-champ dp-mini" data-gp="' + g.id + '" data-champ="' + k + '" value="' + esc(g[k]) + '" inputmode="numeric" aria-label="' + k + ' ' + esc(g.nom) + '"></td>'; }).join('') +
+          '<td><input type="checkbox" data-gp-actif="' + g.id + '"' + (g.actif ? ' checked' : '') + ' aria-label="Gare active"></td><td class="aide">' + esc(g.source) + '</td>' +
+          '<td><button class="btn-mini" type="button" data-gp-enregistrer="' + g.id + '">Enregistrer</button></td></tr>';
+      }).join('') + '</tbody></table></div>');
+    $$('[data-gp-enregistrer]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.gpEnregistrer, v = { id: id, nom: $('[data-gp-nom="' + id + '"]').value, actif: $('[data-gp-actif="' + id + '"]').checked };
+        $$('[data-gp="' + id + '"]').forEach(function (i) { v[i.dataset.champ] = String(i.value).replace(/\s/g, ''); });
+        rpc('regler_gare_peage', { p: v }).then(function (g) { message('Gare « ' + esc(g.nom) + ' » enregistrée.', 'ok'); chargerParametresTransport(); })
+          .catch(function (e) { message(esc(e.message), 'ko'); });
+      };
+    });
     var socs = r[2] || [], sites = r[3] || [];
     $('#societes_groupe').innerHTML = '<div class="enveloppe"><table class="tablo carte-mobile"><thead><tr><th>Société</th><th>Refacturée</th><th>Sites</th></tr></thead><tbody>' +
       socs.map(function (s) {
@@ -7447,6 +7473,123 @@ function chargerParametresTransport() {
         .catch(function (e) { message(esc(e.message), 'ko'); });
     };
   }).catch(function (e) { $('#param_transport').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+
+/* ------------------------------ départ et arrivée : ville, quartier, site
+   09/10/2026 (DGA) : « choisir la ville ou le quartier, comme dans Maps, en
+   liste déroulante, et de là proposer le point GPS ». Les sites du groupe
+   d'abord, puis les lieux du Sénégal trouvés par OpenStreetMap (Nominatim). */
+function champLieu(sens, libelle) {
+  return '<div class="tg-lieu"><label for="tg_' + sens + '_q">' + libelle + '</label>' +
+    '<input class="pa-champ" id="tg_' + sens + '_q" autocomplete="off" placeholder="Ville, quartier ou site (ex. : Richard Toll, Médina)" ' +
+      'role="combobox" aria-expanded="false" aria-controls="tg_' + sens + '_liste">' +
+    '<div class="tg-suggestions" id="tg_' + sens + '_liste" role="listbox" style="display:none"></div>' +
+    '<div class="aide tg-point" id="tg_' + sens + '_point"></div></div>';
+}
+
+var LIEU_MINUTEUR = {};
+function brancherLieu(sens) {
+  var champ = $('#tg_' + sens + '_q'), liste = $('#tg_' + sens + '_liste');
+  champ.addEventListener('input', function () {
+    clearTimeout(LIEU_MINUTEUR[sens]);
+    var q = champ.value.trim();
+    if (q.length < 2) { liste.style.display = 'none'; return; }
+    LIEU_MINUTEUR[sens] = setTimeout(function () { chercherLieux(sens, q); }, 450);
+  });
+  champ.addEventListener('focus', function () { if (!champ.value.trim()) { montrerSuggestions(sens, sitesCorrespondants(''), []); } });
+  champ.addEventListener('keydown', function (e) {
+    var items = $$('#tg_' + sens + '_liste [data-lieu]');
+    var i = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' && items.length) { e.preventDefault(); items[Math.min(i + 1, items.length - 1)].focus(); }
+    if (e.key === 'Escape') { liste.style.display = 'none'; }
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest || !e.target.closest('.tg-lieu')) { liste.style.display = 'none'; } });
+}
+
+function sitesCorrespondants(q) {
+  q = q.toLowerCase();
+  return TG.sites.filter(function (s) {
+    return !q || (s.nom + ' ' + s.societe + ' ' + (s.adresse || '')).toLowerCase().indexOf(q) !== -1;
+  }).slice(0, 6).map(function (s) {
+    return { nom: s.nom, detail: (TG.societes.filter(function (x) { return x.code === s.societe; })[0] || {}).nom || s.societe,
+             lat: s.latitude, lng: s.longitude, site: s.id };
+  });
+}
+
+function chercherLieux(sens, q) {
+  var locaux = sitesCorrespondants(q);
+  montrerSuggestions(sens, locaux, null);
+  fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=sn&accept-language=fr&addressdetails=1&limit=8&q=' + encodeURIComponent(q))
+    .then(function (r) { return r.json(); })
+    .then(function (l) {
+      if ($('#tg_' + sens + '_q').value.trim() !== q) { return; }      // une frappe plus récente a la main
+      montrerSuggestions(sens, locaux, (l || []).map(function (x) {
+        var a = x.address || {};
+        var nom = x.name || (x.display_name || '').split(',')[0];
+        var lieu = [a.suburb || a.neighbourhood || a.quarter, a.city || a.town || a.village, a.state].filter(function (v) { return v && v !== nom; });
+        var detail = [lieu.slice(0, 2).join(', '), typeLieu(x.type, x.addresstype)].filter(Boolean).join(' · ');
+        return { nom: nom, detail: detail, lat: +(+x.lat).toFixed(6), lng: +(+x.lon).toFixed(6) };
+      }));
+    })
+    .catch(function () { montrerSuggestions(sens, locaux, [], 'Recherche de lieux indisponible : choisissez un site, ou placez le point sur la carte.'); });
+}
+
+function typeLieu(t, a) {
+  var k = a || t;
+  return { city: 'ville', town: 'ville', village: 'village', suburb: 'quartier', neighbourhood: 'quartier', quarter: 'quartier',
+           hamlet: 'hameau', road: 'rue', state: 'région', county: 'département', municipality: 'commune' }[k] || 'lieu';
+}
+
+function montrerSuggestions(sens, sites, lieux, erreur) {
+  var liste = $('#tg_' + sens + '_liste');
+  var items = (sites || []).map(function (x) { x.groupe = true; return x; }).concat(lieux || []);
+  TG['choix_' + sens] = items;
+  liste.innerHTML = items.map(function (x, i) {
+    return '<button type="button" role="option" data-lieu="' + i + '"><b>' + (x.groupe ? '🏭 ' : '📍 ') + esc(x.nom) + '</b>' +
+      '<span class="aide">' + esc(x.detail || '') + (x.groupe && x.lat === null ? ' · non placé' : '') + '</span></button>';
+  }).join('') +
+    (lieux === null ? '<div class="aide tg-sugg-info">Recherche…</div>' : '') +
+    (erreur ? '<div class="aide tg-sugg-info">' + esc(erreur) + '</div>' : '') +
+    (lieux && !lieux.length && !(sites || []).length ? '<div class="aide tg-sugg-info">Aucun lieu trouvé : essayez une autre orthographe, ou placez le point sur la carte.</div>' : '') +
+    '<button type="button" data-lieu-carte="1"><b>🗺️ Placer le point sur la carte</b></button>';
+  liste.style.display = '';
+  $('#tg_' + sens + '_q').setAttribute('aria-expanded', 'true');
+  $$('#tg_' + sens + '_liste [data-lieu]').forEach(function (b) {
+    b.onclick = function () { choisirLieu(sens, TG['choix_' + sens][+b.dataset.lieu]); };
+  });
+  $('#tg_' + sens + '_liste [data-lieu-carte]').onclick = function () {
+    liste.style.display = 'none';
+    TG.placer = sens;
+    $('#tg_carte_aide').innerHTML = '<b>Cliquez sur la carte</b> pour placer ' + (sens === 'origine' ? 'le départ' : 'l\'arrivée') + '.';
+  };
+}
+
+function choisirLieu(sens, x) {
+  $('#tg_' + sens + '_liste').style.display = 'none';
+  $('#tg_' + sens + '_q').setAttribute('aria-expanded', 'false');
+  $('#tg_' + sens + '_q').value = x.nom + (x.detail ? ' — ' + x.detail : '');
+  TG[sens] = x.lat === null || x.lat === undefined ? { site: x.site, nom: x.nom }
+           : { lat: x.lat, lng: x.lng, nom: x.nom + (x.detail && !x.groupe ? ', ' + x.detail.split(' · ')[0] : ''), site: x.site || null };
+  if (TG[sens].lat === undefined) {
+    message('Le site « ' + esc(x.nom) + ' » n\'est pas encore placé : placez-le sur la carte.', 'ko');
+    TG.placer = sens;
+  }
+  afficherPointLieu(sens);
+  majDistance(); dessinerGroupe();
+}
+
+function afficherPointLieu(sens) {
+  var p = TG[sens], z = $('#tg_' + sens + '_point');
+  if (!z) { return; }
+  if (!p || p.lat === undefined) { z.innerHTML = ''; return; }
+  z.innerHTML = 'Point GPS proposé : <b>' + p.lat.toFixed(5) + ', ' + p.lng.toFixed(5) + '</b> ' +
+    '<button type="button" class="btn-mini discret" data-ajuster="' + sens + '">Ajuster sur la carte</button>';
+  z.querySelector('[data-ajuster]').onclick = function () {
+    TG.placer = sens;
+    $('#tg_carte_aide').innerHTML = '<b>Cliquez sur la carte</b> à l\'endroit exact ' + (sens === 'origine' ? 'du départ' : 'de l\'arrivée') + '.';
+    if (TG.carte) { TG.carte.setView([p.lat, p.lng], 14); }
+  };
 }
 </script>
 </body>

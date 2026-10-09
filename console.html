@@ -1368,7 +1368,7 @@ body { padding-bottom: var(--e6); }
 .enveloppe::-webkit-scrollbar-thumb { background: #D3C4B0; border-radius: 999px; }
 .enveloppe::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-table.tablo { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table.tablo { width: 100%; border-collapse: collapse; table-layout: auto; }
 table.tablo th, table.tablo td {
   padding: var(--e3); text-align: left; font-size: 13.5px;
   border-bottom: 1px solid var(--bord); vertical-align: middle;
@@ -1399,59 +1399,12 @@ table.tablo tbody tr:hover > td:first-child { background: #FDFBF8; }
 /* Largeurs par tableau — l'ordre des colonnes est celui produit par app.js. */
 /* La largeur minimale de chaque tableau est exactement la somme de ses
    colonnes : en dessous, le cadre défile ; au-dessus, les colonnes s'étirent. */
-#dispatch_tableau table.tablo { min-width: 1225px; }
-#dispatch_tableau table.tablo th:nth-child(1), #dispatch_tableau table.tablo td:nth-child(1) { width: 130px; }
-#dispatch_tableau table.tablo th:nth-child(2), #dispatch_tableau table.tablo td:nth-child(2) { width: 100px; }
-#dispatch_tableau table.tablo th:nth-child(3), #dispatch_tableau table.tablo td:nth-child(3) { width: 95px; }
-#dispatch_tableau table.tablo th:nth-child(4), #dispatch_tableau table.tablo td:nth-child(4) { width: 190px; }
-#dispatch_tableau table.tablo th:nth-child(5), #dispatch_tableau table.tablo td:nth-child(5) { width: 80px; text-align: right; }
-#dispatch_tableau table.tablo th:nth-child(6), #dispatch_tableau table.tablo td:nth-child(6) { width: 125px; }
-#dispatch_tableau table.tablo th:nth-child(7), #dispatch_tableau table.tablo td:nth-child(7) { width: 140px; }
-#dispatch_tableau table.tablo th:nth-child(8), #dispatch_tableau table.tablo td:nth-child(8) { width: 140px; }
-#dispatch_tableau table.tablo th:nth-child(9), #dispatch_tableau table.tablo td:nth-child(9) { width: 110px; }
-#dispatch_tableau table.tablo th:nth-child(10), #dispatch_tableau table.tablo td:nth-child(10) { width: 115px; }
-
-#commandes_tableau table.tablo { min-width: 980px; }
-#commandes_tableau th:nth-child(1), #commandes_tableau td:nth-child(1) { width: 150px; }
-#commandes_tableau th:nth-child(2), #commandes_tableau td:nth-child(2) { width: 100px; }
-#commandes_tableau th:nth-child(3), #commandes_tableau td:nth-child(3) { width: 110px; }
-#commandes_tableau th:nth-child(4), #commandes_tableau td:nth-child(4) { width: 80px; text-align: right; }
-#commandes_tableau th:nth-child(5), #commandes_tableau td:nth-child(5) { width: 260px; }
-#commandes_tableau th:nth-child(6), #commandes_tableau td:nth-child(6) { width: 160px; }
-#commandes_tableau th:nth-child(7), #commandes_tableau td:nth-child(7) { width: 120px; }
-
-/* Onze colonnes : ce tableau défile même sur un grand écran. La première
-   colonne reste figée, c'est elle qui rattache la ligne à sa livraison. */
-#livraisons_tableau table.tablo { min-width: 1305px; }
-#livraisons_tableau th:nth-child(1), #livraisons_tableau td:nth-child(1) { width: 135px; }
-#livraisons_tableau th:nth-child(2), #livraisons_tableau td:nth-child(2) { width: 100px; }
-#livraisons_tableau th:nth-child(3), #livraisons_tableau td:nth-child(3) { width: 150px; }
-#livraisons_tableau th:nth-child(4), #livraisons_tableau td:nth-child(4) { width: 90px; text-align: right; }
-#livraisons_tableau th:nth-child(5), #livraisons_tableau td:nth-child(5) { width: 95px; text-align: right; }
-#livraisons_tableau th:nth-child(6), #livraisons_tableau td:nth-child(6) { width: 90px; text-align: right; }
-#livraisons_tableau th:nth-child(7), #livraisons_tableau td:nth-child(7) { width: 125px; }
-#livraisons_tableau th:nth-child(8), #livraisons_tableau td:nth-child(8) { width: 100px; }
-#livraisons_tableau th:nth-child(9), #livraisons_tableau td:nth-child(9) { width: 190px; }
-#livraisons_tableau th:nth-child(10), #livraisons_tableau td:nth-child(10) { width: 120px; text-align: right; }
-#livraisons_tableau th:nth-child(11), #livraisons_tableau td:nth-child(11) { width: 110px; }
-
-#boutiques_tableau table.tablo { min-width: 1140px; }
-#boutiques_tableau th:nth-child(1), #boutiques_tableau td:nth-child(1) { width: 110px; }
-#boutiques_tableau th:nth-child(2), #boutiques_tableau td:nth-child(2) { width: 240px; }
-#boutiques_tableau th:nth-child(3), #boutiques_tableau td:nth-child(3) { width: 130px; }
-#boutiques_tableau th:nth-child(4), #boutiques_tableau td:nth-child(4) { width: 120px; }
-#boutiques_tableau th:nth-child(5), #boutiques_tableau td:nth-child(5) { width: 160px; }
-#boutiques_tableau th:nth-child(6), #boutiques_tableau td:nth-child(6) { width: 110px; text-align: right; }
-#boutiques_tableau th:nth-child(7), #boutiques_tableau td:nth-child(7) { width: 120px; }
-#boutiques_tableau th:nth-child(8), #boutiques_tableau td:nth-child(8) { width: 150px; }
-
-#utilisateurs_tableau table.tablo { min-width: 990px; }
-#utilisateurs_tableau th:nth-child(1), #utilisateurs_tableau td:nth-child(1) { width: 200px; }
-#utilisateurs_tableau th:nth-child(2), #utilisateurs_tableau td:nth-child(2) { width: 260px; }
-#utilisateurs_tableau th:nth-child(3), #utilisateurs_tableau td:nth-child(3) { width: 170px; }
-#utilisateurs_tableau th:nth-child(4), #utilisateurs_tableau td:nth-child(4) { width: 130px; }
-#utilisateurs_tableau th:nth-child(5), #utilisateurs_tableau td:nth-child(5) { width: 150px; }
-#utilisateurs_tableau th:nth-child(6), #utilisateurs_tableau td:nth-child(6) { width: 80px; text-align: center; }
+/* 09/10/2026 : plus de largeurs de colonnes figées par numéro d'ordre. Elles ne
+   correspondaient plus aux colonnes réellement produites (Statut tombait dans une
+   colonne de 110 px, les boutons dépassaient et se superposaient). La disposition
+   est « automatique » : chaque colonne prend la largeur de son contenu, et si le
+   total dépasse le cadre, c'est le cadre (.enveloppe) qui défile. */
+#utilisateurs_tableau th:nth-child(6), #utilisateurs_tableau td:nth-child(6) { text-align: center; }
 #utilisateurs_tableau td:nth-child(6) input[type="checkbox"] {
   width: 20px; height: 20px; accent-color: var(--principal); cursor: pointer;
 }
@@ -2176,6 +2129,77 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
 .ra-traiter input { flex: 1 1 220px; }
 .ra-image { max-width: 100%; max-height: 320px; border-radius: var(--rayon-s); margin-top: 6px; }
 @media print { .ra-bouton, .ra-fond { display: none !important; } }
+
+/* ===== 09/10/2026 — mise en page : boutons et champs dans les tableaux ======
+   Plainte du directeur : « des boutons ne rentrent pas dans les champs, des
+   champs ne rentrent pas dans la page ; dans Dispatch, « En route et à venir »,
+   onglet Suivi, les boutons se superposent ».
+   Causes mesurées : (1) « .dp-gestes » est un flex, appliqué aussi à une cellule
+   <td> : la cellule cesse d'être une cellule de tableau et sa hauteur n'est plus
+   celle de la ligne ; (2) colonnes à largeur figée qui ne correspondaient plus
+   aux colonnes ; (3) contrôles sans max-width.                                 */
+td.dp-gestes { display: table-cell; margin-top: 0; }
+td.dp-gestes .btn-mini { margin: 0 var(--e1) var(--e1) 0; }
+table.tablo td .btn-mini + .btn-mini { margin-left: 0; }
+.dp-gestes { gap: var(--e1); }
+/* La cellule d'action est assez large pour deux boutons côte à côte, puis passe à la ligne. */
+table.tablo.dp-en-cours td.dp-gestes, table.tablo.liv-tableau td:last-child { min-width: 210px; }
+table.tablo.dp-en-cours td.dp-gestes, table.tablo.liv-tableau td .dp-gestes { white-space: normal; }
+table.tablo .btn-mini, table.tablo select.mini { white-space: nowrap; max-width: 100%; }
+/* Champs : jamais plus larges que leur cellule ou leur colonne. */
+input, select, textarea, button { max-width: 100%; min-width: 0; }
+table.tablo input:not([type="checkbox"]):not([type="radio"]), table.tablo select, table.tablo textarea { min-width: 8.5rem; }
+table.tablo input.pa-prix-champ { min-width: 6rem; width: 100%; max-width: 9rem; }
+table.tablo .dp-mini { width: 100%; max-width: 100%; min-width: 11rem; }
+/* Cellules de texte en tableau auto : le texte qui ne tient pas passe à la ligne
+   au lieu d'être coupé, sauf les nombres. */
+table.tablo th, table.tablo td { overflow: visible; text-overflow: clip; }
+table.tablo td:not(.num) { white-space: normal; overflow-wrap: break-word; }
+table.tablo td:first-child { min-width: 9rem; }
+table.tablo td:not(.num):not(:first-child) { min-width: 6.5rem; }
+table.tablo th { white-space: nowrap; }
+table.tablo td.num, table.tablo .num { white-space: nowrap; }
+/* Tout conteneur direct d'un tableau défile dans son cadre, même sans « .enveloppe »
+   (le tableau des prix n'en avait pas : il élargissait la page à 768 px). */
+#prix_tableau, div:has(> table.tablo) { max-width: 100%; overflow-x: auto; }
+
+/* ---------------------------------------- transports du groupe (0033) */
+.tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
+.tg-grille > label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .92rem; min-width: 0; }
+.tg-grille .pa-champ { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.tg-grille .tg-large { grid-column: 1 / -1; }
+.tg-grille .tg-case, .tg-boutons .tg-case { flex-direction: row; align-items: center; gap: 8px; font-weight: 500; }
+.tg-lien { display: flex; align-items: flex-end; }
+.tg-carte { height: 280px; margin: 6px 0 4px; }
+.tg-site { background: var(--fond); border: 1px dashed var(--bord); border-radius: var(--rayon-s); padding: 8px 12px; margin: 8px 0; }
+.tg-boutons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px; }
+.tg-boutons .pa-champ { flex: 1 1 200px; min-width: 0; max-width: 320px; }
+.tg-chiffrage { border: 1.5px solid var(--bord); border-radius: var(--rayon-s); padding: 12px; margin-top: 10px; background: var(--carte); }
+.tg-resume { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.tg-resume > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.tg-resume b { font-size: 1.05rem; }
+.tg-resume .tg-prix b { font-size: 1.3rem; color: var(--vert); }
+.tg-detail, .tg-comparatif table { width: 100%; }
+.tg-detail td { overflow-wrap: anywhere; }
+.tg-total td { font-weight: 700; background: var(--principal-pale); }
+.tg-choisi td { background: var(--vert-pale); font-weight: 600; }
+.tg-comparatif { margin-top: 10px; }
+.tg-comparatif summary { cursor: pointer; font-weight: 600; }
+.tg-bandeau-estime { background: #FFF6C7; border: 1px solid #E8D27A; color: #5C4A00; border-radius: var(--rayon-s); padding: 8px 10px; margin-bottom: 10px; }
+.tg-estime { background: #FFF6C7; color: #5C4A00; border-radius: 4px; padding: 0 4px; }
+.tg-estime-ligne td { background: #FFFBE3; }
+.tg-communs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; }
+.tg-communs > label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; min-width: 0; padding: 4px; }
+.tg-communs .pa-champ { width: 100%; box-sizing: border-box; min-width: 0; }
+.tg-param .pa-champ { width: 88px; min-width: 0; box-sizing: border-box; }
+.tg-filtres { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+.tg-filtres label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; min-width: 180px; }
+@media (max-width: 600px) {
+  .tg-grille { grid-template-columns: 1fr; }
+  .tg-carte { height: 220px; }
+  .tg-boutons > * { flex: 1 1 100%; max-width: none; }
+}
 </style>
 </head>
 <body>
@@ -2417,7 +2441,19 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
   <section class="ecran-console" data-ecran="commandes">
     <div class="entete-ecran">
       <h2>Commandes</h2>
-      <p>Les 200 dernières commandes reçues du phoning et du terrain.</p>
+      <p>Les commandes reçues du phoning et du terrain, et les transports pour les sociétés du groupe.</p>
+    </div>
+    <div class="tg-actions" id="tg_actions" style="display:none">
+      <button class="btn-console accent" id="tg_ouvrir" type="button">＋ Transport pour une société du groupe</button>
+      <button class="btn-console" id="tg_client" type="button">＋ Livraison à un client, hors phoning</button>
+    </div>
+    <div class="bloc-console" id="bloc_transport_groupe" style="display:none">
+      <h3>Transport pour une société du groupe <span class="aide">refacturé au coûtant + marge groupe</span></h3>
+      <div id="tg_formulaire"></div>
+    </div>
+    <div class="bloc-console" id="bloc_transports_groupe_liste" style="display:none">
+      <h3>Transports du groupe <span class="compte" id="tg_compte"></span></h3>
+      <div class="enveloppe" id="tg_liste"></div>
     </div>
     <div class="champ-recherche">
       <input type="text" id="cmd_recherche" class="mini" placeholder="Rechercher un numéro, une boutique, une zone…">
@@ -2477,6 +2513,12 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
       <div class="pl-bascule" id="doc_bascule" style="margin-bottom:10px"></div>
       <div class="enveloppe" id="documents_tableau"></div>
     </div>
+    <div class="bloc-console" id="bloc_refacturation" style="display:none">
+      <h3>Refacturation des transports du groupe</h3>
+      <p class="aide">Un relevé par société et par mois, au prix groupe. Imprimez-le, saisissez la facture dans le logiciel, puis notez son numéro ici.</p>
+      <div class="tg-filtres" id="rf_filtres"></div>
+      <div id="rf_releve"></div>
+    </div>
   </section>
 
   <!-- ------------------------------------------- retours des utilisateurs -->
@@ -2500,6 +2542,10 @@ table.tablo tr.fl-modifiee td { background: var(--ambre-pale) !important; }
     </div>
     <div class="bloc-console"><div id="prix_tableau"></div></div>
     <div class="bloc-console"><h3>Coordonnées de la société (en-tête des documents)</h3><div id="societe_bloc"></div></div>
+    <div class="bloc-console" id="bloc_param_transport" style="display:none"><h3>Coût des transports du groupe</h3>
+      <p class="aide">Les valeurs du calculateur. <span class="tg-estime">En jaune</span> : estimation de CoS, à valider ou corriger. Chaque changement est tracé sous votre nom.</p>
+      <div id="param_transport"></div></div>
+    <div class="bloc-console" id="bloc_societes_groupe" style="display:none"><h3>Sociétés du groupe et leurs sites</h3><div id="societes_groupe"></div></div>
   </section>
 
   <section class="ecran-console" data-ecran="utilisateurs">
@@ -2995,8 +3041,8 @@ function ouvrirOnglet(nom) {
   if (nom === 'commandes') { chargerCommandes(); }
   if (nom === 'livraisons') { chargerLivraisons(); }
   if (nom === 'utilisateurs') { chargerUtilisateurs(); }
-  if (nom === 'prix') { chargerPrix(); if (aLeDroit(['dga'])) { chargerSociete(); } }
-  if (nom === 'documents') { chargerDocuments(); }
+  if (nom === 'prix') { chargerPrix(); if (aLeDroit(['dga'])) { chargerSociete(); } chargerParametresTransport(); }
+  if (nom === 'documents') { chargerDocuments(); chargerRefacturation(); }
   if (nom === 'retours') { chargerRetours(); }
   if (nom === 'boutiques') { chargerZones(); }
 }
@@ -3931,6 +3977,7 @@ var LIBELLES_STATUT_COMMANDE = { a_confirmer: 'À confirmer', confirmee: 'Confir
    ne portait pas sur le nom. Le client vient de la boutique liée ; la recherche
    porte sur le numéro, le client, son téléphone et l'adresse. */
 function chargerCommandes() {
+  preparerTransportsGroupe();
   $('#commandes_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
   var filtre = $('#cmd_recherche').value.trim().toLowerCase();
   var chiffres = filtre.replace(/\D/g, '');
@@ -6686,7 +6733,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-09 11:19';
+var VERSION_CONSOLE = '2026-10-09 12:57';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
@@ -6899,6 +6946,507 @@ function voirCapture(nom, id) {
     var url = URL.createObjectURL(blob);
     cadre.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener"><img class="ra-image" src="' + url + '" alt="Capture jointe"></a>';
   }).catch(function (e) { cadre.innerHTML = '<span class="aide">Capture introuvable (' + esc(e.message) + ').</span>'; });
+}
+
+/* ==========================================================================
+   TRANSPORTS DU GROUPE — créés depuis Commandes, chiffrés par la base au
+   coûtant + marge groupe, refacturés aux sociétés (0033, DGA 09/10/2026).
+   « Le code calcule » : la page ne fait qu'afficher le chiffrage que la base
+   renvoie (chiffrer_transport) ; à la création, la base le refait elle-même.
+   ========================================================================== */
+
+var TG = { societes: [], sites: [], vehicules: [], origine: null, destination: null, placer: null,
+           distance: null, sourceDistance: null, minuteur: null, dernier: null, carte: null, calques: null, rf: [] };
+var VOIT_REFACTURATION = ['dga', 'comptable'];
+
+function decimal(t) { return String(t).replace(/(\d)\.(\d)/g, '$1,$2'); }
+function joursFr(v) { return v ? dateCourte(v) : '—'; }
+
+function chargerReferentielGroupe() {
+  return Promise.all([
+    requete('/societes_groupe?select=*&order=refacturable,nom'),
+    requete('/sites_groupe?select=*&actif=eq.true&order=societe,nom'),
+    aLeDroit(PEUT_DISPATCHER) ? requete('/v_flotte_gestion?select=*&etat=eq.actif&order=type,immatriculation') : Promise.resolve([]),
+    aLeDroit(PEUT_DISPATCHER) ? requete('/v_chauffeurs_gestion?select=*&order=nom') : Promise.resolve([])
+  ]).then(function (r) {
+    TG.societes = r[0] || []; TG.sites = r[1] || []; TG.vehicules = r[2] || [];
+    if (r[3] && r[3].length) { DISPATCH.chauffeurs = r[3]; }
+  });
+}
+
+/* Appelé par chargerCommandes. */
+function preparerTransportsGroupe() {
+  var peut = aLeDroit(PEUT_DISPATCHER), voit = aLeDroit(['dga', 'logistique', 'comptable']);
+  $('#tg_actions').style.display = peut ? '' : 'none';
+  $('#bloc_transports_groupe_liste').style.display = voit ? '' : 'none';
+  if (!peut && !voit) { return; }
+  $('#tg_ouvrir').onclick = function () {
+    var b = $('#bloc_transport_groupe');
+    if (b.style.display === 'none') { b.style.display = ''; afficherFormulaireGroupe(); } else { b.style.display = 'none'; }
+  };
+  $('#tg_client').onclick = function () {
+    ouvrirOnglet('dispatch');
+    setTimeout(function () {
+      var d = $('#bloc_nouveau_transport'); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth' }); }
+    }, 300);
+  };
+  if (voit) { chargerListeGroupe(); }
+}
+
+function optionsSites(choix) {
+  var parSoc = {};
+  TG.sites.forEach(function (s) { (parSoc[s.societe] = parSoc[s.societe] || []).push(s); });
+  return '<option value="">— choisir —</option><option value="carte"' + (choix === 'carte' ? ' selected' : '') + '>📍 Un point sur la carte</option>' +
+    TG.societes.map(function (so) {
+      var l = parSoc[so.code] || [];
+      return l.length ? '<optgroup label="' + esc(so.nom) + '">' + l.map(function (s) {
+        return '<option value="' + s.id + '"' + (choix === s.id ? ' selected' : '') + '>' + esc(s.nom) +
+          (s.latitude === null ? ' (non placé)' : '') + '</option>';
+      }).join('') + '</optgroup>' : '';
+    }).join('');
+}
+
+function afficherFormulaireGroupe() {
+  var z = $('#tg_formulaire');
+  z.innerHTML = '<div class="chargement">Chargement…</div>';
+  chargerReferentielGroupe().then(function () {
+    var demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    z.innerHTML =
+      '<div class="tg-grille">' +
+        '<label>Société cliente<select class="pa-champ" id="tg_societe"><option value="">— choisir —</option>' +
+          TG.societes.filter(function (s) { return s.actif; }).map(function (s) {
+            return '<option value="' + esc(s.code) + '">' + esc(s.nom) + (s.refacturable ? '' : ' (interne, non refacturé)') + '</option>';
+          }).join('') + '</select></label>' +
+        '<label>Date<input class="pa-champ" type="date" id="tg_date" value="' + demain + '"></label>' +
+        '<label>Créneau<select class="pa-champ" id="tg_creneau"><option value="">—</option><option value="matin">Matin</option><option value="apres_midi">Après-midi</option></select></label>' +
+        '<label>Départ<select class="pa-champ" id="tg_origine">' + optionsSites() + '</select></label>' +
+        '<label>Arrivée<select class="pa-champ" id="tg_destination">' + optionsSites() + '</select></label>' +
+        '<div class="tg-lien"><button type="button" class="btn-mini discret" id="tg_nouveau_site">＋ Nouveau site</button></div>' +
+      '</div>' +
+      '<div id="tg_site_form" class="tg-site" style="display:none"></div>' +
+      '<p class="aide" id="tg_carte_aide">Les sites du groupe sont sur la carte. Choisissez le départ et l\'arrivée dans les listes, ou « Un point sur la carte ».</p>' +
+      '<div id="tg_carte" class="carte-console tg-carte"></div>' +
+      '<div class="tg-grille">' +
+        '<label class="tg-large">Marchandise<input class="pa-champ" id="tg_marchandise" placeholder="Ex. : 200 sacs de mil décortiqué"></label>' +
+        '<label>Poids (kg)<input class="pa-champ" id="tg_poids" type="number" min="1" step="1" inputmode="numeric"></label>' +
+        '<label>Unités (facultatif)<input class="pa-champ" id="tg_unites" type="number" min="0" step="1" inputmode="numeric"></label>' +
+        '<label>Véhicule<select class="pa-champ" id="tg_vehicule"><option value="">Le moins cher, proposé par le calcul</option>' +
+          TG.vehicules.map(function (v) {
+            return '<option value="' + esc(v.immatriculation || '') + '" data-chauffeur="' + esc(v.chauffeur_id || '') + '">' +
+              esc((v.immatriculation || '(sans plaque)') + ' · ' + (v.libelle_usage || v.type) + (v.capacite_kg ? ' · ' + formater(v.capacite_kg) + ' kg' : '') +
+              (v.disponible ? ' · libre' : ' · en livraison')) + '</option>';
+          }).join('') + '</select></label>' +
+        '<label>Chauffeur<select class="pa-champ" id="tg_chauffeur">' + optionsChauffeurs(null) + '</select></label>' +
+        '<label>Distance route, aller (km)<input class="pa-champ" id="tg_distance" type="number" min="0" step="0.1" inputmode="decimal"><span class="aide" id="tg_distance_source"></span></label>' +
+        '<label>Péages par trajet (F)<input class="pa-champ" id="tg_peages" type="number" min="0" step="100" value="0"></label>' +
+        '<label>Attente prévue sur place (h)<input class="pa-champ" id="tg_attente" type="number" min="0" step="0.5" value="0"></label>' +
+        '<label class="tg-case"><input type="checkbox" id="tg_ar" checked> Retour à vide compté</label>' +
+        '<label class="tg-large">Commentaire<input class="pa-champ" id="tg_commentaire" placeholder="Contact sur place, consignes…"></label>' +
+      '</div>' +
+      '<div id="tg_chiffrage" class="tg-chiffrage"><div class="aide">Renseignez le poids, le départ et l\'arrivée : le prix se calcule tout seul.</div></div>' +
+      '<div class="tg-boutons"><button class="btn-console accent" id="tg_creer" type="button">Créer le transport</button>' +
+      '<button class="btn-console" id="tg_annuler" type="button">Fermer</button></div>';
+    TG.origine = null; TG.destination = null; TG.distance = null; TG.sourceDistance = null; TG.dernier = null;
+    preparerCarteGroupe();
+    ['#tg_poids', '#tg_peages', '#tg_attente', '#tg_ar', '#tg_vehicule'].forEach(function (s) {
+      $(s).addEventListener('input', planifierChiffrage); $(s).addEventListener('change', planifierChiffrage);
+    });
+    $('#tg_distance').addEventListener('input', function () {
+      TG.distance = nombre(this.value) || null; TG.sourceDistance = TG.distance ? 'saisie' : null;
+      $('#tg_distance_source').textContent = TG.distance ? 'saisie à la main' : ''; planifierChiffrage();
+    });
+    $('#tg_vehicule').addEventListener('change', function () {
+      var o = this.options[this.selectedIndex];
+      if (o && o.dataset.chauffeur) { $('#tg_chauffeur').value = o.dataset.chauffeur; }
+    });
+    $('#tg_origine').onchange = function () { choisirPoint('origine', this.value); };
+    $('#tg_destination').onchange = function () { choisirPoint('destination', this.value); };
+    $('#tg_nouveau_site').onclick = afficherFormulaireSite;
+    $('#tg_creer').onclick = creerTransportGroupe;
+    $('#tg_annuler').onclick = function () { $('#bloc_transport_groupe').style.display = 'none'; };
+  }).catch(function (e) { z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+function preparerCarteGroupe() {
+  TG.carte = cartePreparer('tg_carte', 7);
+  if (!TG.carte) { return; }
+  TG.carte.setView([14.6, -16.4], 7);
+  TG.calques = L.layerGroup().addTo(TG.carte);
+  TG.carte.on('click', function (ev) {
+    if (!TG.placer) { return; }
+    var pt = { lat: +ev.latlng.lat.toFixed(6), lng: +ev.latlng.lng.toFixed(6), nom: 'Point placé' };
+    if (TG.placer === 'site') { TG.siteCoord = pt; $('#ts_pos').textContent = 'Placé : ' + pt.lat + ', ' + pt.lng; }
+    else { TG[TG.placer] = pt; majDistance(); }
+    TG.placer = null; $('#tg_carte_aide').textContent = 'Point enregistré.';
+    dessinerGroupe();
+  });
+  dessinerGroupe();
+}
+
+function dessinerGroupe() {
+  if (!TG.calques) { return; }
+  TG.calques.clearLayers();
+  TG.sites.forEach(function (s) {
+    if (s.latitude === null || s.longitude === null) { return; }
+    L.circleMarker([s.latitude, s.longitude], { radius: 6, color: '#442A19', fillColor: '#C79D67', fillOpacity: 0.9, weight: 2 })
+      .bindTooltip(esc(s.societe + ' · ' + s.nom)).addTo(TG.calques);
+  });
+  [['origine', 'Départ', '#1F5A38'], ['destination', 'Arrivée', '#B3261E']].forEach(function (x) {
+    var p = TG[x[0]]; if (!p) { return; }
+    L.circleMarker([p.lat, p.lng], { radius: 10, color: x[2], weight: 3, fillOpacity: 0.2 }).bindTooltip(x[1] + ' : ' + esc(p.nom)).addTo(TG.calques);
+  });
+  if (TG.origine && TG.destination) {
+    L.polyline([[TG.origine.lat, TG.origine.lng], [TG.destination.lat, TG.destination.lng]], { color: '#442A19', dashArray: '6 6', weight: 2 }).addTo(TG.calques);
+    try { TG.carte.fitBounds([[TG.origine.lat, TG.origine.lng], [TG.destination.lat, TG.destination.lng]], { padding: [30, 30], maxZoom: 12 }); } catch (e) {}
+  }
+}
+
+function choisirPoint(sens, valeur) {
+  TG[sens] = null;
+  if (valeur === 'carte') {
+    TG.placer = sens;
+    $('#tg_carte_aide').innerHTML = '<b>Cliquez sur la carte</b> pour placer ' + (sens === 'origine' ? 'le départ' : 'l\'arrivée') + '.';
+  } else if (valeur) {
+    var s = TG.sites.filter(function (x) { return x.id === valeur; })[0];
+    if (s && s.latitude !== null) { TG[sens] = { lat: s.latitude, lng: s.longitude, nom: s.nom, site: s.id }; }
+    else if (s) { message('Le site « ' + esc(s.nom) + ' » n\'est pas encore placé sur la carte : placez-le (Prix → Sociétés du groupe) ou saisissez la distance.', 'ko'); TG[sens] = { site: s.id, nom: s.nom }; }
+  }
+  majDistance(); dessinerGroupe();
+}
+
+/* La distance : par la route (service d'itinéraire public OSRM) quand il répond,
+   sinon la base prend le vol d'oiseau × coefficient. Une distance saisie à la
+   main n'est jamais écrasée. */
+function majDistance() {
+  if (TG.sourceDistance === 'saisie') { planifierChiffrage(); return; }
+  TG.distance = null; TG.sourceDistance = null; $('#tg_distance').value = ''; $('#tg_distance_source').textContent = '';
+  var o = TG.origine, d = TG.destination;
+  if (!o || !d || o.lat === undefined || d.lat === undefined) { planifierChiffrage(); return; }
+  $('#tg_distance_source').textContent = 'calcul de l\'itinéraire…';
+  var controle = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var delai = setTimeout(function () { if (controle) { controle.abort(); } }, 7000);
+  fetch('https://router.project-osrm.org/route/v1/driving/' + o.lng + ',' + o.lat + ';' + d.lng + ',' + d.lat + '?overview=false',
+        controle ? { signal: controle.signal } : {})
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      clearTimeout(delai);
+      var m = j && j.routes && j.routes[0] && j.routes[0].distance;
+      if (!m) { throw new Error('sans itinéraire'); }
+      if (TG.sourceDistance === 'saisie') { return; }
+      TG.distance = Math.round(m / 100) / 10; TG.sourceDistance = 'itinéraire routier (OSRM)';
+      $('#tg_distance').value = TG.distance; $('#tg_distance_source').textContent = 'par la route (itinéraire calculé)';
+      planifierChiffrage();
+    })
+    .catch(function () {
+      clearTimeout(delai);
+      $('#tg_distance_source').textContent = 'itinéraire indisponible : vol d\'oiseau × coefficient, ou saisissez les km';
+      planifierChiffrage();
+    });
+}
+
+function chargeChiffrage() {
+  var p = {
+    poids_kg: nombre($('#tg_poids').value) || null,
+    aller_retour: $('#tg_ar').checked,
+    peages_fcfa: nombre($('#tg_peages').value),
+    attente_h: nombre($('#tg_attente').value),
+    vehicule: $('#tg_vehicule').value || null
+  };
+  if (TG.distance) { p.distance_km = TG.distance; p.source_distance = TG.sourceDistance; }
+  if (TG.origine && TG.origine.lat !== undefined) { p.origine_lat = TG.origine.lat; p.origine_lng = TG.origine.lng; }
+  if (TG.destination && TG.destination.lat !== undefined) { p.destination_lat = TG.destination.lat; p.destination_lng = TG.destination.lng; }
+  return p;
+}
+
+function planifierChiffrage() {
+  clearTimeout(TG.minuteur);
+  TG.minuteur = setTimeout(chiffrerGroupe, 350);
+}
+
+function chiffrerGroupe() {
+  var z = $('#tg_chiffrage'); if (!z) { return; }
+  var p = chargeChiffrage();
+  if (!p.poids_kg || (!p.distance_km && !(p.origine_lat && p.destination_lat))) {
+    TG.dernier = null;
+    z.innerHTML = '<div class="aide">Renseignez le poids, le départ et l\'arrivée (ou la distance) : le prix se calcule tout seul.</div>';
+    return;
+  }
+  z.innerHTML = '<div class="chargement">Calcul…</div>';
+  rpc('chiffrer_transport', { p: p }).then(function (c) {
+    TG.dernier = c;
+    z.innerHTML = rendreChiffrage(c, true);
+    $$('[data-tg-cat]').forEach(function (b) {
+      b.onclick = function () {
+        var v = TG.vehicules.filter(function (x) { return x.immatriculation && categorieLocale(x) === b.dataset.tgCat && x.disponible; })[0] ||
+                TG.vehicules.filter(function (x) { return x.immatriculation && categorieLocale(x) === b.dataset.tgCat; })[0];
+        if (v) { $('#tg_vehicule').value = v.immatriculation; if (v.chauffeur_id) { $('#tg_chauffeur').value = v.chauffeur_id; } chiffrerGroupe(); }
+        else { message('Aucun véhicule actif de cette catégorie.', 'ko'); }
+      };
+    });
+  }).catch(function (e) { TG.dernier = null; z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+/* Même règle que la base (categorie_vehicule) — sert seulement à proposer un véhicule. */
+function categorieLocale(v) {
+  if (v.type === 'tricycle') { return 'tricycle'; }
+  var cap = nombre(v.capacite_kg);
+  return cap <= 3500 ? 'camion_3t' : cap <= 10500 ? 'camion_10t' : cap <= 16000 ? 'camion_15t' : 'semi_40t';
+}
+
+function rendreChiffrage(c, avecComparatif) {
+  return (c.estimation ? '<div class="tg-bandeau-estime">Calcul sur des paramètres <b>estimés</b>, pas encore validés par la direction (Prix → Coût des transports).</div>' : '') +
+    '<div class="tg-resume"><div><span class="aide">Coût de revient</span><b>' + francs(c.cout_revient) + '</b></div>' +
+    '<div class="tg-prix"><span class="aide">Prix groupe (coûtant + ' + decimal(Math.round(nombre(c.marge) * 1000) / 10) + ' %)</span><b>' + francs(c.prix_groupe) + '</b></div>' +
+    '<div><span class="aide">Véhicule</span><b>' + esc(c.libelle) + (c.vehicule ? ' · ' + esc(c.vehicule) : ' (proposé)') + '</b>' +
+      (c.tours > 1 ? '<span class="aide">' + c.tours + ' tours de ' + formater(c.charge_par_tour_kg) + ' kg</span>' : '') + '</div>' +
+    '<div><span class="aide">Trajet</span><b>' + decimal(c.distance_km) + ' km aller</b><span class="aide">' + esc(c.source_distance) +
+      (c.aller_retour ? ' · retour à vide compté' : '') + '</span></div>' +
+    (c.fcfa_tonne_km ? '<div><span class="aide">Soit</span><b>' + formater(c.fcfa_tonne_km) + ' F/t/km</b></div>' : '') + '</div>' +
+    '<table class="tablo tg-detail"><thead><tr><th>Poste</th><th>Calcul</th><th class="num">Montant</th></tr></thead><tbody>' +
+      (c.lignes || []).map(function (l) {
+        return '<tr><td>' + esc(l.poste) + '</td><td class="aide">' + esc(decimal(l.detail)) + '</td><td class="num">' + francs(l.montant) + '</td></tr>';
+      }).join('') +
+      '<tr class="tg-total"><td>Coût de revient</td><td></td><td class="num">' + francs(c.cout_revient) + '</td></tr>' +
+      '<tr class="tg-total"><td>Prix groupe</td><td class="aide">+ ' + decimal(Math.round(nombre(c.marge) * 1000) / 10) + ' %</td><td class="num">' + francs(c.prix_groupe) + '</td></tr>' +
+    '</tbody></table>' +
+    (avecComparatif && c.comparatif ? '<details class="tg-comparatif"><summary>Comparer les véhicules</summary><table class="tablo"><thead><tr><th>Véhicule</th><th class="num">Tours</th><th class="num">Coût</th><th class="num">Prix groupe</th><th></th></tr></thead><tbody>' +
+      c.comparatif.map(function (x) {
+        return '<tr' + (x.categorie === c.categorie ? ' class="tg-choisi"' : '') + '><td>' + esc(x.libelle) + '</td><td class="num">' + x.tours + '</td><td class="num">' + francs(x.cout_revient) +
+          '</td><td class="num">' + francs(x.prix_groupe) + '</td><td>' + (x.categorie === c.categorie ? 'retenu' : '<button class="btn-mini" type="button" data-tg-cat="' + esc(x.categorie) + '">Prendre</button>') + '</td></tr>';
+      }).join('') + '</tbody></table></details>' : '') +
+    '<p class="aide">Carburant : ' + esc(c.source_carburant || '') + '.</p>';
+}
+
+function creerTransportGroupe() {
+  var societe = $('#tg_societe').value, marchandise = $('#tg_marchandise').value.trim();
+  if (!societe) { message('Choisissez la société cliente.', 'ko'); return; }
+  if (!marchandise) { message('Dites ce qui est transporté.', 'ko'); return; }
+  if (!TG.dernier) { message('Le chiffrage n\'est pas encore calculé : poids, départ et arrivée (ou distance).', 'ko'); return; }
+  var b = $('#tg_creer'); b.disabled = true;
+  var p = chargeChiffrage();
+  p.societe = societe; p.marchandise = marchandise; p.unites = nombre($('#tg_unites').value) || null;
+  p.date = $('#tg_date').value || null; p.creneau = $('#tg_creneau').value || null;
+  p.chauffeur = $('#tg_chauffeur').value || null; p.commentaire = $('#tg_commentaire').value.trim() || null;
+  p.site_origine = TG.origine && TG.origine.site || null; p.site_destination = TG.destination && TG.destination.site || null;
+  if (!p.vehicule) { p.categorie = TG.dernier.categorie; }
+  rpc('creer_transport_groupe', { p: p }).then(function (r) {
+    message('Transport ' + esc(r.numero) + ' créé pour ' + esc(r.societe) + ' : coût ' + francs(r.cout_revient) +
+      (r.refacturable ? ', refacturé ' + francs(r.prix_refacture) : ', interne (non refacturé)') +
+      (r.livraison_id ? ', dispatché.' : ', à dispatcher.'), 'ok');
+    $('#bloc_transport_groupe').style.display = 'none';
+    chargerListeGroupe();
+  }).catch(function (e) { message('Transport non créé : ' + esc(e.message), 'ko'); })
+    .then(function () { b.disabled = false; });
+}
+
+function afficherFormulaireSite() {
+  var z = $('#tg_site_form');
+  z.style.display = '';
+  z.innerHTML = '<div class="tg-grille">' +
+    '<label>Société<select class="pa-champ" id="ts_societe">' + TG.societes.map(function (s) { return '<option value="' + esc(s.code) + '">' + esc(s.nom) + '</option>'; }).join('') + '</select></label>' +
+    '<label>Nom du site<input class="pa-champ" id="ts_nom" placeholder="Ex. : Usine de Richard Toll"></label>' +
+    '<label>Adresse ou repère<input class="pa-champ" id="ts_adresse"></label></div>' +
+    '<div class="tg-boutons"><button class="btn-console" type="button" id="ts_placer">Placer sur la carte</button>' +
+    '<span class="aide" id="ts_pos">Non placé</span>' +
+    '<button class="btn-console accent" type="button" id="ts_enregistrer">Enregistrer le site</button></div>';
+  TG.siteCoord = null;
+  $('#ts_placer').onclick = function () { TG.placer = 'site'; $('#tg_carte_aide').innerHTML = '<b>Cliquez sur la carte</b> à l\'emplacement du site.'; };
+  $('#ts_enregistrer').onclick = function () {
+    rpc('regler_site_groupe', { p: { societe: $('#ts_societe').value, nom: $('#ts_nom').value, adresse: $('#ts_adresse').value,
+      latitude: TG.siteCoord ? TG.siteCoord.lat : null, longitude: TG.siteCoord ? TG.siteCoord.lng : null } })
+      .then(function (s) {
+        message('Site « ' + esc(s.nom) + ' » enregistré.', 'ok');
+        return chargerReferentielGroupe().then(function () {
+          $('#tg_origine').innerHTML = optionsSites(TG.origine && TG.origine.site);
+          $('#tg_destination').innerHTML = optionsSites(TG.destination && TG.destination.site);
+          z.style.display = 'none'; dessinerGroupe();
+        });
+      }).catch(function (e) { message(esc(e.message), 'ko'); });
+  };
+}
+
+var LIB_STATUT_DT = { a_dispatcher: 'À dispatcher', dispatchee: 'Dispatché', refusee: 'Refusé', livree: 'Livré', annulee: 'Annulé' };
+function chargerListeGroupe() {
+  var z = $('#tg_liste'); if (!z) { return; }
+  z.innerHTML = '<div class="chargement">Chargement…</div>';
+  requete('/v_refacturation_groupe?select=*&order=date_souhaitee.desc&limit=100').then(function (l) {
+    l = l || [];
+    $('#tg_compte').textContent = l.length;
+    if (!l.length) { z.innerHTML = '<div class="vide">Aucun transport du groupe pour l\'instant.</div>'; return; }
+    z.innerHTML = '<table class="tablo carte-mobile"><thead><tr><th>Transport</th><th>Société</th><th>Trajet</th><th>Charge</th>' +
+      '<th class="num">Coût</th><th class="num">Refacturé</th><th>État</th></tr></thead><tbody>' + l.map(function (t) {
+        return '<tr><td><b>' + esc(t.numero) + '</b><br><span class="aide">' + esc(joursFr(t.date_souhaitee)) + '</span></td>' +
+          '<td>' + esc(t.societe_nom) + '</td><td>' + esc(t.depart || '—') + ' → ' + esc(t.arrivee || '—') +
+            '<br><span class="aide">' + (t.distance_km ? decimal(t.distance_km) + ' km' : '') + '</span></td>' +
+          '<td>' + esc(t.marchandise || '') + '<br><span class="aide">' + formater(t.poids_kg) + ' kg · ' + esc(t.immatriculation || t.vehicule_type || '') + '</span></td>' +
+          '<td class="num">' + francs(t.cout_revient) + (t.sur_estimation ? '<br><span class="tg-estime">estimé</span>' : '') + '</td>' +
+          '<td class="num">' + (t.prix_refacture ? francs(t.prix_refacture) : 'interne') + '</td>' +
+          '<td>' + esc(LIB_STATUT_DT[t.statut] || t.statut) + (t.facture_refacturation ? '<br><span class="aide">facture ' + esc(t.facture_refacturation) + '</span>' : '') +
+            (aLeDroit(PEUT_DISPATCHER) && !t.refacture_le && (t.statut === 'a_dispatcher' || t.statut === 'dispatchee') && (!t.statut_livraison || t.statut_livraison === 'programmee')
+              ? '<br><button class="btn-mini discret" type="button" data-tg-annuler="' + esc(t.id) + '" data-numero="' + esc(t.numero) + '">Annuler</button>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    etiqueterTableaux(z);
+    $$('[data-tg-annuler]').forEach(function (b) {
+      b.onclick = function () {
+        var motif = window.prompt('Annuler le transport ' + b.dataset.numero + ' : pourquoi ?');
+        if (!motif) { return; }
+        rpc('annuler_transport_groupe', { p_id: b.dataset.tgAnnuler, p_motif: motif })
+          .then(function (r) { message('Transport ' + esc(r.numero) + ' annulé.', 'ok'); chargerListeGroupe(); })
+          .catch(function (e) { message(esc(e.message), 'ko'); });
+      };
+    });
+  }).catch(function (e) { z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+/* --------------------------- Documents : refacturation aux sociétés */
+var RF = { societe: '', mois: '' };
+function chargerRefacturation() {
+  var bloc = $('#bloc_refacturation'); if (!bloc) { return; }
+  if (!aLeDroit(VOIT_REFACTURATION)) { bloc.style.display = 'none'; return; }
+  bloc.style.display = '';
+  requete('/v_refacturation_groupe?select=*&prix_refacture=not.is.null&order=date_souhaitee').then(function (l) {
+    TG.rf = l || [];
+    var socs = {}, mois = {};
+    TG.rf.forEach(function (t) { socs[t.societe] = t.societe_nom; mois[t.mois] = 1; });
+    if (!RF.mois) { RF.mois = Object.keys(mois).sort().pop() || ''; }
+    if (!RF.societe) { RF.societe = Object.keys(socs).sort()[0] || ''; }
+    $('#rf_filtres').innerHTML = '<label>Société<select class="pa-champ" id="rf_societe">' + Object.keys(socs).sort().map(function (k) {
+        return '<option value="' + esc(k) + '"' + (k === RF.societe ? ' selected' : '') + '>' + esc(socs[k]) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Mois<select class="pa-champ" id="rf_mois">' + Object.keys(mois).sort().reverse().map(function (m) {
+        return '<option value="' + m + '"' + (m === RF.mois ? ' selected' : '') + '>' + m.slice(5) + '/' + m.slice(0, 4) + '</option>'; }).join('') + '</select></label>';
+    $('#rf_societe').onchange = function () { RF.societe = this.value; afficherReleve(); };
+    $('#rf_mois').onchange = function () { RF.mois = this.value; afficherReleve(); };
+    afficherReleve();
+  }).catch(function (e) { $('#rf_releve').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+function lignesReleve() {
+  return TG.rf.filter(function (t) { return t.societe === RF.societe && t.mois === RF.mois; });
+}
+
+function afficherReleve() {
+  var z = $('#rf_releve'), l = lignesReleve();
+  if (!l.length) { z.innerHTML = '<div class="vide">Aucun transport à refacturer pour ce choix.</div>'; return; }
+  var total = l.reduce(function (s, t) { return s + nombre(t.prix_refacture); }, 0);
+  var reste = l.filter(function (t) { return !t.refacture_le; });
+  z.innerHTML = '<table class="tablo carte-mobile"><thead><tr><th></th><th>Transport</th><th>Trajet</th><th>Charge</th><th class="num">Prix groupe</th><th>Facture</th></tr></thead><tbody>' +
+    l.map(function (t) {
+      return '<tr><td>' + (t.refacture_le ? '✓' : '<input type="checkbox" data-rf="' + esc(t.id) + '" checked aria-label="Refacturer ' + esc(t.numero) + '">') + '</td>' +
+        '<td><b>' + esc(t.numero) + '</b><br><span class="aide">' + esc(joursFr(t.date_souhaitee)) + ' · ' + esc(LIB_STATUT_DT[t.statut] || t.statut) + '</span></td>' +
+        '<td>' + esc(t.depart || '—') + ' → ' + esc(t.arrivee || '—') + '<br><span class="aide">' + decimal(t.distance_km || 0) + ' km</span></td>' +
+        '<td>' + esc(t.marchandise || '') + '<br><span class="aide">' + formater(t.poids_kg) + ' kg</span></td>' +
+        '<td class="num">' + francs(t.prix_refacture) + (t.sur_estimation ? '<br><span class="tg-estime">estimé</span>' : '') + '</td>' +
+        '<td>' + esc(t.facture_refacturation || '—') + '</td></tr>';
+    }).join('') + '<tr class="tg-total"><td></td><td colspan="3">Total du mois</td><td class="num">' + francs(total) + '</td><td></td></tr></tbody></table>' +
+    '<div class="tg-boutons"><button class="btn-console" type="button" id="rf_imprimer">Imprimer le relevé</button>' +
+    (reste.length ? '<input class="pa-champ" id="rf_facture" placeholder="N° de la facture du logiciel"><button class="btn-console accent" type="button" id="rf_marquer">Marquer refacturés</button>' : '<span class="aide">Tout est refacturé.</span>') + '</div>';
+  etiqueterTableaux(z);
+  $('#rf_imprimer').onclick = imprimerReleve;
+  if ($('#rf_marquer')) {
+    $('#rf_marquer').onclick = function () {
+      var ids = $$('[data-rf]').filter(function (c) { return c.checked; }).map(function (c) { return c.dataset.rf; });
+      if (!ids.length) { message('Cochez au moins un transport.', 'ko'); return; }
+      rpc('refacturer_transports', { p_ids: ids, p_facture: $('#rf_facture').value }).then(function (r) {
+        message(r.refactures + ' transport(s) rattaché(s) à la facture ' + esc(r.facture) + '.', 'ok'); chargerRefacturation();
+      }).catch(function (e) { message(esc(e.message), 'ko'); });
+    };
+  }
+}
+
+function imprimerReleve() {
+  var l = lignesReleve(); if (!l.length) { return; }
+  var f = window.open('', '_blank');
+  if (!f) { message('Autorisez l\'ouverture de fenêtres pour imprimer.', 'ko'); return; }
+  var total = l.reduce(function (s, t) { return s + nombre(t.prix_refacture); }, 0);
+  var estime = l.some(function (t) { return t.sur_estimation; });
+  f.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Relevé transports ' + esc(l[0].societe_nom) + ' ' + esc(RF.mois) + '</title>' +
+    '<style>body{font-family:Helvetica,Arial,sans-serif;color:#2B1C10;margin:24px;font-size:12px}h1{font-size:18px;margin:0 0 4px;color:#442A19}' +
+    'table{width:100%;border-collapse:collapse;margin-top:14px}td,th{border:1px solid #E6DCCF;padding:5px 6px;text-align:left;vertical-align:top}' +
+    'th{background:#F4EDE5}.n{text-align:right;white-space:nowrap}.t td{font-weight:bold;background:#FBF4EA}.note{color:#7A6A5B;margin-top:10px}</style></head><body>' +
+    '<h1>Relevé des transports — ' + esc(l[0].societe_nom) + '</h1><div>Mois : ' + esc(RF.mois.slice(5) + '/' + RF.mois.slice(0, 4)) +
+    ' · Transporteur : SN2I · Édité le ' + esc(new Date().toLocaleDateString('fr-FR')) + '</div>' +
+    '<table><thead><tr><th>Transport</th><th>Date</th><th>Départ → arrivée</th><th>Marchandise</th><th class="n">Poids</th><th class="n">Km aller</th><th>Véhicule</th><th class="n">Prix groupe</th></tr></thead><tbody>' +
+    l.map(function (t) {
+      return '<tr><td>' + esc(t.numero) + '</td><td>' + esc(joursFr(t.date_souhaitee)) + '</td><td>' + esc(t.depart || '—') + ' → ' + esc(t.arrivee || '—') +
+        '</td><td>' + esc(t.marchandise || '') + '</td><td class="n">' + formater(t.poids_kg) + ' kg</td><td class="n">' + decimal(t.distance_km || 0) +
+        '</td><td>' + esc(t.immatriculation || t.vehicule_type || '') + '</td><td class="n">' + francs(t.prix_refacture) + '</td></tr>';
+    }).join('') + '<tr class="t"><td colspan="7">Total</td><td class="n">' + francs(total) + '</td></tr></tbody></table>' +
+    '<p class="note">Prix groupe = coût de revient du transport (carburant, chauffeur, manutention, usure, frais fixes, péages) + marge groupe.' +
+    (estime ? ' Certains coûts reposent sur des paramètres estimés, en cours de validation.' : '') + '</p></body></html>');
+  f.document.close();
+}
+
+/* --------------------------------- Prix : paramètres et sociétés (direction) */
+var LIB_PARAM = {
+  prix_gasoil: ['Gasoil', 'F/L'], prix_super: ['Super', 'F/L'], coef_route: ['Coefficient route / vol d\'oiseau', '×'],
+  heures_payees_mois: ['Heures payées par mois', 'h'], heures_jour: ['Une journée d\'usage du véhicule', 'h'],
+  chargement_fcfa_t: ['Manutention au chargement', 'F/t'], dechargement_fcfa_t: ['Manutention au déchargement', 'F/t'],
+  minutes_par_tonne: ['Temps de chargement (ou déchargement)', 'min/t'], marge_groupe: ['Marge groupe', '0,10 = 10 %'],
+  capacite_max_kg: ['Capacité couverte', 'kg'], conso_vide_l100: ['Conso. à vide', 'L/100'], conso_charge_l100: ['Conso. chargé', 'L/100'],
+  vitesse_kmh: ['Vitesse moyenne', 'km/h'], salaire_mensuel: ['Chauffeur chargé', 'F/mois'], aide_mensuel: ['Aide-chauffeur', 'F/mois'],
+  usure_fcfa_km: ['Usure', 'F/km'], fixes_fcfa_jour: ['Frais fixes', 'F/jour']
+};
+var CHAMPS_CAT = ['capacite_max_kg', 'conso_vide_l100', 'conso_charge_l100', 'vitesse_kmh', 'salaire_mensuel', 'aide_mensuel', 'usure_fcfa_km', 'fixes_fcfa_jour'];
+
+function chargerParametresTransport() {
+  var bloc = $('#bloc_param_transport'), blocS = $('#bloc_societes_groupe');
+  var dga = aLeDroit(['dga']);
+  bloc.style.display = dga ? '' : 'none'; blocS.style.display = dga ? '' : 'none';
+  if (!dga) { return; }
+  Promise.all([requete('/parametres_transport_communs?select=*'), requete('/parametres_transport?select=*&order=capacite_max_kg'),
+               requete('/societes_groupe?select=*&order=refacturable,nom'), requete('/sites_groupe?select=*&order=societe,nom')]).then(function (r) {
+    var k = (r[0] || [])[0] || {}, cats = r[1] || [];
+    var estK = k.source_autres === 'estimation';
+    $('#param_transport').innerHTML =
+      '<div class="tg-communs' + (estK ? ' tg-estime-bloc' : '') + '">' +
+        Object.keys(LIB_PARAM).filter(function (x) { return CHAMPS_CAT.indexOf(x) === -1; }).map(function (x) {
+          var carb = x === 'prix_gasoil' || x === 'prix_super';
+          return '<label class="' + (!carb && estK ? 'tg-estime' : '') + '">' + esc(LIB_PARAM[x][0]) + ' <span class="aide">(' + esc(LIB_PARAM[x][1]) + ')</span>' +
+            '<input class="pa-champ" data-pc="' + x + '" value="' + esc(k[x]) + '" inputmode="decimal"></label>';
+        }).join('') + '</div>' +
+      '<p class="aide">Carburant : ' + esc(k.source_carburant || '') + ' · Autres valeurs : ' + esc(k.source_autres || '') + '</p>' +
+      '<div class="tg-boutons"><label class="tg-case"><input type="checkbox" id="pc_valider"> Je valide ces valeurs</label>' +
+      '<button class="btn-console" type="button" id="pc_enregistrer">Enregistrer</button></div>' +
+      '<div class="enveloppe"><table class="tablo tg-param"><thead><tr><th>Véhicule</th>' + CHAMPS_CAT.map(function (x) {
+        return '<th>' + esc(LIB_PARAM[x][0]) + '<br><span class="aide">' + esc(LIB_PARAM[x][1]) + '</span></th>'; }).join('') +
+        '<th>Source</th><th></th></tr></thead><tbody>' + cats.map(function (c) {
+          var est = c.source === 'estimation';
+          return '<tr' + (est ? ' class="tg-estime-ligne"' : '') + '><td><b>' + esc(c.libelle) + '</b><br><span class="aide">' + esc(c.carburant) + '</span></td>' +
+            CHAMPS_CAT.map(function (x) { return '<td><input class="pa-champ dp-mini" data-pt="' + esc(c.categorie) + '" data-champ="' + x + '" value="' + esc(c[x]) + '" inputmode="decimal" aria-label="' + esc(LIB_PARAM[x][0] + ' ' + c.libelle) + '"></td>'; }).join('') +
+            '<td class="aide">' + esc(c.source) + '</td><td><label class="aide"><input type="checkbox" data-pt-valider="' + esc(c.categorie) + '"> valider</label>' +
+            '<button class="btn-mini" type="button" data-pt-enregistrer="' + esc(c.categorie) + '">Enregistrer</button></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    $('#pc_enregistrer').onclick = function () {
+      var v = {}; $$('[data-pc]').forEach(function (i) { v[i.dataset.pc] = String(i.value).replace(',', '.').trim(); });
+      rpc('regler_parametres_transport', { p: { valeurs: v, valider: $('#pc_valider').checked } })
+        .then(function () { message('Paramètres communs enregistrés.', 'ok'); chargerParametresTransport(); })
+        .catch(function (e) { message(esc(e.message), 'ko'); });
+    };
+    $$('[data-pt-enregistrer]').forEach(function (b) {
+      b.onclick = function () {
+        var cat = b.dataset.ptEnregistrer, v = {};
+        $$('[data-pt="' + cat + '"]').forEach(function (i) { v[i.dataset.champ] = String(i.value).replace(',', '.').trim(); });
+        rpc('regler_parametres_transport', { p: { categorie: cat, valeurs: v, valider: $('[data-pt-valider="' + cat + '"]').checked } })
+          .then(function () { message('Paramètres enregistrés.', 'ok'); chargerParametresTransport(); })
+          .catch(function (e) { message(esc(e.message), 'ko'); });
+      };
+    });
+    var socs = r[2] || [], sites = r[3] || [];
+    $('#societes_groupe').innerHTML = '<div class="enveloppe"><table class="tablo carte-mobile"><thead><tr><th>Société</th><th>Refacturée</th><th>Sites</th></tr></thead><tbody>' +
+      socs.map(function (s) {
+        var l = sites.filter(function (x) { return x.societe === s.code; });
+        return '<tr><td><b>' + esc(s.nom) + '</b><br><span class="aide">' + esc(s.code) + '</span></td><td>' + (s.refacturable ? 'oui' : 'non (transporteur)') + '</td>' +
+          '<td>' + (l.length ? l.map(function (x) { return esc(x.nom) + (x.latitude === null ? ' <span class="tg-estime">non placé</span>' : ''); }).join('<br>') : '<span class="aide">aucun site : à créer depuis Commandes → Transport pour une société du groupe → ＋ Nouveau site</span>') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="tg-grille"><label>Code<input class="pa-champ" id="sg_code" placeholder="Ex. : DLA" maxlength="12"></label>' +
+      '<label>Nom<input class="pa-champ" id="sg_nom"></label><label class="tg-case"><input type="checkbox" id="sg_refact" checked> refacturée</label>' +
+      '<div class="tg-lien"><button class="btn-console" type="button" id="sg_ajouter">Ajouter ou modifier</button></div></div>';
+    $('#sg_ajouter').onclick = function () {
+      rpc('regler_societe_groupe', { p: { code: $('#sg_code').value.trim().toUpperCase(), nom: $('#sg_nom').value, refacturable: $('#sg_refact').checked } })
+        .then(function (s) { message('Société ' + esc(s.nom) + ' enregistrée.', 'ok'); chargerParametresTransport(); })
+        .catch(function (e) { message(esc(e.message), 'ko'); });
+    };
+  }).catch(function (e) { $('#param_transport').innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
 }
 </script>
 </body>

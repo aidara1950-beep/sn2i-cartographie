@@ -2282,6 +2282,22 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .pl-histo.pl-livree .pl-statut, .pl-histo.pl-termine .pl-statut, .pl-histo.pl-livree_partielle .pl-statut { color: #1F5A38; }
 .tn-date-passee { color: #8A5A00; font-weight: 500; }
 .tn-lignes-pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* saisie par le chargement, remises (0042, 14/10/2026) */
+.tn-chargement { border-left: 4px solid #1F5A38; }
+.tn-remises { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+.tn-remise { border-left: 4px solid #B3261E; padding: 6px 0 6px 10px; min-width: 0; }
+.tn-remise .tg-lieu { margin-top: 6px; }
+.tn-remises > .btn-mini { align-self: flex-start; }
+.tn-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px 10px; margin-top: 6px; }
+.tn-parts > label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; font-weight: 600; min-width: 0; }
+.tn-parts .pa-champ { width: 100%; box-sizing: border-box; min-width: 0; }
+.tn-reste { font-weight: 500; padding: 6px 0; }
+.tn-ordre-arret { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid var(--bord);
+  border-radius: var(--rayon-s); margin: 6px 0; background: var(--carte); }
+.tn-ordre-texte { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.tn-ordre-texte span { font-size: .9rem; color: var(--texte-doux, #7A6A5B); }
+.tn-ordre-arret .tn-jauge { flex-basis: 100%; }
 </style>
 </head>
 <body>
@@ -3360,7 +3376,8 @@ function ticketsDuPlanning(demandes, enCours) {
   demandes = (demandes || []).filter(function (d) { return !enVoyage(d.id); });
   enCours = (enCours || []).filter(function (t) { return !enVoyage(t.id); });
   var a = (demandes || []).map(function (d) {
-    return { id: d.id, numero: d.numero, client: d.destinataire_nom, montant: d.montant_a_encaisser, unites: d.nb_unites,
+    var ev = (DISPATCH.envois || {})[d.id] || {};
+    return { id: d.id, numero: d.numero, client: d.destinataire_nom + (nombre(ev.remises_groupe) > 1 ? ' · remise d\'un envoi réparti (' + ev.remises_groupe + ')' : ''), montant: d.montant_a_encaisser, unites: d.nb_unites,
              produits: d.produits, creneau: d.creneau, repere: d.repere || d.adresse_livraison, date_souhaitee: d.date_souhaitee,
              date_demande: d.date_demande, lat: d.latitude, lng: d.longitude, precision: d.precision_position, kg: d.poids_estime_kg,
              place: false, vehicule_id: null, statut: 'a_dispatcher' };
@@ -3529,10 +3546,11 @@ function poserTicket(t, vehiculeId) {
     var jourCible = jourDuTicket(t) === 'retard' ? aujourdhui() : jourDuTicket(t);
     var appel = t.voyage
       ? rpc('deplacer_voyage', { p_voyage: t.id, p_vehicule: v.id, p_jour: jourCible, p_chauffeur: chauffeur || null })
-      : rpc('planifier_envoi', { p_envoi: t.id, p_vehicule: v.id, p_jour: jourCible, p_chauffeur: chauffeur || null });
+      : rpc('planifier_envois', { p_envoi: t.id, p_vehicule: v.id, p_jour: jourCible, p_chauffeur: chauffeur || null });
     appel.then(function (r) {
       message(esc(t.voyage ? t.numero : (t.client || 'Envoi')) + ' → <b>' + esc(r.camion || r.vehicule || v.immatriculation) + '</b>' +
-        (r.sans_voyage ? ' (sans point de livraison : dispatché hors voyage, sans coût)' : (r.numero ? ' · voyage ' + esc(r.numero) + ', coût ' + francs(r.cout_revient) : '')) + '.', 'ok');
+        (r.sans_voyage ? ' (sans point de livraison : dispatché hors voyage, sans coût)' : (r.numero ? ' · voyage ' + esc(r.numero) + ', coût ' + francs(r.cout_revient) : '')) +
+        (nombre(r.envois_places) > 1 ? ' — ses ' + (nombre(r.envois_places) - 1) + ' autre(s) remise(s) suivent' : '') + '.', 'ok');
       PLANNING.choisi = null;
       /* Les nouveaux tronçons sont chiffrés à vol d'oiseau : la page demande les km par la route, la base refait le calcul. */
       (r.id && !r.sans_voyage ? recalculerRouteVoyage(r.id).catch(function () {}) : Promise.resolve()).then(chargerDispatch);
@@ -5536,31 +5554,24 @@ function majCarteCamions(flotte) {
 }
 
 /* ==========================================================================
-   ENVOIS ET VOYAGES (0039-0040, DGA 14/10/2026)
-   L'ENVOI : ce qu'on déplace (chargement, livraison, pour qui, des lignes
-   produit / quantité / kilos). Le phoning en crée un par commande ; la
-   logistique aussi (« Enregistrer une demande »). Sans camion : à planifier.
-   Le VOYAGE : un camion, un jour, un départ à vide facultatif, des arrêts ; à
-   chaque arrêt, on charge ou décharge un ou plusieurs envois. Le gestionnaire
-   construit son voyage librement, ou glisse des envois sur un camion.
-   LA BASE CALCULE (chiffrer_voyage) : charge à bord, coût, part de chaque
-   envoi en tonnes × km. La page n'envoie que des faits.
+   ENVOIS ET VOYAGES — saisie par le chargement (0039-0042, DGA 14/10/2026)
+   On dit ce qu'on charge, où, pour quel PAYEUR (il porte sa part du
+   transport) ; chaque ligne se répartit en REMISES : un destinataire, un lieu,
+   des quantités. L'ordre des arrêts se compose tout seul (chargements, puis
+   remises ; deux points à moins de 300 m font un seul arrêt) et se réordonne.
+   Chaque remise devient un envoi (une livraison, une remise signée) ; les
+   remises d'un même chargement sont reliées. LA BASE CALCULE.
    ========================================================================== */
 
-var NT = { mode: 'voyage', id: null, numero: null, arrets: [], depart: null, uid: 0, legs: {}, dernier: null, minuteur: null,
-           carte: null, calques: null, placer: null, preset: null, enCours: 0, demande: { charge: null, livre: null, lignes: [] } };
+var NT = { mode: 'voyage', id: null, numero: null, chargements: [], existants: [], ordre: [], depart: null, uid: 0, legs: {},
+           dernier: null, minuteur: null, carte: null, calques: null, placer: null, preset: null, enCours: 0 };
 var CATALOGUE = [];
 
 function uidNT(p) { NT.uid += 1; return (p || 'u') + NT.uid; }
 function nouvelleLigne() { return { uid: uidNT('l'), sku: '', produit: '', quantite: '', unite: '', poids: '', auto: false }; }
-function nouvelEnvoi(pour) { return { cle: uidNT('N'), pour: pour || '', client_nom: '', montant: '', lignes: [nouvelleLigne()] }; }
-function nouvelArret(lieu) { return { uid: uidNT('a'), lieu: lieu || null, mouvements: [] }; }
-
-function chargerCatalogue2() {
-  if (CATALOGUE.length) { return Promise.resolve(); }
-  return requete('/produits_tarifs?select=sku,nom,unite,poids_kg,actif&actif=eq.true&order=nom').then(function (l) { CATALOGUE = l || []; })
-    .catch(function () { CATALOGUE = []; });
-}
+function nouvelleRemise() { return { uid: uidNT('R'), client_nom: '', lieu: null, montant: '', parts: {} }; }
+function nouvelEnvoi(payeur) { return { uid: uidNT('E'), payeur: payeur || '', lignes: [nouvelleLigne()], remises: [nouvelleRemise()] }; }
+function nouveauChargement(lieu, payeur) { return { uid: uidNT('C'), lieu: lieu || null, envois: [nouvelEnvoi(payeur)] }; }
 
 /* Ouvert depuis Dispatch (« ＋ Nouveau transport ») ou depuis Commandes. */
 function ouvrirNouveauTransport(preset) {
@@ -5568,10 +5579,595 @@ function ouvrirNouveauTransport(preset) {
   var b = $('#bloc_tournee'); if (!b) { return; }
   b.style.display = '';
   NT.preset = preset || null;
-  if (preset === 'demande' || preset === 'demande-client') { afficherDemande(preset === 'demande-client' ? 'client' : ''); }
+  if (preset === 'demande' || preset === 'demande-client') { afficherDemande(); }
   else if (preset === 'choix' || !preset) { afficherChoixTransport(); }
-  else { afficherVoyage(null, preset === 'client' ? 'client' : ''); }
+  else { afficherVoyage(null); }
   setTimeout(function () { try { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 50);
+}
+
+function optionsPayeur(choix) {
+  return '<option value="">— qui paie le transport ? —</option>' +
+    TG.societes.filter(function (s) { return s.actif; }).map(function (s) {
+      return '<option value="' + esc(s.code) + '"' + (choix === s.code ? ' selected' : '') + '>' + esc(s.nom) +
+        (s.refacturable ? '' : ' (interne)') + '</option>';
+    }).join('');
+}
+function nomSociete(code) { return (TG.societes.filter(function (s) { return s.code === code; })[0] || {}).nom || code || ''; }
+
+/* ------------------------------------------------------------ le voyage */
+function afficherVoyage(entree) {
+  var z = $('#tn_formulaire');
+  z.innerHTML = '<div class="chargement">Chargement…</div>';
+  NT.mode = 'voyage';
+  Promise.all([chargerReferentielGroupe(), chargerCatalogue2(), entree ? infosEnvois(entreeIds(entree)) : Promise.resolve()]).then(function () {
+    NT.legs = {}; NT.dernier = null; NT.placer = null; NT.chargements = []; NT.existants = []; NT.ordre = [];
+    if (entree) { depuisEntree(entree); }
+    else {
+      NT.id = null; NT.numero = null; NT.depart = null; NT.date = null; NT.vehicule = ''; NT.chauffeur = null;
+      var depot = TG.sites.filter(function (s) { return s.depot_phoning && s.latitude !== null; })[0];
+      NT.chargements = [nouveauChargement(depot ? { lat: depot.latitude, lng: depot.longitude, nom: depot.nom, site: depot.id } : null, 'SN2I')];
+    }
+    synchroniserOrdre();
+    $('#tn_titre_bloc').textContent = NT.numero ? 'Voyage ' + NT.numero : 'Nouveau voyage';
+    var demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    z.innerHTML = datalistCatalogue() +
+      '<div class="tg-grille">' +
+        '<label>Date<input class="pa-champ" type="date" id="tn_date" value="' + esc(NT.date || demain) + '"><span class="aide tn-date-passee" id="tn_date_aide"></span></label>' +
+        '<label>Véhicule<select class="pa-champ" id="tn_vehicule"><option value="">Pas encore choisi (le moins cher est proposé)</option>' +
+          TG.vehicules.map(function (v) {
+            return '<option value="' + esc(v.immatriculation || '') + '" data-chauffeur="' + esc(v.chauffeur_id || '') + '"' + (NT.vehicule === v.immatriculation ? ' selected' : '') + '>' +
+              esc((v.immatriculation || '(sans plaque)') + ' · ' + (v.libelle_usage || v.type) + (v.capacite_kg ? ' · ' + formater(v.capacite_kg) + ' kg' : '') +
+              (v.disponible ? ' · libre' : ' · en livraison')) + '</option>';
+          }).join('') + '</select></label>' +
+        '<label>Chauffeur<select class="pa-champ" id="tn_chauffeur">' + optionsChauffeurs(NT.chauffeur || null) + '</select></label>' +
+      '</div>' +
+      '<div class="tn-depart">' + champLieu('dep', 'Le camion part de (à vide, facultatif)') +
+        '<div class="tg-lien"><button type="button" class="btn-mini discret" id="tn_position_camion">📡 Position actuelle du camion</button>' +
+        '<button type="button" class="btn-mini discret" id="tn_sans_depart">Partir du premier chargement</button></div>' +
+        '<p class="aide">Garage, parking ou position du camion : le trajet à vide jusqu\'au premier chargement est compté, et le retour à vide revient ici.</p></div>' +
+      '<h4 class="tn-titre">1. Ce qu\'on charge, et à qui on le remet</h4>' +
+      '<div id="tn_chargements"></div>' +
+      '<div class="tg-boutons"><button type="button" class="btn-console" id="tn_ajout_chargement">＋ Un autre lieu de chargement</button>' +
+        '<select class="pa-champ" id="tn_attente_envois" aria-label="Ajouter un envoi en attente"></select>' +
+        '<button type="button" class="btn-mini discret" id="tg_nouveau_site">＋ Nouveau site du groupe</button></div>' +
+      '<div id="tg_site_form" class="tg-site" style="display:none"></div>' +
+      '<div id="tn_existants"></div>' +
+      '<h4 class="tn-titre">2. L\'ordre des arrêts</h4>' +
+      '<p class="aide">Il se compose tout seul : les chargements, puis les remises. Deux points à moins de 300 m font un seul arrêt. Changez l\'ordre avec ▲▼.</p>' +
+      '<div id="tn_ordre"></div>' +
+      '<p class="aide" id="tn_carte_aide">Tapez une ville, un quartier ou un site du groupe, puis choisissez dans la liste : le point GPS est proposé. Vous pouvez l\'ajuster sur la carte.</p>' +
+      '<div id="tn_carte" class="carte-console tg-carte"></div>' +
+      '<div class="tg-grille">' +
+        '<label class="tg-case"><input type="checkbox" id="tn_autoroute"' + (NT.autoroute === false ? '' : ' checked') + '> Autoroute à péage</label>' +
+        '<label class="tg-case"><input type="checkbox" id="tn_ar"' + (NT.ar === false ? '' : ' checked') + '> Retour à vide compté</label>' +
+        '<label>Attente prévue en tout (h)<input class="pa-champ" id="tn_attente" type="number" min="0" step="0.5" value="' + esc(NT.attente || 0) + '"></label>' +
+        '<label class="tg-large">Commentaire<input class="pa-champ" id="tn_commentaire" value="' + esc(NT.commentaire || '') + '" placeholder="Contact sur place, consignes…"></label>' +
+      '</div>' +
+      '<div id="tn_chiffrage" class="tg-chiffrage"></div>' +
+      '<div class="tg-boutons"><button class="btn-console accent" id="tn_creer" type="button">Je valide le voyage</button>' +
+      (NT.id ? '<button class="btn-console" id="tn_annuler_voyage" type="button">Annuler le voyage</button>' : '') +
+      '<button class="btn-console" id="tn_fermer" type="button">Fermer</button></div>';
+    brancherLieu('dep');
+    if (NT.depart) { $('#tg_dep_q').value = NT.depart.nom || ''; afficherPointLieu('dep'); }
+    rendreChargements();
+    preparerCarteTournee();
+    ['#tn_autoroute', '#tn_attente', '#tn_ar', '#tn_vehicule'].forEach(function (s) {
+      $(s).addEventListener('input', planifierTournee); $(s).addEventListener('change', planifierTournee);
+    });
+    $('#tn_ar').addEventListener('change', nouveauLieu);
+    $('#tn_vehicule').addEventListener('change', function () {
+      var o = this.options[this.selectedIndex];
+      if (o && o.dataset.chauffeur) { $('#tn_chauffeur').value = o.dataset.chauffeur; }
+    });
+    var avisDate = function () {
+      var d = $('#tn_date').value;
+      $('#tn_date_aide').textContent = d && d < aujourdhui() ? 'Date passée : c\'est une régularisation. Le planning ira à cette date pour qu\'elle reste visible.' : '';
+    };
+    $('#tn_date').addEventListener('change', avisDate); avisDate();
+    $('#tn_ajout_chargement').onclick = function () { NT.chargements.push(nouveauChargement(null, '')); synchroniserOrdre(); rendreChargements(); planifierTournee(); };
+    $('#tn_position_camion').onclick = positionDuCamion;
+    $('#tn_sans_depart').onclick = function () { NT.depart = null; $('#tg_dep_q').value = ''; afficherPointLieu('dep'); nouveauLieu(); };
+    $('#tg_nouveau_site').onclick = afficherFormulaireSite;
+    $('#tn_creer').onclick = enregistrerVoyageEcran;
+    if ($('#tn_annuler_voyage')) { $('#tn_annuler_voyage').onclick = annulerVoyageEcran; }
+    $('#tn_fermer').onclick = function () { $('#bloc_tournee').style.display = 'none'; };
+    nouveauLieu();
+  }).catch(function (e) { z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+/* Un voyage déjà en base : ses envois sont repris tels quels (lecture), et l'on peut en ajouter. */
+function entreeIds(e) {
+  var ids = [];
+  (e.arrets || []).forEach(function (a) { (a.mouvements || []).forEach(function (m) { if (ids.indexOf(m.envoi) === -1) { ids.push(m.envoi); } }); });
+  return ids;
+}
+function depuisEntree(e) {
+  NT.id = e.id; NT.numero = (DISPATCH.voyagesParId && DISPATCH.voyagesParId[e.id] || {}).numero || null;
+  NT.date = e.date; NT.vehicule = e.vehicule || ''; NT.chauffeur = e.chauffeur || null;
+  NT.autoroute = e.autoroute !== false; NT.ar = e.aller_retour !== false; NT.attente = e.attente_h || 0; NT.commentaire = e.commentaire || '';
+  NT.depart = e.depart ? { lat: +e.depart.latitude, lng: +e.depart.longitude, nom: e.depart.libelle || 'Départ', site: e.depart.site_id || null } : null;
+  var parId = {};
+  (e.arrets || []).forEach(function (a) {
+    var lieu = { lat: +a.latitude, lng: +a.longitude, nom: a.libelle || '', site: a.site_id || null };
+    (a.mouvements || []).forEach(function (m) {
+      var x = parId[m.envoi] = parId[m.envoi] || { cle: m.envoi, charge: null, livre: null };
+      if (m.sens === 'charger') { x.charge = lieu; NT.ordre.push('X' + m.envoi + ':c'); } else { x.livre = lieu; NT.ordre.push('X' + m.envoi + ':d'); }
+    });
+  });
+  NT.existants = Object.keys(parId).map(function (k) { return parId[k]; });
+  /* Les km par la route déjà relevés : gardés (avec leurs gares), sans rappeler le service d'itinéraire. */
+  var pts = pointsTournee(), tr = e.troncons || [];
+  for (var i = 0; i + 1 < pts.length; i++) {
+    var a = pts[i].lieu, b = pts[i + 1].lieu, t = tr[i] || {};
+    if (a && b && t.distance_km !== undefined && t.distance_km !== null) {
+      NT.legs[a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat] = { km: +t.distance_km, gares: t.gares_connues || [], source: t.source };
+    }
+  }
+}
+
+/* ------------------------------------------------- éléments et ordre des arrêts */
+/* Chaque élément du trajet : un chargement (C…), une remise (R…), ou un envoi déjà en base (X…:c / X…:d). */
+function elements() {
+  var l = {};
+  NT.chargements.forEach(function (c) { l[c.uid] = { cle: c.uid, lieu: c.lieu, type: 'C', chargement: c }; });
+  NT.chargements.forEach(function (c) { c.envois.forEach(function (e) { e.remises.forEach(function (r) { l[r.uid] = { cle: r.uid, lieu: r.lieu, type: 'R', remise: r, envoi: e }; }); }); });
+  NT.existants.forEach(function (x) {
+    l['X' + x.cle + ':c'] = { cle: 'X' + x.cle + ':c', lieu: x.charge, type: 'Xc', existant: x };
+    l['X' + x.cle + ':d'] = { cle: 'X' + x.cle + ':d', lieu: x.livre, type: 'Xd', existant: x };
+  });
+  return l;
+}
+/* L'ordre garde ce que le gestionnaire a choisi ; un chargement nouveau se place après les chargements, une remise à la fin. */
+function synchroniserOrdre() {
+  var el = elements();
+  NT.ordre = NT.ordre.filter(function (k) { return el[k]; });
+  Object.keys(el).forEach(function (k) {
+    if (NT.ordre.indexOf(k) !== -1) { return; }
+    if (el[k].type === 'C') {
+      var dernierC = -1; NT.ordre.forEach(function (x, i) { if (el[x] && el[x].type === 'C') { dernierC = i; } });
+      NT.ordre.splice(dernierC + 1, 0, k);
+    } else { NT.ordre.push(k); }
+  });
+}
+/* Les arrêts : des éléments consécutifs au même endroit (300 m) n'en font qu'un. */
+function arretsVoyage() {
+  var el = elements(), r = [];
+  NT.ordre.forEach(function (k) {
+    var e = el[k]; if (!e) { return; }
+    var der = r[r.length - 1];
+    if (der && e.lieu && der.lieu && e.lieu.lat !== undefined && der.lieu.lat !== undefined && distanceM(e.lieu, der.lieu) <= 300) { der.elements.push(e); }
+    else { r.push({ lieu: e.lieu, elements: [e] }); }
+  });
+  return r;
+}
+function deplacerArret(i, sens) {
+  var a = arretsVoyage(), j = i + sens; if (j < 0 || j >= a.length) { return; }
+  var x = a[i]; a[i] = a[j]; a[j] = x;
+  NT.ordre = []; a.forEach(function (ar) { ar.elements.forEach(function (e) { NT.ordre.push(e.cle); }); });
+  rendreOrdre(); nouveauLieu();
+}
+
+/* ------------------------------------------------------- les répartitions */
+/* La part d'une ligne dans une remise : saisie pour chaque remise sauf la dernière, qui prend le reste. */
+function partsDeLigne(e, l) {
+  var qte = nombre(l.quantite), kg = nombre(l.poids), parQte = qte > 0, n = e.remises.length, reste = parQte ? qte : kg, res = [];
+  e.remises.forEach(function (r, i) {
+    var v;
+    if (n === 1) { v = reste; }
+    else if (i < n - 1) { v = nombre((r.parts[l.uid] || {}).v); reste -= v; }
+    else { v = reste; }
+    res.push({ remise: r, valeur: v, quantite: parQte ? v : null, poids: parQte ? Math.round(kg * v / qte * 10) / 10 : v });
+  });
+  return res;
+}
+function lignesDeRemise(e, r) {
+  var out = [];
+  lignesValides(e.lignes).forEach(function (lv, i) {
+    var l = e.lignes.filter(function (x) { return x.produit.trim(); })[i];
+    var p = partsDeLigne(e, l).filter(function (x) { return x.remise === r; })[0];
+    if (p && p.poids > 0) { out.push({ sku: lv.sku, produit: lv.produit, quantite: p.quantite, unite: lv.unite, poids_kg: p.poids }); }
+  });
+  return out;
+}
+
+/* ------------------------------------------------------------ l'affichage */
+function rendreChargements() {
+  var z = $('#tn_chargements'); if (!z) { return; }
+  z.innerHTML = NT.chargements.map(function (c, ic) {
+    return '<div class="tn-arret tn-chargement" data-ch="' + c.uid + '">' +
+      '<div class="tn-arret-tete"><span class="tn-num">⬆</span><div class="tn-arret-lieu">' + champLieu(c.uid, 'Lieu de chargement') + '</div>' +
+        '<span class="tn-gestes"><button type="button" class="btn-mini discret" data-retirer-ch="' + c.uid + '"' + (NT.chargements.length <= 1 && !NT.existants.length ? ' disabled' : '') + ' aria-label="Retirer ce lieu de chargement">✕</button></span></div>' +
+      c.envois.map(function (e) { return envoiHtml(e, c.envois.length > 1); }).join('') +
+      '<div class="tg-lien tn-ajouts"><button type="button" class="btn-mini discret" data-ajout-envoi="' + c.uid + '">＋ Charger ici pour un autre payeur</button></div>' +
+    '</div>';
+  }).join('');
+  NT.chargements.forEach(function (c) {
+    brancherLieu(c.uid);
+    if (c.lieu) { $('#tg_' + c.uid + '_q').value = c.lieu.nom || ''; }
+    afficherPointLieu(c.uid);
+    c.envois.forEach(function (e) { e.remises.forEach(function (r) { brancherLieu(r.uid); if (r.lieu) { $('#tg_' + r.uid + '_q').value = r.lieu.nom || ''; } afficherPointLieu(r.uid); }); });
+  });
+  brancherEnvois($('#tn_chargements'));
+  $$('[data-retirer-ch]').forEach(function (b) {
+    b.onclick = function () { NT.chargements = NT.chargements.filter(function (c) { return c.uid !== b.dataset.retirerCh; }); synchroniserOrdre(); rendreChargements(); nouveauLieu(); };
+  });
+  $$('[data-ajout-envoi]').forEach(function (b) {
+    b.onclick = function () { chargementDe(b.dataset.ajoutEnvoi).envois.push(nouvelEnvoi('')); synchroniserOrdre(); rendreChargements(); planifierTournee(); };
+  });
+  rendreExistants(); remplirEnvoisEnAttente(); rendreOrdre();
+}
+function chargementDe(uid) { return NT.chargements.filter(function (c) { return c.uid === uid; })[0]; }
+function envoiDe(uid) { var r = null; NT.chargements.forEach(function (c) { c.envois.forEach(function (e) { if (e.uid === uid) { r = e; } }); }); return r; }
+function remiseDe(uid) { var r = null; NT.chargements.forEach(function (c) { c.envois.forEach(function (e) { e.remises.forEach(function (x) { if (x.uid === uid) { r = x; } }); }); }); return r; }
+
+/* Un envoi : son payeur, ses lignes, ses remises (destinataire, lieu, quantités). */
+function envoiHtml(e, retirable) {
+  var n = e.remises.length, lignes = e.lignes.filter(function (l) { return l.produit.trim(); });
+  return '<div class="tn-mvt tn-charger" data-envoi="' + e.uid + '"><div class="tn-mvt-tete"><b>Pour</b>' +
+      '<select class="pa-champ" data-ef="payeur" aria-label="Qui paie le transport">' + optionsPayeur(e.payeur) + '</select>' +
+      '<span class="aide">paie sa part du transport</span>' +
+      (retirable ? '<button type="button" class="btn-mini discret" data-retirer-envoi="' + e.uid + '" aria-label="Retirer cet envoi">✕</button>' : '') + '</div>' +
+    lignesHtml(e.lignes, e.uid) +
+    '<div class="tn-remises">' + e.remises.map(function (r, i) {
+      var dernier = i === n - 1;
+      return '<div class="tn-remise" data-remise="' + r.uid + '"><div class="tn-mvt-tete"><b>⬇ Remis à</b>' +
+          '<input class="pa-champ" data-rf="client_nom" placeholder="Client (vide pour un site du groupe)" value="' + esc(r.client_nom) + '" aria-label="Destinataire">' +
+          '<input class="pa-champ tn-montant" data-rf="montant" type="number" min="0" step="1" placeholder="À encaisser (F)" value="' + esc(r.montant) + '" aria-label="Montant à encaisser">' +
+          (n > 1 ? '<button type="button" class="btn-mini discret" data-retirer-remise="' + r.uid + '" aria-label="Retirer cette remise">✕</button>' : '') + '</div>' +
+        champLieu(r.uid, 'Lieu de la remise') +
+        (n > 1 && lignes.length ? '<div class="tn-parts">' + lignes.map(function (l) {
+          var parQte = nombre(l.quantite) > 0, p = partsDeLigne(e, l).filter(function (x) { return x.remise === r; })[0];
+          return '<label>' + esc(l.produit) + (parQte ? ' (' + esc(l.unite || 'unités') + ')' : ' (kg)') +
+            (dernier ? '<span class="tn-reste' + (p.valeur < 0 ? ' tn-surcharge' : '') + '" data-reste="' + r.uid + l.uid + '">' + (p.valeur < 0 ? 'trop réparti : ' : 'le reste : ') + formater(p.valeur) + '</span>'
+                     : '<input class="pa-champ" type="number" min="0" step="1" data-part="' + l.uid + '" value="' + esc((r.parts[l.uid] || {}).v || '') + '">') + '</label>';
+        }).join('') + '</div>' : '') +
+      '</div>';
+    }).join('') +
+    '<button type="button" class="btn-mini discret" data-repartir="' + e.uid + '">＋ Répartir vers un autre destinataire</button></div>' +
+  '</div>';
+}
+
+function brancherEnvois(racine) {
+  $$('[data-ef="payeur"]', racine).forEach(function (s) {
+    s.onchange = function () { envoiDe(s.closest('[data-envoi]').dataset.envoi).payeur = s.value; majLibelles(); planifierTournee(); };
+  });
+  $$('[data-rf]', racine).forEach(function (c) {
+    c.addEventListener('input', function () { remiseDe(c.closest('[data-remise]').dataset.remise)[c.dataset.rf] = c.value; majLibelles(); planifierTournee(); });
+  });
+  $$('[data-part]', racine).forEach(function (c) {
+    c.addEventListener('input', function () {
+      var r = remiseDe(c.closest('[data-remise]').dataset.remise);
+      r.parts[c.dataset.part] = { v: c.value };
+      majRestes(envoiDe(c.closest('[data-envoi]').dataset.envoi)); planifierTournee();
+    });
+  });
+  brancherLignes(racine, function (cle) { return (envoiDe(cle) || { lignes: [] }).lignes; }, function (redessiner) {
+    if (redessiner) { rendreChargements(); } else { NT.chargements.forEach(function (c) { c.envois.forEach(majRestes); }); majLibelles(); }
+    planifierTournee();
+  });
+  $$('[data-repartir]', racine).forEach(function (b) {
+    b.onclick = function () {
+      var e = envoiDe(b.dataset.repartir);
+      if (!e.lignes.some(function (l) { return l.produit.trim(); })) { message('Écrivez d\'abord ce qu\'on charge.', 'ko'); return; }
+      e.remises.push(nouvelleRemise()); synchroniserOrdre(); rendreChargements(); planifierTournee();
+    };
+  });
+  $$('[data-retirer-remise]', racine).forEach(function (b) {
+    b.onclick = function () {
+      var e = envoiDe(b.closest('[data-envoi]').dataset.envoi);
+      e.remises = e.remises.filter(function (r) { return r.uid !== b.dataset.retirerRemise; });
+      synchroniserOrdre(); rendreChargements(); nouveauLieu();
+    };
+  });
+  $$('[data-retirer-envoi]', racine).forEach(function (b) {
+    b.onclick = function () {
+      NT.chargements.forEach(function (c) { c.envois = c.envois.filter(function (e) { return e.uid !== b.dataset.retirerEnvoi; }); });
+      synchroniserOrdre(); rendreChargements(); nouveauLieu();
+    };
+  });
+}
+/* Sans redessiner pendant la saisie : le reste de la dernière remise et les libellés de l'ordre suivent. */
+function majRestes(e) {
+  if (!e || e.remises.length < 2) { return; }
+  var r = e.remises[e.remises.length - 1];
+  e.lignes.filter(function (l) { return l.produit.trim(); }).forEach(function (l) {
+    var p = partsDeLigne(e, l).filter(function (x) { return x.remise === r; })[0], s = $('[data-reste="' + r.uid + l.uid + '"]');
+    if (s && p) { s.textContent = (p.valeur < 0 ? 'trop réparti : ' : 'le reste : ') + formater(p.valeur); s.classList.toggle('tn-surcharge', p.valeur < 0); }
+  });
+}
+function majLibelles() { rendreOrdre(); }
+
+function rendreExistants() {
+  var z = $('#tn_existants'); if (!z) { return; }
+  z.innerHTML = NT.existants.length ? '<div class="tn-arret"><b>Envois déjà prévus dans ce voyage</b>' + NT.existants.map(function (x) {
+    var e = (DISPATCH.envois || {})[x.cle] || {};
+    return '<div class="tn-mvt tn-existant"><div class="tn-mvt-tete"><span>' + esc((e.numero || 'Envoi') + ' · ' + (e.pour || '') + (e.payeur ? ' (payé par ' + e.payeur + ')' : '') +
+      ' · ' + (x.charge ? x.charge.nom : '?') + ' → ' + (x.livre ? x.livre.nom : '?') + (e.lignes ? ' · ' + e.lignes : '') + (e.poids_kg ? ' · ' + formater(e.poids_kg) + ' kg' : '')) + '</span>' +
+      '<button type="button" class="btn-mini discret" data-retirer-existant="' + esc(x.cle) + '" title="Il revient « à planifier »">Retirer du voyage</button></div></div>';
+  }).join('') + '</div>' : '';
+  $$('[data-retirer-existant]').forEach(function (b) {
+    b.onclick = function () { NT.existants = NT.existants.filter(function (x) { return x.cle !== b.dataset.retirerExistant; }); synchroniserOrdre(); rendreChargements(); nouveauLieu(); };
+  });
+}
+
+/* Libellé court d'un élément dans l'ordre des arrêts. */
+function libelleElement(e) {
+  if (e.type === 'C') {
+    return '⬆ ' + e.chargement.envois.map(function (v) {
+      var l = lignesValides(v.lignes);
+      return (v.payeur ? nomSociete(v.payeur) : 'payeur ?') + ' : ' + (l.length ? l.map(function (x) { return (x.quantite ? formater(x.quantite) + ' ' + (x.unite || '') + ' ' : '') + x.produit; }).join(', ') : 'à saisir');
+    }).join(' · ');
+  }
+  if (e.type === 'R') {
+    var lr = lignesDeRemise(e.envoi, e.remise);
+    return '⬇ ' + (e.remise.client_nom.trim() || (e.remise.lieu && e.remise.lieu.site ? e.remise.lieu.nom : nomSociete(e.envoi.payeur) || 'destinataire ?')) + ' : ' +
+      (lr.length ? lr.map(function (x) { return (x.quantite !== null ? formater(x.quantite) + ' ' + (x.unite || '') + ' ' : formater(x.poids_kg) + ' kg ') + x.produit; }).join(', ') : 'à répartir');
+  }
+  var v = (DISPATCH.envois || {})[e.existant.cle] || {};
+  return (e.type === 'Xc' ? '⬆ ' : '⬇ ') + (v.numero || 'Envoi') + ' · ' + (v.pour || '');
+}
+function rendreOrdre() {
+  var z = $('#tn_ordre'); if (!z) { return; }
+  var a = arretsVoyage();
+  z.innerHTML = a.map(function (ar, i) {
+    return '<div class="tn-ordre-arret" data-arret="' + i + '"><span class="tn-num">' + (i + 1) + '</span>' +
+      '<div class="tn-ordre-texte"><b>' + esc(ar.lieu ? ar.lieu.nom : 'lieu à choisir') + '</b>' +
+        ar.elements.map(function (e) { return '<span>' + esc(libelleElement(e)) + '</span>'; }).join('') + '</div>' +
+      '<span class="tn-gestes"><button type="button" class="btn-mini discret" data-monter="' + i + '"' + (i === 0 ? ' disabled' : '') + ' aria-label="Monter l\'arrêt">▲</button>' +
+      '<button type="button" class="btn-mini discret" data-descendre="' + i + '"' + (i === a.length - 1 ? ' disabled' : '') + ' aria-label="Descendre l\'arrêt">▼</button></span></div>';
+  }).join('');
+  $$('[data-monter]').forEach(function (b) { b.onclick = function () { deplacerArret(+b.dataset.monter, -1); }; });
+  $$('[data-descendre]').forEach(function (b) { b.onclick = function () { deplacerArret(+b.dataset.descendre, 1); }; });
+  majJauges(NT.dernier);
+}
+
+/* Les envois en attente (phoning, demandes) : on les ajoute au voyage d'un geste. */
+function remplirEnvoisEnAttente() {
+  var s = $('#tn_attente_envois'); if (!s) { return; }
+  var dans = NT.existants.map(function (x) { return x.cle; });
+  var l = Object.keys(DISPATCH.envois || {}).map(function (k) { return DISPATCH.envois[k]; }).filter(function (e) {
+    return e.statut === 'a_dispatcher' && !e.voyage_id && dans.indexOf(e.id) === -1;
+  });
+  s.innerHTML = '<option value="">＋ Ajouter un envoi en attente (' + l.length + ')</option>' + l.map(function (e) {
+    var ok = e.origine_lat !== null && e.latitude !== null && e.origine_lat !== undefined && e.latitude !== undefined;
+    return '<option value="' + esc(e.id) + '"' + (ok ? '' : ' disabled') + '>' + esc(e.numero + ' · ' + (e.pour || '') + ' · ' + (e.adresse_enlevement || '?') + ' → ' +
+      (e.adresse_livraison || '?') + (e.poids_kg ? ' · ' + formater(e.poids_kg) + ' kg' : '') + (ok ? '' : ' (sans point de livraison)')) + '</option>';
+  }).join('');
+  s.onchange = function () { if (s.value) { ajouterEnvoiAttente(DISPATCH.envois[s.value]); } };
+}
+/* Son chargement rejoint un élément au même endroit (300 m), sa remise aussi, après le chargement ; sinon à la fin. */
+function ajouterEnvoiAttente(e) {
+  var x = { cle: e.id, charge: { lat: +e.origine_lat, lng: +e.origine_lng, nom: e.adresse_enlevement || 'Chargement' },
+            livre: { lat: +e.latitude, lng: +e.longitude, nom: e.adresse_livraison || e.pour || 'Livraison' } };
+  NT.existants.push(x);
+  var el = elements(), kc = 'X' + e.id + ':c', kd = 'X' + e.id + ':d', ic = -1, id = -1;
+  NT.ordre.forEach(function (k, i) { var v = el[k]; if (ic === -1 && v && v.lieu && v.lieu.lat !== undefined && distanceM(v.lieu, x.charge) <= 300) { ic = i; } });
+  if (ic === -1) { NT.ordre.push(kc); ic = NT.ordre.length - 1; } else { NT.ordre.splice(ic + 1, 0, kc); ic += 1; }
+  NT.ordre.forEach(function (k, i) { var v = el[k]; if (id === -1 && i > ic && v && v.lieu && v.lieu.lat !== undefined && distanceM(v.lieu, x.livre) <= 300) { id = i; } });
+  if (id === -1) { NT.ordre.push(kd); } else { NT.ordre.splice(id + 1, 0, kd); }
+  rendreChargements(); nouveauLieu();
+}
+
+/* ------------------------------------------------------------ les lieux */
+function lieuDe(sens) {
+  if (sens === 'dep') { return NT.depart; }
+  var c = chargementDe(sens); if (c) { return c.lieu; }
+  var r = remiseDe(sens); return r ? r.lieu : null;
+}
+function poserLieu(sens, lieu) {
+  if (sens === 'dep') { NT.depart = lieu; return; }
+  var c = chargementDe(sens); if (c) { c.lieu = lieu; rendreOrdre(); return; }
+  var r = remiseDe(sens); if (r) { r.lieu = lieu; rendreOrdre(); }
+}
+
+function pointsTournee() {
+  var pts = [];
+  if (NT.mode === 'voyage' && NT.depart && NT.depart.lat !== undefined) { pts.push({ lieu: NT.depart, depart: true }); }
+  arretsVoyage().forEach(function (a, i) { pts.push({ lieu: a.lieu, arret: a, rang: i + 1 }); });
+  return pts;
+}
+
+function dessinerTournee() {
+  if (!NT.calques) { return; }
+  NT.calques.clearLayers();
+  TG.sites.forEach(function (s) {
+    if (s.latitude === null || s.longitude === null) { return; }
+    L.circleMarker([s.latitude, s.longitude], { radius: 5, color: '#442A19', fillColor: '#C79D67', fillOpacity: 0.9, weight: 2 })
+      .bindTooltip(esc(s.societe + ' · ' + s.nom)).addTo(NT.calques);
+  });
+  var pts = pointsTournee().filter(function (p) { return p.lieu && p.lieu.lat !== undefined; });
+  pts.forEach(function (p) {
+    var ch = p.arret && p.arret.elements.some(function (e) { return e.type === 'C' || e.type === 'Xc'; });
+    var couleur = p.depart ? '#7A6A5B' : (ch ? '#1F5A38' : '#B3261E');
+    L.marker([p.lieu.lat, p.lieu.lng], { icon: L.divIcon({ className: 'tn-repere', html: '<span style="background:' + couleur + '">' + (p.depart ? '0' : p.rang) + '</span>', iconSize: [26, 26], iconAnchor: [13, 13] }) })
+      .bindTooltip(esc(p.lieu.nom || '')).addTo(NT.calques);
+  });
+  troncons().filter(Boolean).forEach(function (t) {
+    var leg = NT.legs[t.cle];
+    L.polyline(leg && leg.route ? leg.route : [[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]],
+      leg && leg.route ? { color: t.retour ? '#7A6A5B' : '#1B4F8A', weight: t.retour ? 3 : 4, opacity: 0.8, dashArray: t.retour ? '8 6' : null }
+                       : { color: '#442A19', dashArray: '6 6', weight: 2 }).addTo(NT.calques);
+  });
+  if (pts.length) {
+    try { NT.carte.fitBounds(pts.map(function (p) { return [p.lieu.lat, p.lieu.lng]; }), { padding: [30, 30], maxZoom: 12 }); } catch (e) {}
+  }
+}
+
+function troncons() {
+  var pts = pointsTournee(), l = [];
+  for (var i = 0; i + 1 < pts.length; i++) {
+    var a = pts[i].lieu, b = pts[i + 1].lieu;
+    if (!a || !b || a.lat === undefined || b.lat === undefined) { l.push(null); continue; }
+    l.push({ a: a, b: b, cle: a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat });
+  }
+  var p0 = pts[0] && pts[0].lieu, pn = pts.length && pts[pts.length - 1].lieu;
+  if (NT.mode === 'voyage' && $('#tn_ar') && $('#tn_ar').checked && p0 && pn && p0.lat !== undefined && pn.lat !== undefined) {
+    l.push({ a: pn, b: p0, cle: pn.lng + ',' + pn.lat + ';' + p0.lng + ',' + p0.lat, retour: true });
+  }
+  return l;
+}
+
+function planifierTournee() {
+  clearTimeout(NT.minuteur);
+  NT.minuteur = setTimeout(NT.mode === 'demande' ? function () {} : chiffrerTourneeEcran, 350);
+}
+
+/* Ce qui manque avant de pouvoir chiffrer, dit en clair. */
+function manqueEnvoi(e, n) {
+  if (!e.payeur) { return n + 'qui paie le transport ?'; }
+  var lv = lignesValides(e.lignes);
+  if (!lv.length) { return n + 'écrivez au moins un produit.'; }
+  var sansKg = lv.filter(function (l) { return !(l.poids_kg > 0); })[0];
+  if (sansKg) { return n + '« ' + sansKg.produit + ' » : indiquez ses kilos (le poids décide du camion et du coût).'; }
+  for (var i = 0; i < e.remises.length; i++) {
+    var r = e.remises[i];
+    if (!r.lieu || r.lieu.lat === undefined) { return n + 'choisissez le lieu de la remise ' + (e.remises.length > 1 ? (i + 1) + ' ' : '') + '(à qui, où).'; }
+    if (r.client_nom.trim() && r.client_nom.trim().length < 2) { return n + 'nom du destinataire trop court.'; }
+  }
+  var lignes = e.lignes.filter(function (l) { return l.produit.trim(); });
+  for (var k = 0; k < lignes.length; k++) {
+    var p = partsDeLigne(e, lignes[k]);
+    if (p.some(function (x) { return x.valeur < 0; })) { return n + '« ' + lignes[k].produit + ' » : on répartit plus que ce qui est chargé.'; }
+  }
+  if (e.remises.some(function (r) { return !lignesDeRemise(e, r).length; })) { return n + 'une remise ne reçoit rien : répartissez les quantités, ou retirez-la.'; }
+  return null;
+}
+function manqueTournee() {
+  var m;
+  for (var i = 0; i < NT.chargements.length; i++) {
+    var c = NT.chargements[i], n = 'Chargement ' + (NT.chargements.length > 1 ? (i + 1) + ' ' : '') + ': ';
+    if (!c.lieu || c.lieu.lat === undefined) { return n + 'choisissez le lieu.'; }
+    for (var k = 0; k < c.envois.length; k++) { m = manqueEnvoi(c.envois[k], n); if (m) { return m; } }
+  }
+  if (!NT.chargements.length && !NT.existants.length) { return 'Ajoutez ce qu\'on charge.'; }
+  return null;
+}
+
+/* Le voyage pour la base : chaque remise est un envoi (« N » + son repère), les remises d'un envoi sont reliées. */
+function chargeVoyage() {
+  var autoroute = $('#tn_autoroute').checked;
+  var p = {
+    id: NT.id || null, date: $('#tn_date').value || null, vehicule: $('#tn_vehicule').value || null, chauffeur: $('#tn_chauffeur').value || null,
+    aller_retour: $('#tn_ar').checked, autoroute: autoroute, attente_h: nombre($('#tn_attente').value),
+    commentaire: $('#tn_commentaire').value.trim() || null,
+    depart: NT.depart && NT.depart.lat !== undefined ? { latitude: NT.depart.lat, longitude: NT.depart.lng, libelle: NT.depart.nom, site_id: NT.depart.site || null } : null,
+    arrets: arretsVoyage().map(function (a) {
+      var mv = [];
+      a.elements.forEach(function (e) {
+        if (e.type === 'C') {
+          e.chargement.envois.forEach(function (v) {
+            v.remises.forEach(function (r) {
+              mv.push({ sens: 'charger', envoi: 'N' + r.uid, groupe: v.remises.length > 1 ? v.uid : null, societe: v.payeur,
+                client_nom: r.client_nom.trim() || null, montant: r.client_nom.trim() && r.montant !== '' ? nombre(r.montant) : null,
+                lignes: lignesDeRemise(v, r) });
+            });
+          });
+        } else if (e.type === 'R') { mv.push({ sens: 'decharger', envoi: 'N' + e.remise.uid }); }
+        else { mv.push({ sens: e.type === 'Xc' ? 'charger' : 'decharger', envoi: e.existant.cle }); }
+      });
+      return { latitude: a.lieu.lat, longitude: a.lieu.lng, libelle: a.lieu.nom, site_id: a.lieu.site || null, mouvements: mv };
+    })
+  };
+  var tr = troncons();
+  p.troncons = tr.filter(function (t) { return t && !t.retour; }).map(function (t) { return tronconPourBase(t, autoroute); });
+  var r = tr.filter(function (t) { return t && t.retour; })[0];
+  p.retour = r ? tronconPourBase(r, autoroute) : null;
+  return p;
+}
+
+/* La charge à bord en repartant de chaque arrêt, d'après la base. */
+function majJauges(c) {
+  var res = c && c.arrets_voyage ? c.arrets_voyage : [];
+  var cap = c ? nombre(c.capacite_kg) : 0;
+  $$('#tn_ordre .tn-ordre-arret').forEach(function (el, i) {
+    var j = el.querySelector('.tn-jauge'); if (j) { j.remove(); }
+    var r = res[i]; if (!r) { return; }
+    var charge = nombre(r.charge_apres_kg), pct = cap ? Math.round(100 * charge / cap) : null;
+    el.insertAdjacentHTML('beforeend', '<div class="tn-jauge' + (pct !== null && pct > 100 ? ' tn-surcharge' : '') + '"><span>À bord en repartant : <b>' +
+      formater(charge) + ' kg</b>' + (cap ? ' sur ' + formater(cap) + ' (' + pct + ' %)' : '') + '</span>' +
+      (pct !== null ? '<span class="pl-jauge"><span style="width:' + Math.min(100, pct) + '%"></span></span>' : '') + '</div>');
+  });
+}
+
+/* Le nom d'une remise dans les parts : destinataire, et qui paie. */
+function libellePart(x) {
+  var e = (DISPATCH.envois || {})[x.envoi];
+  if (e) { return { nom: x.nom, detail: e.numero + (e.payeur ? ' · payé par ' + e.payeur : ''), montant: nombre(e.montant_a_encaisser) }; }
+  var r = remiseDe(String(x.envoi).slice(1)), v = null;
+  NT.chargements.forEach(function (c) { c.envois.forEach(function (y) { if (y.remises.indexOf(r) !== -1) { v = y; } }); });
+  return { nom: x.nom, detail: 'payé par ' + (v ? nomSociete(v.payeur) : (x.societe ? nomSociete(x.societe) : 'SN2I')), montant: r && r.client_nom.trim() ? nombre(r.montant) : 0 };
+}
+
+function enregistrerVoyageEcran() {
+  var manque = manqueTournee();
+  if (manque) { message(esc(manque), 'ko'); return; }
+  if (!NT.dernier) { message('Le chiffrage n\'est pas encore calculé, ou la base l\'a refusé : lisez le message sous la carte.', 'ko'); return; }
+  var b = $('#tn_creer'); b.disabled = true;
+  var dateVoyage = $('#tn_date').value;
+  rpc('enregistrer_voyage', { p: chargeVoyage() }).then(function (r) {
+    if (dateVoyage && dateVoyage < aujourdhui()) { PLANNING.debut = dateVoyage; }
+    message('Voyage ' + esc(r.numero) + ' enregistré : ' + r.envois + ' remise(s), coût ' + francs(r.cout_revient) +
+      (nombre(r.total_refacture) ? ', refacturé ' + francs(r.total_refacture) : '') +
+      (r.camion ? ', sur ' + esc(r.camion) + '.' : ', camion à choisir.'), 'ok');
+    $('#bloc_tournee').style.display = 'none';
+    chargerDispatch();
+  }).catch(function (e) { message('Voyage non enregistré : ' + esc(e.message), 'ko'); })
+    .then(function () { b.disabled = false; });
+}
+
+/* ------------------------------------------------------- une demande seule */
+function afficherDemande() {
+  var z = $('#tn_formulaire');
+  z.innerHTML = '<div class="chargement">Chargement…</div>';
+  NT.mode = 'demande'; NT.legs = {}; NT.placer = null; NT.existants = []; NT.ordre = []; NT.depart = null;
+  Promise.all([chargerReferentielGroupe(), chargerCatalogue2()]).then(function () {
+    var depot = TG.sites.filter(function (s) { return s.depot_phoning && s.latitude !== null; })[0];
+    NT.chargements = [nouveauChargement(depot ? { lat: depot.latitude, lng: depot.longitude, nom: depot.nom, site: depot.id } : null, 'SN2I')];
+    synchroniserOrdre();
+    var demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    $('#tn_titre_bloc').textContent = 'Nouvelle demande de transport';
+    z.innerHTML = datalistCatalogue() +
+      '<p class="aide">Un envoi à faire, réparti si besoin entre plusieurs destinataires. Il attend dans « À planifier » ; on le glisse ensuite sur un camion, seul ou avec d\'autres.</p>' +
+      '<div class="tg-grille"><label>Date voulue<input class="pa-champ" type="date" id="dm_date" value="' + demain + '"></label>' +
+        '<label class="tg-large">Commentaire<input class="pa-champ" id="dm_commentaire" placeholder="Contact sur place, consignes…"></label></div>' +
+      '<div id="tn_chargements"></div><div id="tn_ordre" style="display:none"></div>' +
+      '<p class="aide" id="tn_carte_aide">Tapez une ville, un quartier ou un site du groupe, puis choisissez dans la liste.</p>' +
+      '<div id="tn_carte" class="carte-console tg-carte"></div>' +
+      '<div class="tg-boutons"><button class="btn-console accent" id="dm_creer" type="button">Enregistrer la demande</button>' +
+      '<button class="btn-console" id="tn_fermer" type="button">Fermer</button></div>';
+    rendreChargements();
+    $$('[data-retirer-ch], [data-ajout-envoi]').forEach(function (b) { b.style.display = 'none'; });
+    preparerCarteTournee();
+    $('#dm_creer').onclick = enregistrerDemandeEcran;
+    $('#tn_fermer').onclick = function () { $('#bloc_tournee').style.display = 'none'; };
+  }).catch(function (e) { z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
+}
+
+function enregistrerDemandeEcran() {
+  var c = NT.chargements[0], e = c && c.envois[0];
+  var manque = !c.lieu || c.lieu.lat === undefined ? 'Choisissez le lieu de chargement.' : manqueEnvoi(e, '');
+  if (manque) { message(esc(manque), 'ko'); return; }
+  var b = $('#dm_creer'); b.disabled = true;
+  rpc('enregistrer_demande', { p: {
+    chargement: { latitude: c.lieu.lat, longitude: c.lieu.lng, libelle: c.lieu.nom, site_id: c.lieu.site || null },
+    societe: e.payeur, date: $('#dm_date').value || null, commentaire: $('#dm_commentaire').value.trim() || null,
+    remises: e.remises.map(function (r) {
+      return { client_nom: r.client_nom.trim() || null, montant: r.client_nom.trim() && r.montant !== '' ? nombre(r.montant) : null,
+               livraison: { latitude: r.lieu.lat, longitude: r.lieu.lng, libelle: r.lieu.nom, site_id: r.lieu.site || null }, lignes: lignesDeRemise(e, r) };
+    })
+  } }).then(function (r) {
+    message('Demande ' + esc(r.numero) + ' enregistrée (' + formater(r.poids_kg) + ' kg' + (r.remises > 1 ? ', ' + r.remises + ' remises reliées' : '') +
+      ') : elle attend dans « À planifier ».', 'ok');
+    $('#bloc_tournee').style.display = 'none'; chargerDispatch();
+  }).catch(function (x) { message('Demande non enregistrée : ' + esc(x.message), 'ko'); })
+    .then(function () { b.disabled = false; });
+}
+
+/* ---------------------------------------- repris du lot 0039 (inchangés) */
+function chargerCatalogue2() {
+  if (CATALOGUE.length) { return Promise.resolve(); }
+  return requete('/produits_tarifs?select=sku,nom,unite,poids_kg,actif&actif=eq.true&order=nom').then(function (l) { CATALOGUE = l || []; })
+    .catch(function () { CATALOGUE = []; });
 }
 
 function preparerNouveauTransport() {
@@ -5595,7 +6191,6 @@ function afficherChoixTransport() {
   $('#tn_fermer').onclick = function () { $('#bloc_tournee').style.display = 'none'; };
 }
 
-/* ------------------------------------------------------------ les lignes */
 function lignesHtml(lignes, cle) {
   return '<div class="tn-lignes" data-lignes="' + cle + '">' + lignes.map(function (l) {
     return '<div class="tn-ligne-produit" data-ligne="' + l.uid + '">' +
@@ -5612,7 +6207,6 @@ function datalistCatalogue() {
   return '<datalist id="tn_catalogue">' + CATALOGUE.map(function (p) { return '<option value="' + esc(p.nom) + '">'; }).join('') + '</datalist>';
 }
 
-/* Branche les champs de lignes d'un conteneur ; lignesDe(cle) rend le tableau à modifier. */
 function brancherLignes(racine, lignesDe, apres) {
   $$('.tn-ligne-produit', racine).forEach(function (el) {
     var cle = el.closest('[data-lignes]').dataset.lignes, lignes = lignesDe(cle);
@@ -5652,101 +6246,9 @@ function lignesValides(lignes) {
     return { sku: l.sku || null, produit: l.produit.trim(), quantite: nombre(l.quantite) || null, unite: l.unite.trim() || null, poids_kg: nombre(l.poids) || null };
   });
 }
+
 function kilosDe(lignes) { return lignes.reduce(function (s, l) { return s + nombre(l.poids); }, 0); }
 
-/* ------------------------------------------------------------ le voyage */
-function optionsPour(choix) {
-  return '<option value="">— pour qui ? —</option>' +
-    TG.societes.filter(function (s) { return s.actif; }).map(function (s) {
-      return '<option value="' + esc(s.code) + '"' + (choix === s.code ? ' selected' : '') + '>' + esc(s.nom) + (s.refacturable ? '' : ' (interne)') + '</option>';
-    }).join('') + '<option value="client"' + (choix === 'client' ? ' selected' : '') + '>Un client…</option>';
-}
-
-function afficherVoyage(entree, pour) {
-  var z = $('#tn_formulaire');
-  z.innerHTML = '<div class="chargement">Chargement…</div>';
-  NT.mode = 'voyage';
-  Promise.all([chargerReferentielGroupe(), chargerCatalogue2(), entree ? infosEnvois(entreeIds(entree)) : Promise.resolve()]).then(function () {
-    NT.legs = {}; NT.dernier = null; NT.placer = null;
-    if (entree) { depuisEntree(entree); }
-    else {
-      NT.id = null; NT.numero = null; NT.depart = null;
-      var e = nouvelEnvoi(pour);
-      var a1 = nouvelArret(), a2 = nouvelArret();
-      a1.mouvements.push({ uid: uidNT('m'), sens: 'charger', nouveau: e });
-      a2.mouvements.push({ uid: uidNT('m'), sens: 'decharger', cle: e.cle });
-      NT.arrets = [a1, a2];
-    }
-    $('#tn_titre_bloc').textContent = NT.numero ? 'Voyage ' + NT.numero : 'Nouveau voyage';
-    var demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    z.innerHTML = datalistCatalogue() +
-      '<div class="tg-grille">' +
-        '<label>Date<input class="pa-champ" type="date" id="tn_date" value="' + esc(NT.date || demain) + '"><span class="aide tn-date-passee" id="tn_date_aide"></span></label>' +
-        '<label>Véhicule<select class="pa-champ" id="tn_vehicule"><option value="">Pas encore choisi (le moins cher est proposé)</option>' +
-          TG.vehicules.map(function (v) {
-            return '<option value="' + esc(v.immatriculation || '') + '" data-chauffeur="' + esc(v.chauffeur_id || '') + '"' + (NT.vehicule === v.immatriculation ? ' selected' : '') + '>' +
-              esc((v.immatriculation || '(sans plaque)') + ' · ' + (v.libelle_usage || v.type) + (v.capacite_kg ? ' · ' + formater(v.capacite_kg) + ' kg' : '') +
-              (v.disponible ? ' · libre' : ' · en livraison')) + '</option>';
-          }).join('') + '</select></label>' +
-        '<label>Chauffeur<select class="pa-champ" id="tn_chauffeur">' + optionsChauffeurs(NT.chauffeur || null) + '</select></label>' +
-      '</div>' +
-      '<div class="tn-depart">' + champLieu('dep', 'Le camion part de (à vide, facultatif)') +
-        '<div class="tg-lien"><button type="button" class="btn-mini discret" id="tn_position_camion">📡 Position actuelle du camion</button>' +
-        '<button type="button" class="btn-mini discret" id="tn_sans_depart">Partir du premier chargement</button></div>' +
-        '<p class="aide">Garage, parking ou position du camion : le trajet à vide jusqu\'au premier chargement est compté, et le retour à vide revient ici.</p></div>' +
-      '<h4 class="tn-titre">Arrêts, dans l\'ordre du trajet</h4>' +
-      '<div id="tn_arrets"></div>' +
-      '<div class="tg-boutons"><button type="button" class="btn-console" id="tn_ajouter">＋ Arrêt</button>' +
-        '<select class="pa-champ" id="tn_attente_envois" aria-label="Ajouter un envoi en attente"></select>' +
-        '<button type="button" class="btn-mini discret" id="tg_nouveau_site">＋ Nouveau site du groupe</button></div>' +
-      '<div id="tg_site_form" class="tg-site" style="display:none"></div>' +
-      '<p class="aide" id="tn_carte_aide">Tapez une ville, un quartier ou un site du groupe, puis choisissez dans la liste : le point GPS est proposé. Vous pouvez l\'ajuster sur la carte.</p>' +
-      '<div id="tn_carte" class="carte-console tg-carte"></div>' +
-      '<div class="tg-grille">' +
-        '<label class="tg-case"><input type="checkbox" id="tn_autoroute"' + (NT.autoroute === false ? '' : ' checked') + '> Autoroute à péage</label>' +
-        '<label class="tg-case"><input type="checkbox" id="tn_ar"' + (NT.ar === false ? '' : ' checked') + '> Retour à vide compté</label>' +
-        '<label>Attente prévue en tout (h)<input class="pa-champ" id="tn_attente" type="number" min="0" step="0.5" value="' + esc(NT.attente || 0) + '"></label>' +
-        '<label class="tg-large">Commentaire<input class="pa-champ" id="tn_commentaire" value="' + esc(NT.commentaire || '') + '" placeholder="Contact sur place, consignes…"></label>' +
-      '</div>' +
-      '<div id="tn_chiffrage" class="tg-chiffrage"></div>' +
-      '<div class="tg-boutons"><button class="btn-console accent" id="tn_creer" type="button">Je valide le voyage</button>' +
-      (NT.id ? '<button class="btn-console" id="tn_annuler_voyage" type="button">Annuler le voyage</button>' : '') +
-      '<button class="btn-console" id="tn_fermer" type="button">Fermer</button></div>';
-    brancherLieu('dep');
-    if (NT.depart) { $('#tg_dep_q').value = NT.depart.nom || ''; afficherPointLieu('dep'); }
-    rendreArrets();
-    remplirEnvoisEnAttente();
-    preparerCarteTournee();
-    ['#tn_autoroute', '#tn_attente', '#tn_ar', '#tn_vehicule'].forEach(function (s) {
-      $(s).addEventListener('input', planifierTournee); $(s).addEventListener('change', planifierTournee);
-    });
-    $('#tn_ar').addEventListener('change', nouveauLieu);
-    $('#tn_vehicule').addEventListener('change', function () {
-      var o = this.options[this.selectedIndex];
-      if (o && o.dataset.chauffeur) { $('#tn_chauffeur').value = o.dataset.chauffeur; }
-    });
-    $('#tn_ajouter').onclick = ajouterArret;
-    var avisDate = function () {
-      var d = $('#tn_date').value;
-      $('#tn_date_aide').textContent = d && d < aujourdhui() ? 'Date passée : c\'est une régularisation. Le planning ira à cette date pour qu\'elle reste visible.' : '';
-    };
-    $('#tn_date').addEventListener('change', avisDate); avisDate();
-    $('#tn_position_camion').onclick = positionDuCamion;
-    $('#tn_sans_depart').onclick = function () { NT.depart = null; $('#tg_dep_q').value = ''; afficherPointLieu('dep'); nouveauLieu(); };
-    $('#tg_nouveau_site').onclick = afficherFormulaireSite;
-    $('#tn_creer').onclick = enregistrerVoyageEcran;
-    if ($('#tn_annuler_voyage')) { $('#tn_annuler_voyage').onclick = annulerVoyageEcran; }
-    $('#tn_fermer').onclick = function () { $('#bloc_tournee').style.display = 'none'; };
-    nouveauLieu();
-  }).catch(function (e) { z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
-}
-
-/* Un voyage déjà en base : sa fiche se reconstruit depuis voyage_en_entree. */
-function entreeIds(e) {
-  var ids = [];
-  (e.arrets || []).forEach(function (a) { (a.mouvements || []).forEach(function (m) { if (ids.indexOf(m.envoi) === -1) { ids.push(m.envoi); } }); });
-  return ids;
-}
 function infosEnvois(ids) {
   var manquants = ids.filter(function (id) { return !(DISPATCH.envois || {})[id]; });
   if (!manquants.length) { return Promise.resolve(); }
@@ -5755,227 +6257,8 @@ function infosEnvois(ids) {
     (l || []).forEach(function (x) { DISPATCH.envois[x.id] = x; });
   });
 }
-function depuisEntree(e) {
-  NT.id = e.id; NT.numero = (DISPATCH.voyagesParId && DISPATCH.voyagesParId[e.id] || {}).numero || null;
-  NT.date = e.date; NT.vehicule = e.vehicule || ''; NT.chauffeur = e.chauffeur || null;
-  NT.autoroute = e.autoroute !== false; NT.ar = e.aller_retour !== false; NT.attente = e.attente_h || 0; NT.commentaire = e.commentaire || '';
-  NT.depart = e.depart ? { lat: +e.depart.latitude, lng: +e.depart.longitude, nom: e.depart.libelle || 'Départ', site: e.depart.site_id || null } : null;
-  NT.arrets = (e.arrets || []).map(function (a) {
-    var x = nouvelArret({ lat: +a.latitude, lng: +a.longitude, nom: a.libelle || '', site: a.site_id || null });
-    x.mouvements = (a.mouvements || []).map(function (m) { return { uid: uidNT('m'), sens: m.sens, cle: m.envoi, existant: true }; });
-    return x;
-  });
-  /* Les km par la route déjà relevés : gardés tels quels (avec leurs gares), sans rappeler le service d'itinéraire. */
-  var pts = pointsTournee(), tr = e.troncons || [];
-  for (var i = 0; i + 1 < pts.length; i++) {
-    var a = pts[i].lieu, b = pts[i + 1].lieu, t = tr[i] || {};
-    if (a && b && t.distance_km !== undefined && t.distance_km !== null) {
-      NT.legs[a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat] = { km: +t.distance_km, gares: t.gares_connues || [], source: t.source };
-    }
-  }
-}
 
-/* Ce que porte le camion au fil des arrêts : les envois chargés et pas encore déchargés. */
-function envoisABord(jusqua) {
-  var bord = [];
-  NT.arrets.forEach(function (a, i) {
-    if (i >= jusqua) { return; }
-    a.mouvements.forEach(function (m) {
-      var cle = m.nouveau ? m.nouveau.cle : m.cle;
-      if (m.sens === 'charger') { bord.push(cle); }
-    });
-  });
-  return bord;
-}
-function envoiNouveau(cle) {
-  var r = null;
-  NT.arrets.forEach(function (a) { a.mouvements.forEach(function (m) { if (m.nouveau && m.nouveau.cle === cle) { r = m.nouveau; } }); });
-  return r;
-}
-function libelleEnvoi(cle) {
-  var n = envoiNouveau(cle);
-  if (n) {
-    var pour = n.pour === 'client' ? (n.client_nom || 'client ?') : ((TG.societes.filter(function (s) { return s.code === n.pour; })[0] || {}).nom || 'pour qui ?');
-    var p = lignesValides(n.lignes).map(function (l) { return l.produit; }).join(', ');
-    return 'Nouveau · ' + pour + (p ? ' · ' + p : '') + (kilosDe(n.lignes) ? ' · ' + formater(kilosDe(n.lignes)) + ' kg' : '');
-  }
-  var e = (DISPATCH.envois || {})[cle] || {};
-  return (e.numero || 'Envoi') + ' · ' + (e.pour || '') + (e.lignes ? ' · ' + e.lignes : '') + (e.poids_kg ? ' · ' + formater(e.poids_kg) + ' kg' : '');
-}
-
-function rendreArrets() {
-  var z = $('#tn_arrets'); if (!z) { return; }
-  z.innerHTML = NT.arrets.map(function (a, i) {
-    var aBord = envoisABord(i);
-    return '<div class="tn-arret" data-uid="' + a.uid + '">' +
-      '<div class="tn-arret-tete"><span class="tn-num">' + (i + 1) + '</span>' +
-        '<div class="tn-arret-lieu">' + champLieu(a.uid, 'Lieu') + '</div>' +
-        '<span class="tn-gestes">' +
-          '<button type="button" class="btn-mini discret" data-monter="' + i + '"' + (i === 0 ? ' disabled' : '') + ' aria-label="Monter l\'arrêt">▲</button>' +
-          '<button type="button" class="btn-mini discret" data-descendre="' + i + '"' + (i === NT.arrets.length - 1 ? ' disabled' : '') + ' aria-label="Descendre l\'arrêt">▼</button>' +
-          '<button type="button" class="btn-mini discret" data-retirer="' + i + '"' + (NT.arrets.length <= 1 ? ' disabled' : '') + ' aria-label="Retirer l\'arrêt">✕</button>' +
-        '</span></div>' +
-      a.mouvements.map(function (m) {
-        if (m.sens === 'charger' && m.nouveau) {
-          var n = m.nouveau;
-          return '<div class="tn-mvt tn-charger" data-mvt="' + m.uid + '"><div class="tn-mvt-tete"><b>⬆ Charger</b>' +
-            '<select class="pa-champ" data-nf="pour" aria-label="Pour qui">' + optionsPour(n.pour) + '</select>' +
-            (n.pour === 'client' ? '<input class="pa-champ" data-nf="client_nom" placeholder="Nom du client" value="' + esc(n.client_nom) + '" aria-label="Nom du client">' +
-              '<input class="pa-champ tn-montant" data-nf="montant" type="number" min="0" step="1" placeholder="À encaisser (F)" value="' + esc(n.montant) + '" aria-label="Montant à encaisser">' : '') +
-            '<button type="button" class="btn-mini discret" data-retirer-mvt="' + m.uid + '" aria-label="Retirer ce chargement">✕</button></div>' +
-            lignesHtml(n.lignes, n.cle) + '</div>';
-        }
-        if (m.sens === 'charger') {
-          return '<div class="tn-mvt tn-charger tn-existant" data-mvt="' + m.uid + '"><div class="tn-mvt-tete"><b>⬆ Charger</b><span>' + esc(libelleEnvoi(m.cle)) + '</span>' +
-            '<button type="button" class="btn-mini discret" data-retirer-mvt="' + m.uid + '" title="Retirer cet envoi du voyage : il revient « à planifier »">Retirer du voyage</button></div></div>';
-        }
-        var choix = aBord.filter(function (c) {
-          return c === m.cle || !NT.arrets.some(function (x) { return x.mouvements.some(function (y) { return y !== m && y.sens === 'decharger' && y.cle === c; }); });
-        });
-        return '<div class="tn-mvt tn-decharger" data-mvt="' + m.uid + '"><div class="tn-mvt-tete"><b>⬇ Décharger</b>' +
-          '<select class="pa-champ" data-dechargement="' + m.uid + '" aria-label="Quel envoi décharger">' +
-            (m.cle ? '' : '<option value="">— quel envoi ? —</option>') +
-            choix.map(function (c) { return '<option value="' + esc(c) + '"' + (c === m.cle ? ' selected' : '') + '>' + esc(libelleEnvoi(c)) + '</option>'; }).join('') +
-            (choix.length ? '' : '<option value="">rien n\'est à bord à cet arrêt</option>') + '</select>' +
-          '<button type="button" class="btn-mini discret" data-retirer-mvt="' + m.uid + '" aria-label="Retirer ce déchargement">✕</button></div></div>';
-      }).join('') +
-      '<div class="tg-lien tn-ajouts"><button type="button" class="btn-mini discret" data-ajout-charger="' + i + '">＋ Charger ici</button>' +
-        '<button type="button" class="btn-mini discret" data-ajout-decharger="' + i + '"' + (i === 0 ? ' disabled' : '') + '>＋ Décharger ici</button></div>' +
-    '</div>';
-  }).join('');
-  NT.arrets.forEach(function (a) {
-    brancherLieu(a.uid);
-    if (a.lieu) { $('#tg_' + a.uid + '_q').value = a.lieu.nom || ''; }
-    afficherPointLieu(a.uid);
-  });
-  $$('#tn_arrets [data-nf]').forEach(function (c) {
-    var m = mouvementDe(c), n = m.nouveau;
-    c.addEventListener(c.tagName === 'SELECT' ? 'change' : 'input', function () {
-      n[c.dataset.nf] = c.value;
-      if (c.dataset.nf === 'pour') { rendreArrets(); } else { majLibellesDechargement(); }
-      planifierTournee();
-    });
-  });
-  brancherLignes($('#tn_arrets'), function (cle) { return (envoiNouveau(cle) || { lignes: [] }).lignes; },
-    function (redessiner) { if (redessiner) { rendreArrets(); } else { majLibellesDechargement(); } planifierTournee(); });
-  $$('[data-dechargement]').forEach(function (s) {
-    s.onchange = function () { mouvementDe(s).cle = s.value || null; rendreArrets(); planifierTournee(); };
-  });
-  $$('[data-retirer-mvt]').forEach(function (b) { b.onclick = function () { retirerMouvement(b.dataset.retirerMvt); }; });
-  $$('[data-ajout-charger]').forEach(function (b) {
-    b.onclick = function () {
-      NT.arrets[+b.dataset.ajoutCharger].mouvements.push({ uid: uidNT('m'), sens: 'charger', nouveau: nouvelEnvoi('') });
-      rendreArrets(); planifierTournee();
-    };
-  });
-  $$('[data-ajout-decharger]').forEach(function (b) {
-    b.onclick = function () {
-      var i = +b.dataset.ajoutDecharger, libre = premierEnvoiNonDecharge(i);
-      NT.arrets[i].mouvements.push({ uid: uidNT('m'), sens: 'decharger', cle: libre });
-      rendreArrets(); planifierTournee();
-    };
-  });
-  $$('[data-monter]').forEach(function (b) { b.onclick = function () { deplacerArret(+b.dataset.monter, -1); }; });
-  $$('[data-descendre]').forEach(function (b) { b.onclick = function () { deplacerArret(+b.dataset.descendre, 1); }; });
-  $$('[data-retirer]').forEach(function (b) {
-    b.onclick = function () {
-      var a = NT.arrets[+b.dataset.retirer];
-      a.mouvements.slice().forEach(function (m) { retirerMouvement(m.uid, true); });
-      NT.arrets.splice(NT.arrets.indexOf(a), 1); rendreArrets(); nouveauLieu();
-    };
-  });
-  majJauges(NT.dernier);
-}
-
-/* La saisie continue sans redessiner : seuls les libellés des envois à décharger suivent. */
-function majLibellesDechargement() {
-  $$('[data-dechargement] option').forEach(function (o) { if (o.value) { o.textContent = libelleEnvoi(o.value); } });
-}
-
-function mouvementDe(el) {
-  var uid = el.closest('[data-mvt]').dataset.mvt, r = null;
-  NT.arrets.forEach(function (a) { a.mouvements.forEach(function (m) { if (m.uid === uid) { r = m; } }); });
-  return r;
-}
-function premierEnvoiNonDecharge(i) {
-  var bord = envoisABord(i);
-  return bord.filter(function (c) {
-    return !NT.arrets.some(function (x) { return x.mouvements.some(function (y) { return y.sens === 'decharger' && y.cle === c; }); });
-  })[0] || null;
-}
-/* Retirer un chargement retire aussi son déchargement (et l'inverse pour un envoi existant : il sort du voyage). */
-function retirerMouvement(uid, sansDessin) {
-  var cible = null;
-  NT.arrets.forEach(function (a) { a.mouvements.forEach(function (m) { if (m.uid === uid) { cible = m; } }); });
-  if (!cible) { return; }
-  var cle = cible.nouveau ? cible.nouveau.cle : cible.cle;
-  NT.arrets.forEach(function (a) {
-    a.mouvements = a.mouvements.filter(function (m) {
-      if (m === cible) { return false; }
-      if (cible.sens === 'charger' || cible.existant) { return (m.nouveau ? m.nouveau.cle : m.cle) !== cle; }
-      return true;
-    });
-  });
-  if (!sansDessin) { rendreArrets(); planifierTournee(); remplirEnvoisEnAttente(); }
-}
-
-function ajouterArret() {
-  var libre = premierEnvoiNonDecharge(NT.arrets.length);
-  var a = nouvelArret();
-  if (libre) { a.mouvements.push({ uid: uidNT('m'), sens: 'decharger', cle: libre }); }
-  NT.arrets.push(a); rendreArrets(); planifierTournee();
-}
-
-function deplacerArret(i, sens) {
-  var j = i + sens; if (j < 0 || j >= NT.arrets.length) { return; }
-  var x = NT.arrets[i]; NT.arrets[i] = NT.arrets[j]; NT.arrets[j] = x;
-  rendreArrets(); nouveauLieu();
-}
-
-/* Les envois en attente (phoning, demandes de la logistique) : on les ajoute au voyage d'un geste. */
 function distanceM(a, b) { return distanceKm({ lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }) * 1000; }
-function remplirEnvoisEnAttente() {
-  var s = $('#tn_attente_envois'); if (!s) { return; }
-  var dans = [];
-  NT.arrets.forEach(function (a) { a.mouvements.forEach(function (m) { if (m.cle) { dans.push(m.cle); } }); });
-  var l = Object.keys(DISPATCH.envois || {}).map(function (k) { return DISPATCH.envois[k]; }).filter(function (e) {
-    return e.statut === 'a_dispatcher' && !e.voyage_id && dans.indexOf(e.id) === -1;
-  });
-  s.innerHTML = '<option value="">＋ Ajouter un envoi en attente (' + l.length + ')</option>' + l.map(function (e) {
-    var ok = e.origine_lat !== null && e.latitude !== null && e.origine_lat !== undefined && e.latitude !== undefined;
-    return '<option value="' + esc(e.id) + '"' + (ok ? '' : ' disabled') + '>' + esc(e.numero + ' · ' + (e.pour || '') + ' · ' + (e.adresse_enlevement || '?') + ' → ' +
-      (e.adresse_livraison || '?') + (e.poids_kg ? ' · ' + formater(e.poids_kg) + ' kg' : '') + (ok ? '' : ' (sans point de livraison)')) + '</option>';
-  }).join('');
-  s.onchange = function () { if (s.value) { ajouterEnvoiAttente(DISPATCH.envois[s.value]); } };
-}
-function ajouterEnvoiAttente(e) {
-  var pc = { lat: +e.origine_lat, lng: +e.origine_lng, nom: e.adresse_enlevement || 'Chargement' };
-  var pl = { lat: +e.latitude, lng: +e.longitude, nom: e.adresse_livraison || e.pour || 'Livraison' };
-  var jc = -1, jd = -1;
-  NT.arrets.forEach(function (a, i) { if (jc === -1 && a.lieu && a.lieu.lat !== undefined && distanceM(a.lieu, pc) <= 300) { jc = i; } });
-  if (jc === -1) { NT.arrets.push(nouvelArret(pc)); jc = NT.arrets.length - 1; }
-  NT.arrets[jc].mouvements.push({ uid: uidNT('m'), sens: 'charger', cle: e.id, existant: true });
-  NT.arrets.forEach(function (a, i) { if (jd === -1 && i > jc && a.lieu && a.lieu.lat !== undefined && distanceM(a.lieu, pl) <= 300) { jd = i; } });
-  if (jd === -1) { NT.arrets.push(nouvelArret(pl)); jd = NT.arrets.length - 1; }
-  NT.arrets[jd].mouvements.push({ uid: uidNT('m'), sens: 'decharger', cle: e.id, existant: true });
-  rendreArrets(); remplirEnvoisEnAttente(); nouveauLieu();
-}
-
-/* ------------------------------------------------------------ les lieux */
-function lieuDe(sens) {
-  if (sens === 'dep') { return NT.depart; }
-  if (sens === 'dmc') { return NT.demande.charge; }
-  if (sens === 'dml') { return NT.demande.livre; }
-  var a = NT.arrets.filter(function (x) { return x.uid === sens; })[0];
-  return a ? a.lieu : null;
-}
-function poserLieu(sens, lieu) {
-  if (sens === 'dep') { NT.depart = lieu; return; }
-  if (sens === 'dmc') { NT.demande.charge = lieu; return; }
-  if (sens === 'dml') { NT.demande.livre = lieu; return; }
-  var a = NT.arrets.filter(function (x) { return x.uid === sens; })[0];
-  if (a) { a.lieu = lieu; }
-}
 
 function positionDuCamion() {
   var imm = $('#tn_vehicule').value;
@@ -5987,16 +6270,6 @@ function positionDuCamion() {
     $('#tg_dep_q').value = NT.depart.nom;
     afficherPointLieu('dep'); nouveauLieu();
   }).catch(function (e) { message(esc(e.message), 'ko'); });
-}
-
-function pointsTournee() {
-  if (NT.mode === 'demande') {
-    return [NT.demande.charge, NT.demande.livre].filter(function (l) { return l && l.lat !== undefined; }).map(function (l) { return { lieu: l }; });
-  }
-  var pts = [];
-  if (NT.depart && NT.depart.lat !== undefined) { pts.push({ lieu: NT.depart, depart: true }); }
-  NT.arrets.forEach(function (a, i) { pts.push({ lieu: a.lieu, arret: a, rang: i + 1 }); });
-  return pts;
 }
 
 function preparerCarteTournee() {
@@ -6022,49 +6295,6 @@ function preparerCarteTournee() {
   dessinerTournee();
 }
 
-function dessinerTournee() {
-  if (!NT.calques) { return; }
-  NT.calques.clearLayers();
-  TG.sites.forEach(function (s) {
-    if (s.latitude === null || s.longitude === null) { return; }
-    L.circleMarker([s.latitude, s.longitude], { radius: 5, color: '#442A19', fillColor: '#C79D67', fillOpacity: 0.9, weight: 2 })
-      .bindTooltip(esc(s.societe + ' · ' + s.nom)).addTo(NT.calques);
-  });
-  var pts = pointsTournee().filter(function (p) { return p.lieu && p.lieu.lat !== undefined; });
-  pts.forEach(function (p, i) {
-    var num = NT.mode === 'demande' ? (i ? '⬇' : '⬆') : (p.depart ? '0' : String(p.rang));
-    var ch = p.arret && p.arret.mouvements.some(function (m) { return m.sens === 'charger'; });
-    var couleur = p.depart ? '#7A6A5B' : (NT.mode === 'demande' ? (i ? '#B3261E' : '#1F5A38') : (ch ? '#1F5A38' : '#B3261E'));
-    L.marker([p.lieu.lat, p.lieu.lng], { icon: L.divIcon({ className: 'tn-repere', html: '<span style="background:' + couleur + '">' + num + '</span>', iconSize: [26, 26], iconAnchor: [13, 13] }) })
-      .bindTooltip(esc(p.lieu.nom || '')).addTo(NT.calques);
-  });
-  troncons().filter(Boolean).forEach(function (t) {
-    var leg = NT.legs[t.cle];
-    L.polyline(leg && leg.route ? leg.route : [[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]],
-      leg && leg.route ? { color: t.retour ? '#7A6A5B' : '#1B4F8A', weight: t.retour ? 3 : 4, opacity: 0.8, dashArray: t.retour ? '8 6' : null }
-                       : { color: '#442A19', dashArray: '6 6', weight: 2 }).addTo(NT.calques);
-  });
-  if (pts.length) {
-    try { NT.carte.fitBounds(pts.map(function (p) { return [p.lieu.lat, p.lieu.lng]; }), { padding: [30, 30], maxZoom: 12 }); } catch (e) {}
-  }
-}
-
-/* Les tronçons : d'un point au suivant (même placé au même endroit), puis le retour au premier. */
-function troncons() {
-  var pts = pointsTournee(), l = [];
-  for (var i = 0; i + 1 < pts.length; i++) {
-    var a = pts[i].lieu, b = pts[i + 1].lieu;
-    if (!a || !b || a.lat === undefined || b.lat === undefined) { l.push(null); continue; }
-    l.push({ a: a, b: b, cle: a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat });
-  }
-  var p0 = pts[0] && pts[0].lieu, pn = pts.length && pts[pts.length - 1].lieu;
-  if (NT.mode === 'voyage' && $('#tn_ar') && $('#tn_ar').checked && p0 && pn && p0.lat !== undefined && pn.lat !== undefined) {
-    l.push({ a: pn, b: p0, cle: pn.lng + ',' + pn.lat + ';' + p0.lng + ',' + p0.lat, retour: true });
-  }
-  return l;
-}
-
-/* Un lieu a changé : itinéraire routier de chaque tronçon (service public OSRM), en cache. */
 function itineraire(cle) {
   if (NT.legs[cle]) { return Promise.resolve(NT.legs[cle]); }
   NT.legs[cle] = { attente: true };
@@ -6084,6 +6314,7 @@ function itineraire(cle) {
     .catch(function () { NT.legs[cle] = { echec: true }; })
     .then(function () { clearTimeout(delai); NT.enCours -= 1; return NT.legs[cle]; });
 }
+
 function nouveauLieu() {
   dessinerTournee();
   troncons().forEach(function (t) {
@@ -6093,69 +6324,12 @@ function nouveauLieu() {
   planifierTournee();
 }
 
-/* Un tronçon tel que la base l'attend : km par la route si connus, tracé pour les péages, ou gares déjà relevées. */
 function tronconPourBase(t, autoroute) {
   var g = t && NT.legs[t.cle] || {}, x = {};
   if (g.km !== undefined) { x.distance_km = g.km; x.source = g.source || 'itinéraire routier (OSRM)'; }
   if (g.trace && autoroute) { x.trace = g.trace; }
   else if (g.gares && autoroute) { x.gares_connues = g.gares; }
   return x;
-}
-
-function planifierTournee() {
-  clearTimeout(NT.minuteur);
-  NT.minuteur = setTimeout(NT.mode === 'demande' ? function () {} : chiffrerTourneeEcran, 350);
-}
-
-/* Ce qui manque avant de pouvoir chiffrer, dit en clair. */
-function manqueTournee() {
-  for (var i = 0; i < NT.arrets.length; i++) {
-    var a = NT.arrets[i], n = 'Arrêt ' + (i + 1) + ' : ';
-    if (!a.lieu || a.lieu.lat === undefined) { return n + 'choisissez le lieu.'; }
-    if (!a.mouvements.length) { return n + 'ajoutez ce qu\'on y charge ou décharge.'; }
-    for (var k = 0; k < a.mouvements.length; k++) {
-      var m = a.mouvements[k];
-      if (m.nouveau) {
-        if (!m.nouveau.pour) { return n + 'pour qui charge-t-on ?'; }
-        if (m.nouveau.pour === 'client' && m.nouveau.client_nom.trim().length < 2) { return n + 'écrivez le nom du client.'; }
-        if (!lignesValides(m.nouveau.lignes).length) { return n + 'écrivez au moins un produit.'; }
-        var sansKg = lignesValides(m.nouveau.lignes).filter(function (l) { return !(l.poids_kg > 0); })[0];
-        if (sansKg) { return n + '« ' + sansKg.produit + ' » : indiquez ses kilos (le poids décide du camion et du coût).'; }
-        var cle = m.nouveau.cle;
-        if (!NT.arrets.some(function (x, j) { return j > i && x.mouvements.some(function (y) { return y.sens === 'decharger' && y.cle === cle; }); })) {
-          return n + 'ce qui est chargé ici n\'est déchargé nulle part : ajoutez son arrêt de déchargement.';
-        }
-      } else if (m.sens === 'decharger' && !m.cle) { return n + 'choisissez l\'envoi à décharger.'; }
-    }
-  }
-  if (NT.arrets.length < 2) { return 'Un voyage a au moins deux arrêts.'; }
-  return null;
-}
-
-function chargeVoyage() {
-  var autoroute = $('#tn_autoroute').checked;
-  var p = {
-    id: NT.id || null, date: $('#tn_date').value || null, vehicule: $('#tn_vehicule').value || null, chauffeur: $('#tn_chauffeur').value || null,
-    aller_retour: $('#tn_ar').checked, autoroute: autoroute, attente_h: nombre($('#tn_attente').value),
-    commentaire: $('#tn_commentaire').value.trim() || null,
-    depart: NT.depart && NT.depart.lat !== undefined ? { latitude: NT.depart.lat, longitude: NT.depart.lng, libelle: NT.depart.nom, site_id: NT.depart.site || null } : null,
-    arrets: NT.arrets.map(function (a) {
-      return { latitude: a.lieu.lat, longitude: a.lieu.lng, libelle: a.lieu.nom, site_id: a.lieu.site || null,
-        mouvements: a.mouvements.map(function (m) {
-          if (m.nouveau) {
-            var n = m.nouveau;
-            return { sens: 'charger', envoi: n.cle, societe: n.pour !== 'client' ? n.pour : null, client_nom: n.pour === 'client' ? n.client_nom.trim() : null,
-              montant: n.pour === 'client' && n.montant !== '' ? nombre(n.montant) : null, lignes: lignesValides(n.lignes) };
-          }
-          return { sens: m.sens, envoi: m.cle };
-        }) };
-    })
-  };
-  var tr = troncons();
-  p.troncons = tr.filter(function (t) { return t && !t.retour; }).map(function (t) { return tronconPourBase(t, autoroute); });
-  var r = tr.filter(function (t) { return t && t.retour; })[0];
-  p.retour = r ? tronconPourBase(r, autoroute) : null;
-  return p;
 }
 
 function chiffrerTourneeEcran() {
@@ -6182,20 +6356,6 @@ function chiffrerTourneeEcran() {
   }).catch(function (e) { NT.dernier = null; majJauges(null); z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
 }
 
-/* La charge à bord en quittant chaque arrêt, d'après la base. */
-function majJauges(c) {
-  var res = c && c.arrets_voyage ? c.arrets_voyage : [];
-  var cap = c ? nombre(c.capacite_kg) : 0;
-  $$('#tn_arrets .tn-arret').forEach(function (el, i) {
-    var j = el.querySelector('.tn-jauge'); if (j) { j.remove(); }
-    var r = res[i]; if (!r) { return; }
-    var charge = nombre(r.charge_apres_kg), pct = cap ? Math.round(100 * charge / cap) : null;
-    el.insertAdjacentHTML('beforeend', '<div class="tn-jauge' + (pct !== null && pct > 100 ? ' tn-surcharge' : '') + '"><span>À bord en repartant : <b>' +
-      formater(charge) + ' kg</b>' + (cap ? ' sur ' + formater(cap) + ' (' + pct + ' %)' : '') + '</span>' +
-      (pct !== null ? '<span class="pl-jauge"><span style="width:' + Math.min(100, pct) + '%"></span></span>' : '') + '</div>');
-  });
-}
-
 function rendreTournee(c) {
   var marge = decimal(Math.round(nombre(c.marge) * 1000) / 10);
   var ligneTr = function (t, retour) {
@@ -6210,12 +6370,11 @@ function rendreTournee(c) {
     '<div><span class="aide">Véhicule</span><b>' + esc(c.libelle) + (c.vehicule ? ' · ' + esc(c.vehicule) : ' (proposé)') + '</b>' +
       '<span class="aide">au plus ' + formater(c.charge_max_kg) + ' kg à bord</span></div>' +
     '<div><span class="aide">Trajet</span><b>' + decimal(c.km_total) + ' km en tout</b><span class="aide">' + esc(c.peage_note || '') + '</span></div></div>' +
-    '<h4 class="tn-titre">Qui paie quoi — tonnes × km, par envoi</h4>' +
-    '<div class="enveloppe"><table class="tablo tg-detail"><thead><tr><th>Envoi</th><th class="num">Kilos</th><th class="num">Tonnes × km</th><th class="num">Part</th><th class="num">Part du coût</th><th class="num">Refacturé</th></tr></thead><tbody>' +
+    '<h4 class="tn-titre">Qui paie quoi — tonnes × km, par remise</h4>' +
+    '<div class="enveloppe"><table class="tablo tg-detail"><thead><tr><th>Remise</th><th class="num">Kilos</th><th class="num">Tonnes × km</th><th class="num">Part</th><th class="num">Part du coût</th><th class="num">Refacturé</th></tr></thead><tbody>' +
       (c.parts || []).map(function (x) {
-        var e = (DISPATCH.envois || {})[x.envoi];
-        var encaisse = e ? nombre(e.montant_a_encaisser) : nombre((envoiNouveau(x.envoi) || {}).montant);
-        return '<tr><td><b>' + esc(x.nom) + '</b><br><span class="aide">' + esc(e ? e.numero : 'nouvel envoi') + (x.type === 'client' ? ' · client' : '') + '</span></td>' +
+        var lp = libellePart(x), encaisse = lp.montant;
+        return '<tr><td><b>' + esc(lp.nom) + '</b><br><span class="aide">' + esc(lp.detail) + '</span></td>' +
           '<td class="num">' + formater(x.kg) + ' kg</td><td class="num">' + decimal(Math.round(nombre(x.tonnes_km) * 10) / 10) + '</td>' +
           '<td class="num">' + decimal(Math.round(nombre(x.part) * 1000) / 10) + ' %</td><td class="num">' + francs(x.cout) + '</td>' +
           '<td class="num">' + (x.prix ? francs(x.prix) : x.type === 'client'
@@ -6240,23 +6399,6 @@ function rendreTournee(c) {
     '<p class="aide">Carburant : ' + esc(c.source_carburant || '') + '.</p>';
 }
 
-function enregistrerVoyageEcran() {
-  var manque = manqueTournee();
-  if (manque) { message(esc(manque), 'ko'); return; }
-  if (!NT.dernier) { message('Le chiffrage n\'est pas encore calculé, ou la base l\'a refusé : lisez le message sous la carte.', 'ko'); return; }
-  var b = $('#tn_creer'); b.disabled = true;
-  var dateVoyage = $('#tn_date').value;
-  rpc('enregistrer_voyage', { p: chargeVoyage() }).then(function (r) {
-    if (dateVoyage && dateVoyage < aujourdhui()) { PLANNING.debut = dateVoyage; }
-    message('Voyage ' + esc(r.numero) + ' enregistré : ' + r.envois + ' envoi(s), coût ' + francs(r.cout_revient) +
-      (nombre(r.total_refacture) ? ', refacturé ' + francs(r.total_refacture) : '') +
-      (r.camion ? ', sur ' + esc(r.camion) + '.' : ', camion à choisir.'), 'ok');
-    $('#bloc_tournee').style.display = 'none';
-    chargerDispatch();
-  }).catch(function (e) { message('Voyage non enregistré : ' + esc(e.message), 'ko'); })
-    .then(function () { b.disabled = false; });
-}
-
 function annulerVoyageEcran() {
   var motif = window.prompt('Annuler le voyage ' + (NT.numero || '') + ' : pourquoi ? (ses envois reviennent « à planifier »)');
   if (!motif) { return; }
@@ -6276,8 +6418,6 @@ function ouvrirVoyage(id) {
   setTimeout(function () { try { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }, 50);
 }
 
-/* Après un glisser-déposer, la base a chiffré les nouveaux tronçons à vol d'oiseau : la page
-   demande les km par la route et la base refait le calcul (rechiffrer_voyage). */
 function recalculerRouteVoyage(id) {
   return rpc('voyage_en_entree', { p_id: id }).then(function (e) {
     var pts = (e.depart ? [e.depart] : []).concat(e.arrets || []).map(function (a) { return { lat: +a.latitude, lng: +a.longitude }; });
@@ -6300,70 +6440,6 @@ function recalculerRouteVoyage(id) {
       return rpc('rechiffrer_voyage', { p_voyage: id, p_troncons: res.slice(0, cles.length), p_retour: cleRetour ? res[cles.length] : null });
     });
   });
-}
-
-/* ------------------------------------------------------- une demande seule */
-function afficherDemande(pour) {
-  var z = $('#tn_formulaire');
-  z.innerHTML = '<div class="chargement">Chargement…</div>';
-  NT.mode = 'demande'; NT.legs = {}; NT.placer = null;
-  NT.demande = { charge: null, livre: null, pour: pour || '', client_nom: '', montant: '', cle: 'D', lignes: [nouvelleLigne()] };
-  Promise.all([chargerReferentielGroupe(), chargerCatalogue2()]).then(function () {
-    var depot = TG.sites.filter(function (s) { return s.depot_phoning && s.latitude !== null; })[0];
-    if (depot) { NT.demande.charge = { lat: depot.latitude, lng: depot.longitude, nom: depot.nom, site: depot.id }; }
-    var demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    $('#tn_titre_bloc').textContent = 'Nouvelle demande de transport';
-    z.innerHTML = datalistCatalogue() +
-      '<p class="aide">Un envoi à faire. Il attend dans « À planifier » du planning ; on le glisse ensuite sur un camion, seul ou avec d\'autres.</p>' +
-      '<div class="tg-grille tg-lieux">' + champLieu('dmc', 'Chargement') + champLieu('dml', 'Livraison') + '</div>' +
-      '<div class="tg-grille">' +
-        '<label>Pour<select class="pa-champ" id="dm_pour">' + optionsPour(NT.demande.pour) + '</select></label>' +
-        '<label class="tn-client"' + (NT.demande.pour === 'client' ? '' : ' style="display:none"') + '>Nom du client<input class="pa-champ" id="dm_client"></label>' +
-        '<label class="tn-client"' + (NT.demande.pour === 'client' ? '' : ' style="display:none"') + '>À encaisser (F)<input class="pa-champ" id="dm_montant" type="number" min="0" step="1"></label>' +
-        '<label>Date voulue<input class="pa-champ" type="date" id="dm_date" value="' + demain + '"></label>' +
-      '</div>' +
-      '<h4 class="tn-titre">Ce qui est transporté</h4><div id="dm_lignes"></div>' +
-      '<p class="aide" id="tn_carte_aide">Tapez une ville, un quartier ou un site du groupe, puis choisissez dans la liste.</p>' +
-      '<div id="tn_carte" class="carte-console tg-carte"></div>' +
-      '<div class="tg-grille"><label class="tg-large">Commentaire<input class="pa-champ" id="dm_commentaire" placeholder="Contact sur place, consignes…"></label></div>' +
-      '<div class="tg-boutons"><button class="btn-console accent" id="dm_creer" type="button">Enregistrer la demande</button>' +
-      '<button class="btn-console" id="tn_fermer" type="button">Fermer</button></div>';
-    brancherLieu('dmc'); brancherLieu('dml');
-    if (NT.demande.charge) { $('#tg_dmc_q').value = NT.demande.charge.nom; afficherPointLieu('dmc'); }
-    var dessinerLignes = function () {
-      $('#dm_lignes').innerHTML = lignesHtml(NT.demande.lignes, 'D');
-      brancherLignes($('#dm_lignes'), function () { return NT.demande.lignes; }, function (r) { if (r) { dessinerLignes(); } });
-    };
-    dessinerLignes();
-    preparerCarteTournee();
-    $('#dm_pour').onchange = function () {
-      NT.demande.pour = this.value;
-      $$('#tn_formulaire .tn-client').forEach(function (l) { l.style.display = NT.demande.pour === 'client' ? '' : 'none'; });
-    };
-    $('#dm_creer').onclick = enregistrerDemandeEcran;
-    $('#tn_fermer').onclick = function () { $('#bloc_tournee').style.display = 'none'; };
-  }).catch(function (e) { z.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
-}
-
-function enregistrerDemandeEcran() {
-  var d = NT.demande, pour = $('#dm_pour').value;
-  if (!d.charge || d.charge.lat === undefined || !d.livre || d.livre.lat === undefined) { message('Placez le chargement et la livraison.', 'ko'); return; }
-  if (!pour) { message('Pour qui ?', 'ko'); return; }
-  if (!lignesValides(d.lignes).length || lignesValides(d.lignes).some(function (l) { return !(l.poids_kg > 0); })) {
-    message('Chaque produit a besoin de ses kilos (le poids décide du camion et du coût).', 'ko'); return;
-  }
-  var b = $('#dm_creer'); b.disabled = true;
-  rpc('enregistrer_envoi', { p: {
-    chargement: { latitude: d.charge.lat, longitude: d.charge.lng, libelle: d.charge.nom, site_id: d.charge.site || null },
-    livraison: { latitude: d.livre.lat, longitude: d.livre.lng, libelle: d.livre.nom, site_id: d.livre.site || null },
-    societe: pour !== 'client' ? pour : null, client_nom: pour === 'client' ? $('#dm_client').value.trim() : null,
-    montant: pour === 'client' && $('#dm_montant').value !== '' ? nombre($('#dm_montant').value) : null,
-    date: $('#dm_date').value || null, commentaire: $('#dm_commentaire').value.trim() || null, lignes: lignesValides(d.lignes)
-  } }).then(function (r) {
-    message('Demande ' + esc(r.numero) + ' enregistrée (' + formater(r.poids_kg) + ' kg) : elle attend dans « À planifier ».', 'ok');
-    $('#bloc_tournee').style.display = 'none'; chargerDispatch();
-  }).catch(function (e) { message('Demande non enregistrée : ' + esc(e.message), 'ko'); })
-    .then(function () { b.disabled = false; });
 }
 
 /* ==========================================================================
@@ -7621,7 +7697,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-14 16:43';
+var VERSION_CONSOLE = '2026-10-14 17:00';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

@@ -570,6 +570,7 @@ var ATTENTE_CLE = 'sn2i_remises_attente';
 function $(s) { return document.querySelector(s); }
 function esc(t) { return String(t === null || t === undefined ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function nb(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+function kg(v) { return String(Math.round(nb(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' kg'; }
 function fcfa(n) { return String(Math.round(nb(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA'; }
 function tel(t) { var c = String(t || '').replace(/\D/g, '').slice(-9); return c.length === 9 ? c.replace(/(\d{2})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4') : ''; }
 function lireAttente() { try { return JSON.parse(localStorage.getItem(ATTENTE_CLE) || '[]'); } catch (e) { return []; } }
@@ -633,8 +634,13 @@ function afficherListe() {
         l.latitude + ',' + l.longitude + '">🗺 Itinéraire</a>' : '';
     if (l.chargement) {
       html += '<div class="tn-carte">' + etape + '<h2>⬆ Charger · ' + esc(l.lieu || '') + '</h2>' +
-        '<div class="tn-ligne">' + (l.poids_kg ? '<b>' + esc(String(Math.round(nb(l.poids_kg))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')) + ' kg</b> ' : '') +
-          esc(l.marchandise || '') + (l.pour ? ' · pour ' + esc(l.pour) : '') + '</div>' +
+        ((l.lignes || []).length
+          ? (l.lignes || []).map(function (x) {
+              return '<div class="tn-ligne">' + esc([x.quantite !== null && x.quantite !== undefined ? nb(x.quantite) : '', x.unite || '', x.produit || ''].filter(Boolean).join(' ')) +
+                (x.poids_kg ? ' · ' + esc(kg(x.poids_kg)) : '') + (x.pour ? ' · <b>pour ' + esc(x.pour) + '</b>' : '') + '</div>';
+            }).join('')
+          : '<div class="tn-ligne">' + (l.poids_kg ? '<b>' + esc(kg(l.poids_kg)) + '</b> ' : '') + esc(l.marchandise || '') + (l.pour ? ' · pour ' + esc(l.pour) : '') + '</div>') +
+        (l.poids_kg && (l.lignes || []).length ? '<div class="tn-ligne"><b>En tout : ' + esc(kg(l.poids_kg)) + '</b></div>' : '') +
         '<div class="tn-ligne">' + (l.fait_le ? '<span class="tn-statut fait">✓ chargé</span>' : '<span class="tn-statut">à charger</span>') + '</div>' +
         route + (!l.fait_le ? '<button class="tn-btn principal" data-charge="' + esc(l.id) + '">✓ Chargé, je pars</button>' : '') + '</div>';
       return;
@@ -658,7 +664,7 @@ function afficherListe() {
   document.querySelectorAll('[data-charge]').forEach(function (b) {
     b.onclick = function () {
       b.disabled = true;
-      rpc('pointer_chargement', { p_jeton: JETON, p_etape: b.dataset.charge }).then(function () { charger(); }).catch(function (e) {
+      rpc('pointer_arret', { p_jeton: JETON, p_arret: b.dataset.charge }).then(function () { charger(); }).catch(function (e) {
         b.disabled = false;
         $('#tn_corps').insertAdjacentHTML('afterbegin', '<div class="tn-erreur">' + esc(e.reseau ? 'Pas de réseau : réessayez dans un instant.' : e.message) + '</div>');
       });

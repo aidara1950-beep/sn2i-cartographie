@@ -2273,6 +2273,14 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
   .tn-ligne-produit { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .tn-ligne-produit .tn-produit { grid-column: 1 / -1; }
 }
+
+/* planning : le passé, à sa date (audit, 14/10/2026) */
+.pl-navigation { margin-left: 4px; }
+.pl-passe { background: #FFF6C7; color: #5C4A00; border-radius: 4px; padding: 2px 8px; font-size: .88rem; }
+.pl-histo { opacity: .78; border-style: dashed; }
+.pl-histo.pl-echec .pl-statut, .pl-histo.pl-annule .pl-statut { color: #B3261E; }
+.pl-histo.pl-livree .pl-statut, .pl-histo.pl-termine .pl-statut, .pl-histo.pl-livree_partielle .pl-statut { color: #1F5A38; }
+.tn-date-passee { color: #8A5A00; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -3324,7 +3332,7 @@ try { PLANNING.jours = +(localStorage.getItem('sn2i_planning_jours') || 7) === 1
 
 function jourCle(d) { return d.toISOString().slice(0, 10); }
 function joursAffiches() {
-  var t = [], base = new Date(aujourdhui() + 'T00:00:00Z');
+  var t = [], base = new Date((PLANNING.debut || aujourdhui()) + 'T00:00:00Z');
   for (var i = 0; i < PLANNING.jours; i++) { t.push(jourCle(new Date(base.getTime() + i * 86400000))); }
   return t;
 }
@@ -3336,9 +3344,14 @@ function libelleJour(cle) {
     cle.slice(8, 10) + '/' + cle.slice(5, 7) + '</span>';
 }
 /* Le jour d'un ticket : sa date de livraison souhaitée ; passé et non dispatché → « En retard ». */
+/* Le jour d'un ticket. Le passé reste à sa date (audit, DGA 14/10/2026) : un ticket fait,
+   annulé ou en échec y est dessiné ; un ticket encore ouvert y est aussi quand la fenêtre
+   le montre, sinon il revient au jour (placé) ou à « En retard » (à placer). */
 function jourDuTicket(t) {
   var j = t.date_souhaitee || t.date_demande || aujourdhui();
-  return j < aujourdhui() ? (t.place ? aujourdhui() : 'retard') : j;
+  if (j >= aujourdhui() || t.historique) { return j; }
+  if (!t.place) { return 'retard'; }
+  return joursAffiches().indexOf(j) !== -1 ? j : aujourdhui();
 }
 
 function ticketsDuPlanning(demandes, enCours) {
@@ -3357,11 +3370,22 @@ function ticketsDuPlanning(demandes, enCours) {
              lat: t.destination_latitude, lng: t.destination_longitude, place: true, vehicule_id: t.vehicule_id, kg: t.poids_estime_kg,
              statut: t.livraison_statut || 'programmee', arrivee: t.heure_arrivee_prevue };
   });
-  return a.concat(b).concat(ticketsVoyages());
+  return a.concat(b).concat(ticketsVoyages()).concat(ticketsHistoriques());
+}
+
+/* Les livraisons closes de la fenêtre, hors voyage : ce qui a eu lieu, à sa date. */
+function ticketsHistoriques() {
+  var dansVoyage = {};
+  (DISPATCH.voyages || []).forEach(function (v) { (v.arrets || []).forEach(function (a) { a.mouvements.forEach(function (m) { dansVoyage[m.demande_id] = 1; }); }); });
+  return (DISPATCH.historique || []).filter(function (l) { return !dansVoyage[l.demande_transport_id]; }).map(function (l) {
+    return { id: 'h' + l.id, historique: true, numero: l.numero, client: l.destination, montant: l.montant, unites: l.qte_commandee,
+             date_souhaitee: l.date_livraison, place: !!l.vehicule_id, vehicule_id: l.vehicule_id, statut: l.statut };
+  });
 }
 
 function vehiculesDuPlanning() {
-  return DISPATCH.flotte.filter(function (v) { return v.etat === 'actif' && v.immatriculation; }).sort(function (a, b) {
+  var vus = {}; (PLANNING.tickets || []).forEach(function (t) { if (t.vehicule_id) { vus[t.vehicule_id] = 1; } });
+  return DISPATCH.flotte.filter(function (v) { return v.immatriculation && (v.etat === 'actif' || vus[v.id]); }).sort(function (a, b) {
     if (a.disponible !== b.disponible) { return a.disponible ? -1 : 1; }
     if (a.type !== b.type) { return a.type === 'camion' ? -1 : 1; }
     return String(a.immatriculation).localeCompare(String(b.immatriculation));
@@ -3373,7 +3397,8 @@ function rendrePlanning(demandes, enCours) {
   PLANNING.tickets = tickets;
   var jours = joursAffiches(), fin = jours[jours.length - 1];
   var retard = tickets.filter(function (t) { return !t.place && jourDuTicket(t) === 'retard'; });
-  var colonnes = (retard.length ? ['retard'] : []).concat(jours);
+  var avecAujourdhui = jours.indexOf(aujourdhui()) !== -1;
+  var colonnes = (retard.length && avecAujourdhui ? ['retard'] : []).concat(jours);
   var plusTard = tickets.filter(function (t) { var j = jourDuTicket(t); return !t.place && j !== 'retard' && j > fin; })
     .sort(function (a, b) { return jourDuTicket(a) < jourDuTicket(b) ? -1 : 1; });
   var vehicules = vehiculesDuPlanning();
@@ -3381,7 +3406,7 @@ function rendrePlanning(demandes, enCours) {
 
   /* L'alerte : ce qui reste à placer et qu'on ne voit pas. */
   var alertes = [];
-  if (retard.length) { alertes.push('<b>' + retard.length + '</b> demande(s) en retard, non dispatchée(s) : colonne « En retard »'); }
+  if (retard.length) { alertes.push('<b>' + retard.length + '</b> demande(s) en retard, non dispatchée(s) : colonne « En retard »' + (avecAujourdhui ? '' : ' (revenez à aujourd\'hui)')); }
   if (plusTard.length) {
     alertes.push('<b>' + plusTard.length + '</b> demande(s) à dispatcher après le ' + esc(dateCourte(fin)) +
       ', la prochaine le <b>' + esc(dateCourte(jourDuTicket(plusTard[0]))) + '</b>' +
@@ -3390,6 +3415,10 @@ function rendrePlanning(demandes, enCours) {
   var html = '<div class="pl-barre"><div class="pl-bascule">' +
       '<button class="' + (PLANNING.jours === 7 ? 'actif' : '') + '" data-pl-jours="7">1 semaine</button>' +
       '<button class="' + (PLANNING.jours === 14 ? 'actif' : '') + '" data-pl-jours="14">2 semaines</button></div>' +
+      '<div class="pl-bascule pl-navigation"><button data-pl-aller="-1" aria-label="Période précédente">◀ Avant</button>' +
+        '<button data-pl-aller="0"' + (PLANNING.debut && PLANNING.debut !== aujourdhui() ? '' : ' class="actif"') + '>Aujourd\'hui</button>' +
+        '<button data-pl-aller="1" aria-label="Période suivante">Après ▶</button></div>' +
+      (jours[0] < aujourdhui() ? '<span class="pl-passe">Du ' + esc(dateCourte(jours[0])) + ' au ' + esc(dateCourte(fin)) + ' : ce qui est passé se consulte, il ne se modifie plus.</span>' : '') +
       '<span class="aide">Glissez un ticket sur un camion, dans la colonne de son jour. Sur téléphone : touchez le ticket, puis la case.</span></div>' +
     (alertes.length ? '<div class="pl-alerte">⚠ ' + alertes.join('<br>⚠ ') + '</div>' : '') +
     '<div class="pl-cadre"><table class="pl-grille"><thead><tr><th class="pl-coin">Véhicule</th>' +
@@ -3427,7 +3456,15 @@ function ligneDuPlanning(v, colonnes, tickets) {
   }).join('') + '</tr>';
 }
 
+var LIB_HISTO = { livree: '✓ livrée', livree_partielle: '✓ livrée en partie', echec: '✗ échec', annulee: '– annulée', annule: '– voyage annulé', termine: '✓ voyage terminé' };
 function ticketHtml(t) {
+  if (t.historique) {
+    return '<div class="pl-ticket place bloque pl-histo pl-' + esc(t.statut) + '" data-pl-ticket="' + t.id + '" title="' + esc(t.numero || '') + '">' +
+      '<b>' + esc(t.voyage ? '🚚 ' + t.numero : (t.client || 'Client')) + '</b>' +
+      (t.voyage ? '<span class="pl-repere">' + t.resume + '</span>' : '<span>' + esc(t.numero || '') + (t.montant ? ' · ' + francs(t.montant) : '') + '</span>') +
+      '<span class="pl-statut">' + esc(LIB_HISTO[t.statut] || t.statut) + '</span>' +
+      (t.voyage ? '<button class="pl-decaler" data-pl-voyage="' + t.id + '">Voir le voyage</button>' : '') + '</div>';
+  }
   var bloque = t.place && t.statut === 'en_route';
   if (t.voyage) {
     return '<div class="pl-ticket pl-voyage' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + '"' + (bloque ? '' : ' draggable="true"') +
@@ -3458,7 +3495,8 @@ function choisirTicket(id) {
   PLANNING.choisi = t || null;
   $$('.pl-ticket').forEach(function (e) { e.classList.toggle('choisi', !!t && e.dataset.plTicket === id); });
   $$('.pl-case').forEach(function (c) {
-    var ok = !!t && c.dataset.plJour === jourDuTicket(t) && c.dataset.plCible && c.dataset.plCible !== (t.vehicule_id || '');
+    var ok = !!t && !t.historique && c.dataset.plJour === jourDuTicket(t) && (c.dataset.plJour === 'retard' || c.dataset.plJour >= aujourdhui()) &&
+      c.dataset.plCible && c.dataset.plCible !== (t.vehicule_id || '');
     c.classList.toggle('pl-possible', ok);
   });
   var meilleur = null, best = Infinity;
@@ -3526,6 +3564,13 @@ function brancherPlanning() {
     };
   });
   if ($('#pl_voir14')) { $('#pl_voir14').onclick = function () { $('[data-pl-jours="14"]').click(); }; }
+  $$('[data-pl-aller]').forEach(function (b) {
+    b.onclick = function () {
+      var pas = +b.dataset.plAller;
+      PLANNING.debut = pas === 0 ? aujourdhui() : jourCle(new Date(new Date((PLANNING.debut || aujourdhui()) + 'T00:00:00Z').getTime() + pas * PLANNING.jours * 86400000));
+      chargerDispatch();
+    };
+  });
   $$('[data-pl-voyage]').forEach(function (b) {
     b.onclick = function (ev) { ev.stopPropagation(); ouvrirVoyage(b.dataset.plVoyage); };
   });
@@ -3620,13 +3665,19 @@ function chargerDispatch() {
 /* Les voyages du planning (0039) : leurs arrêts, ce qui s'y charge et s'y décharge,
    l'avancement de chaque arrêt ; et tous les envois ouverts (à planifier ou en voyage). */
 function voyagesDuDispatch() {
-  DISPATCH.voyages = []; DISPATCH.voyagesParId = {}; DISPATCH.envois = {};
+  DISPATCH.voyages = []; DISPATCH.voyagesParId = {}; DISPATCH.envois = {}; DISPATCH.historique = [];
+  var jours = joursAffiches(), d0 = jours[0], d1 = jours[jours.length - 1];
+  var debutVoyages = d0 < jourPlus(-14) ? d0 : jourPlus(-14);
   return Promise.all([
-    requete('/voyages?select=*&statut=eq.planifie&date_voyage=gte.' + jourPlus(-14) + '&order=date_voyage,numero&limit=300'),
-    requete('/v_envois?select=*&limit=1000')
+    requete('/voyages?select=*&date_voyage=gte.' + debutVoyages + '&order=date_voyage,numero&limit=400'),
+    requete('/v_envois?select=*&limit=1000'),
+    requete('/livraisons?select=id,numero,statut,date_livraison,vehicule_id,destination,montant,qte_commandee,demande_transport_id' +
+            '&statut=in.(livree,livree_partielle,echec)&date_livraison=gte.' + d0 + '&date_livraison=lte.' + d1 + '&limit=500')
   ]).then(function (r) {
-    DISPATCH.voyages = r[0] || [];
+    /* Les voyages en cours, et dans la fenêtre affichée tous les voyages (annulés et terminés compris). */
+    DISPATCH.voyages = (r[0] || []).filter(function (v) { return (v.statut === 'planifie' && v.date_voyage >= jourPlus(-14)) || (v.date_voyage >= d0 && v.date_voyage <= d1); });
     (r[1] || []).forEach(function (e) { DISPATCH.envois[e.id] = e; });
+    DISPATCH.historique = r[2] || [];
     DISPATCH.voyages.forEach(function (v) { v.arrets = []; DISPATCH.voyagesParId[v.id] = v; });
     var ids = DISPATCH.voyages.map(function (v) { return v.id; });
     if (!ids.length) { return; }
@@ -3634,21 +3685,32 @@ function voyagesDuDispatch() {
       arrets = arrets || [];
       var parId = {};
       arrets.forEach(function (a) { a.mouvements = []; parId[a.id] = a; (DISPATCH.voyagesParId[a.voyage_id] || { arrets: [] }).arrets.push(a); });
-      var envoisV = Object.keys(DISPATCH.envois).filter(function (k) { return DISPATCH.envois[k].voyage_id; });
-      return Promise.all([
-        arrets.length ? requete('/mouvements_voyage?select=arret_id,demande_id,sens&arret_id=in.(' + arrets.map(function (a) { return a.id; }).join(',') + ')') : [],
-        envoisV.length ? requete('/livraisons?select=id,numero,statut,demande_transport_id&statut=neq.annulee&demande_transport_id=in.(' + envoisV.join(',') + ')') : []
-      ]).then(function (x) {
-        var liv = {}; (x[1] || []).forEach(function (l) { liv[l.demande_transport_id] = l; });
-        (x[0] || []).forEach(function (m) { m.livraison = liv[m.demande_id] || null; if (parId[m.arret_id]) { parId[m.arret_id].mouvements.push(m); } });
+      if (!arrets.length) { return; }
+      return requete('/mouvements_voyage?select=arret_id,demande_id,sens&arret_id=in.(' + arrets.map(function (a) { return a.id; }).join(',') + ')').then(function (mv) {
+        mv = mv || [];
+        var dem = {}; mv.forEach(function (m) { dem[m.demande_id] = 1; });
+        var liste = Object.keys(dem);
+        return (liste.length ? requete('/livraisons?select=id,numero,statut,demande_transport_id&demande_transport_id=in.(' + liste.join(',') + ')&order=date_creation') : Promise.resolve([]))
+          .then(function (lv) {
+            /* La livraison qui compte : l'ouverte, sinon la dernière close. */
+            var liv = {}; (lv || []).forEach(function (l) {
+              var a = liv[l.demande_transport_id];
+              if (!a || ['programmee', 'en_route'].indexOf(a.statut) === -1) { liv[l.demande_transport_id] = l; }
+            });
+            mv.forEach(function (m) { m.livraison = liv[m.demande_id] || null; if (parId[m.arret_id]) { parId[m.arret_id].mouvements.push(m); } });
+          });
       });
     });
-  }).catch(function () { DISPATCH.voyages = []; DISPATCH.voyagesParId = {}; });
+  }).catch(function () { DISPATCH.voyages = []; DISPATCH.voyagesParId = {}; DISPATCH.historique = []; });
 }
 
 /* Un voyage est parti dès qu'un de ses envois n'est plus « programmé ». */
 function voyageParti(v) {
   return (v.arrets || []).some(function (a) { return a.fait_le || a.mouvements.some(function (m) { return m.livraison && m.livraison.statut !== 'programmee'; }); });
+}
+function voyageTermine(v) {
+  var m = []; (v.arrets || []).forEach(function (a) { m = m.concat(a.mouvements.filter(function (x) { return x.sens === 'decharger'; })); });
+  return m.length > 0 && m.every(function (x) { return x.livraison && ['livree', 'livree_partielle', 'echec', 'annulee'].indexOf(x.livraison.statut) !== -1; });
 }
 function resumeVoyage(v) {
   return (v.arrets || []).map(function (a) {
@@ -3663,7 +3725,8 @@ function ticketsVoyages() {
     return { id: v.id, voyage: true, numero: v.numero, client: v.numero, resume: resumeVoyage(v), envois: Object.keys(envois).length,
              kg: v.chiffrage ? nombre(v.chiffrage.charge_max_kg) : 0, cout: v.cout_revient, date_souhaitee: v.date_voyage,
              lat: a0.latitude, lng: a0.longitude, place: !!v.vehicule_id, vehicule_id: v.vehicule_id,
-             statut: voyageParti(v) ? 'en_route' : 'programmee' };
+             historique: v.statut === 'annule' || voyageTermine(v),
+             statut: v.statut === 'annule' ? 'annule' : (voyageTermine(v) ? 'termine' : (voyageParti(v) ? 'en_route' : 'programmee')) };
   });
 }
 
@@ -5394,7 +5457,12 @@ function chargerDestinationsCarte() {
   if (!calque) { return Promise.resolve(); }
   calque.clearLayers();
   return requete('/v_transports_en_cours?select=*&limit=200').then(function (transports) {
+    /* « Les drapeaux des anciennes livraisons sont toujours affichés sur la carte » (avis RET-20261014-001) :
+       la carte montre le jour, l'avenir et ce qui roule ; un transport passé jamais clos est compté à part. */
     transports = transports || [];
+    var actuel = function (t) { return t.livraison_statut === 'en_route' || !t.date_souhaitee || t.date_souhaitee >= aujourdhui(); };
+    ACCUEIL.anciens = transports.filter(function (t) { return !actuel(t); }).length;
+    transports = transports.filter(actuel);
     ACCUEIL.transports = transports.length;
     var positions = {};
     ACCUEIL.camions.forEach(function (v) { positions[v.immatriculation] = v; });
@@ -5432,7 +5500,9 @@ function etatCarteAccueil() {
   if ($('#cc_etat')) {
     $('#cc_etat').innerHTML = formater(BOUTIQUES_CARTE.total) + ' boutique(s) placée(s) · ' +
       ACCUEIL.camions.length + ' camion(s) · ' + ACCUEIL.transports + ' transport(s) — ' +
-      'mis à jour à ' + new Date().toLocaleTimeString('fr-FR').slice(0, 5);
+      'mis à jour à ' + new Date().toLocaleTimeString('fr-FR').slice(0, 5) +
+      (ACCUEIL.anciens ? ' · <button class="btn-mini discret" onclick="ouvrirOnglet(\'dispatch\')">⚠ ' + ACCUEIL.anciens +
+        ' transport(s) d\'avant aujourd\'hui jamais clos : à clôturer dans Dispatch</button>' : '');
   }
   return sansPosition;
 }
@@ -5609,7 +5679,7 @@ function afficherVoyage(entree, pour) {
     var demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     z.innerHTML = datalistCatalogue() +
       '<div class="tg-grille">' +
-        '<label>Date<input class="pa-champ" type="date" id="tn_date" value="' + esc(NT.date || demain) + '"></label>' +
+        '<label>Date<input class="pa-champ" type="date" id="tn_date" value="' + esc(NT.date || demain) + '"><span class="aide tn-date-passee" id="tn_date_aide"></span></label>' +
         '<label>Véhicule<select class="pa-champ" id="tn_vehicule"><option value="">Pas encore choisi (le moins cher est proposé)</option>' +
           TG.vehicules.map(function (v) {
             return '<option value="' + esc(v.immatriculation || '') + '" data-chauffeur="' + esc(v.chauffeur_id || '') + '"' + (NT.vehicule === v.immatriculation ? ' selected' : '') + '>' +
@@ -5654,6 +5724,11 @@ function afficherVoyage(entree, pour) {
       if (o && o.dataset.chauffeur) { $('#tn_chauffeur').value = o.dataset.chauffeur; }
     });
     $('#tn_ajouter').onclick = ajouterArret;
+    var avisDate = function () {
+      var d = $('#tn_date').value;
+      $('#tn_date_aide').textContent = d && d < aujourdhui() ? 'Date passée : c\'est une régularisation. Le planning ira à cette date pour qu\'elle reste visible.' : '';
+    };
+    $('#tn_date').addEventListener('change', avisDate); avisDate();
     $('#tn_position_camion').onclick = positionDuCamion;
     $('#tn_sans_depart').onclick = function () { NT.depart = null; $('#tg_dep_q').value = ''; afficherPointLieu('dep'); nouveauLieu(); };
     $('#tg_nouveau_site').onclick = afficherFormulaireSite;
@@ -6167,7 +6242,9 @@ function enregistrerVoyageEcran() {
   if (manque) { message(esc(manque), 'ko'); return; }
   if (!NT.dernier) { message('Le chiffrage n\'est pas encore calculé, ou la base l\'a refusé : lisez le message sous la carte.', 'ko'); return; }
   var b = $('#tn_creer'); b.disabled = true;
+  var dateVoyage = $('#tn_date').value;
   rpc('enregistrer_voyage', { p: chargeVoyage() }).then(function (r) {
+    if (dateVoyage && dateVoyage < aujourdhui()) { PLANNING.debut = dateVoyage; }
     message('Voyage ' + esc(r.numero) + ' enregistré : ' + r.envois + ' envoi(s), coût ' + francs(r.cout_revient) +
       (nombre(r.total_refacture) ? ', refacturé ' + francs(r.total_refacture) : '') +
       (r.camion ? ', sur ' + esc(r.camion) + '.' : ', camion à choisir.'), 'ok');
@@ -7539,7 +7616,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-14 15:46';
+var VERSION_CONSOLE = '2026-10-14 16:34';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

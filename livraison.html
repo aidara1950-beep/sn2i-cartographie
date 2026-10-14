@@ -616,24 +616,54 @@ function afficherListe() {
     refusees.map(function (a) { return esc(a.erreur); }).join(' ; ') + '. Appelez la logistique : la signature est gardée sur ce téléphone.</div>' : '';
   html += att.length ? '<div class="tn-erreur">' + att.length + ' remise(s) signée(s) en attente d\'envoi : elles partent dès que le réseau revient.' +
     ' <button class="tn-btn" onclick="envoyerAttente(true)">Envoyer maintenant</button></div>' : '';
-  if (!ETAT.tournee.livraisons.length) { html += '<div class="tn-carte">Aucune livraison dans votre tournée pour ce jour.</div>'; }
-  ETAT.tournee.livraisons.forEach(function (l) {
+  var chargements = ETAT.tournee.chargements || [];
+  if (!ETAT.tournee.livraisons.length && !chargements.length) { html += '<div class="tn-carte">Aucune livraison dans votre tournée pour ce jour.</div>'; }
+  /* Les arrêts dans l'ordre du trajet : chargements et livraisons d'un même transport, rang par rang (0038). */
+  var arrets = chargements.map(function (c) { c.chargement = true; return c; }).concat(ETAT.tournee.livraisons);
+  var ordre = {}; arrets.forEach(function (x, i) { if (!(x.transport in ordre)) { ordre[x.transport] = i; } });
+  arrets.sort(function (a, b) {
+    var ta = ordre[a.transport], tb = ordre[b.transport];
+    if (a.transport !== b.transport) { return ta - tb; }
+    return (a.rang || 0) - (b.rang || 0);
+  });
+  arrets.forEach(function (l) {
+    var etape = l.rang && l.arrets > 2 ? '<div class="tn-ligne tn-rang">Arrêt ' + l.rang + ' sur ' + l.arrets + ' · ' + esc(l.transport || '') + ' · ' +
+      (l.chargement ? '⬆ charger' : '⬇ décharger') + (l.camion ? ' · ' + esc(l.camion) : '') + '</div>' : '';
+    var route = l.latitude ? '<a class="tn-btn" style="display:block;text-align:center;line-height:52px;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' +
+        l.latitude + ',' + l.longitude + '">🗺 Itinéraire</a>' : '';
+    if (l.chargement) {
+      html += '<div class="tn-carte">' + etape + '<h2>⬆ Charger · ' + esc(l.lieu || '') + '</h2>' +
+        '<div class="tn-ligne">' + (l.poids_kg ? '<b>' + esc(String(Math.round(nb(l.poids_kg))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')) + ' kg</b> ' : '') +
+          esc(l.marchandise || '') + (l.pour ? ' · pour ' + esc(l.pour) : '') + '</div>' +
+        '<div class="tn-ligne">' + (l.fait_le ? '<span class="tn-statut fait">✓ chargé</span>' : '<span class="tn-statut">à charger</span>') + '</div>' +
+        route + (!l.fait_le ? '<button class="tn-btn principal" data-charge="' + esc(l.id) + '">✓ Chargé, je pars</button>' : '') + '</div>';
+      return;
+    }
     var enAttente = att.some(function (a) { return a.p.livraison_id === l.id; });
-    html += '<div class="tn-carte"><h2>' + esc(l.client || 'Client') + '</h2>' +
+    html += '<div class="tn-carte">' + etape + '<h2>' + esc(l.client || 'Client') + '</h2>' +
       '<div class="tn-ligne">' + (l.remise ? '<span class="tn-statut fait">✓ remise signée · ' + esc(l.remise.numero_facture) + '</span>'
         : enAttente ? '<span class="tn-statut">signée, en attente d\'envoi</span>' : '<span class="tn-statut">à livrer</span>') +
         (l.creneau ? ' · ' + esc({ matin: 'matin', apres_midi: 'après-midi', soir: 'soir' }[l.creneau] || l.creneau) : '') + '</div>' +
       (l.repere ? '<div class="tn-ligne">📍 ' + esc(l.repere) + '</div>' : '') +
-      '<div class="tn-ligne">' + l.lignes.map(function (x) { return esc(nb(x.quantite) + ' ' + x.unite + ' ' + x.designation); }).join(' · ') + '</div>' +
+      '<div class="tn-ligne">' + (l.lignes.length ? l.lignes.map(function (x) { return esc(nb(x.quantite) + ' ' + x.unite + ' ' + x.designation); }).join(' · ')
+        : esc([l.poids_kg ? Math.round(nb(l.poids_kg)) + ' kg' : '', l.marchandise || ''].filter(Boolean).join(' '))) + '</div>' +
       (l.montant && !l.remise ? '<div class="tn-ligne"><b>' + fcfa(l.montant) + '</b> à encaisser</div>' : '') +
       (tel(l.telephone) ? '<a class="tn-appel" href="tel:+221' + String(l.telephone).replace(/\D/g, '').slice(-9) + '">📞 ' + esc(tel(l.telephone)) + '</a>' : '') +
-      (l.latitude ? '<a class="tn-btn" style="display:block;text-align:center;line-height:52px;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=' +
-        l.latitude + ',' + l.longitude + '">🗺 Itinéraire</a>' : '') +
+      route +
       (!l.remise && !enAttente ? '<button class="tn-btn principal" data-remettre="' + esc(l.id) + '">✍ Remettre et faire signer</button>' : '') +
       '</div>';
   });
   $('#tn_corps').innerHTML = html;
   document.querySelectorAll('[data-remettre]').forEach(function (b) { b.onclick = function () { ouvrirRemise(b.dataset.remettre); }; });
+  document.querySelectorAll('[data-charge]').forEach(function (b) {
+    b.onclick = function () {
+      b.disabled = true;
+      rpc('pointer_chargement', { p_jeton: JETON, p_etape: b.dataset.charge }).then(function () { charger(); }).catch(function (e) {
+        b.disabled = false;
+        $('#tn_corps').insertAdjacentHTML('afterbegin', '<div class="tn-erreur">' + esc(e.reseau ? 'Pas de réseau : réessayez dans un instant.' : e.message) + '</div>');
+      });
+    };
+  });
 }
 
 function releverPosition() {

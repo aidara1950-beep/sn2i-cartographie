@@ -2281,6 +2281,7 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .pl-histo.pl-echec .pl-statut, .pl-histo.pl-annule .pl-statut { color: #B3261E; }
 .pl-histo.pl-livree .pl-statut, .pl-histo.pl-termine .pl-statut, .pl-histo.pl-livree_partielle .pl-statut { color: #1F5A38; }
 .tn-date-passee { color: #8A5A00; font-weight: 500; }
+.tn-lignes-pied { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 </style>
 </head>
 <body>
@@ -5598,12 +5599,13 @@ function afficherChoixTransport() {
 function lignesHtml(lignes, cle) {
   return '<div class="tn-lignes" data-lignes="' + cle + '">' + lignes.map(function (l) {
     return '<div class="tn-ligne-produit" data-ligne="' + l.uid + '">' +
-      '<input class="pa-champ tn-produit" data-lf="produit" list="tn_catalogue" placeholder="Produit" value="' + esc(l.produit) + '" aria-label="Produit">' +
+      '<input class="pa-champ tn-produit" data-lf="produit" list="tn_catalogue" placeholder="Produit : ciment, machine, mil…" value="' + esc(l.produit) + '" aria-label="Produit (libre, ou choisi dans le barème)">' +
       '<input class="pa-champ tn-q" data-lf="quantite" type="number" min="0" step="1" inputmode="numeric" placeholder="Qté" value="' + esc(l.quantite) + '" aria-label="Quantité">' +
       '<input class="pa-champ tn-u" data-lf="unite" placeholder="sac" value="' + esc(l.unite) + '" aria-label="Unité">' +
       '<input class="pa-champ tn-kg" data-lf="poids" type="number" min="0" step="1" inputmode="numeric" placeholder="kg" value="' + esc(l.poids) + '" aria-label="Kilos">' +
       '<button type="button" class="btn-mini discret" data-retirer-ligne="' + l.uid + '"' + (lignes.length <= 1 ? ' disabled' : '') + ' aria-label="Retirer la ligne">✕</button></div>';
-  }).join('') + '<button type="button" class="btn-mini discret" data-ajout-ligne="' + cle + '">＋ Ligne</button></div>';
+  }).join('') + '<div class="tn-lignes-pied"><button type="button" class="btn-mini discret" data-ajout-ligne="' + cle + '">＋ Ligne</button>' +
+    '<span class="aide">N\'importe quel produit (matériaux, machines…). Un produit du barème SN2I remplit l\'unité et les kilos.</span></div></div>';
 }
 
 function datalistCatalogue() {
@@ -6117,7 +6119,8 @@ function manqueTournee() {
         if (!m.nouveau.pour) { return n + 'pour qui charge-t-on ?'; }
         if (m.nouveau.pour === 'client' && m.nouveau.client_nom.trim().length < 2) { return n + 'écrivez le nom du client.'; }
         if (!lignesValides(m.nouveau.lignes).length) { return n + 'écrivez au moins un produit.'; }
-        if (!(kilosDe(m.nouveau.lignes) > 0)) { return n + 'indiquez les kilos des lignes.'; }
+        var sansKg = lignesValides(m.nouveau.lignes).filter(function (l) { return !(l.poids_kg > 0); })[0];
+        if (sansKg) { return n + '« ' + sansKg.produit + ' » : indiquez ses kilos (le poids décide du camion et du coût).'; }
         var cle = m.nouveau.cle;
         if (!NT.arrets.some(function (x, j) { return j > i && x.mouvements.some(function (y) { return y.sens === 'decharger' && y.cle === cle; }); })) {
           return n + 'ce qui est chargé ici n\'est déchargé nulle part : ajoutez son arrêt de déchargement.';
@@ -6346,7 +6349,9 @@ function enregistrerDemandeEcran() {
   var d = NT.demande, pour = $('#dm_pour').value;
   if (!d.charge || d.charge.lat === undefined || !d.livre || d.livre.lat === undefined) { message('Placez le chargement et la livraison.', 'ko'); return; }
   if (!pour) { message('Pour qui ?', 'ko'); return; }
-  if (!lignesValides(d.lignes).length || !(kilosDe(d.lignes) > 0)) { message('Écrivez au moins un produit, avec ses kilos.', 'ko'); return; }
+  if (!lignesValides(d.lignes).length || lignesValides(d.lignes).some(function (l) { return !(l.poids_kg > 0); })) {
+    message('Chaque produit a besoin de ses kilos (le poids décide du camion et du coût).', 'ko'); return;
+  }
   var b = $('#dm_creer'); b.disabled = true;
   rpc('enregistrer_envoi', { p: {
     chargement: { latitude: d.charge.lat, longitude: d.charge.lng, libelle: d.charge.nom, site_id: d.charge.site || null },
@@ -7616,7 +7621,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-14 16:34';
+var VERSION_CONSOLE = '2026-10-14 16:43';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

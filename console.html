@@ -2197,6 +2197,33 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 #message.secoue { animation: secoue .45s ease; }
 @keyframes secoue { 0%, 100% { transform: translateX(-50%); } 20%, 60% { transform: translateX(calc(-50% - 8px)); } 40%, 80% { transform: translateX(calc(-50% + 8px)); } }
 
+/* Place maximale pour la carte et le planning (DGA, 15/10/2026). */
+.onglets-console { gap: 6px; margin-bottom: 10px; }
+.onglets-console button { padding: 0 12px; font-size: 13px; }
+.bandeau-console { padding: 8px 14px; margin-bottom: 8px; }
+[data-ecran="bord"] .entete-ecran, [data-ecran="dispatch"] .entete-ecran { margin-bottom: 6px; }
+[data-ecran="bord"] .entete-ecran p:not(#bord_maj), [data-ecran="dispatch"] .entete-ecran p { display: none; }
+#bloc_carte_accueil { padding: 8px; }
+#bloc_carte_accueil .barre-carte { margin-bottom: 6px; }
+.carte-console.ajuste-ecran { height: calc(100vh - 200px); min-height: 380px; }
+.legende-repliee { margin-top: 8px; }
+.legende-repliee summary { cursor: pointer; font-weight: 700; color: var(--principal); font-size: 13.5px; }
+[data-ecran="dispatch"] #tn_actions { margin: 0 8px 6px 0; vertical-align: middle; }
+[data-ecran="dispatch"] #tn_actions .aide { display: none; }
+[data-ecran="dispatch"] .dp-resume { display: inline-flex; margin: 0 0 6px; padding: 6px 12px; vertical-align: middle; }
+[data-ecran="dispatch"] .bloc-console { padding: 10px; }
+[data-ecran="dispatch"] .bloc-console > h3 { margin-bottom: 6px; }
+.pl-barre { margin-bottom: 6px; gap: 6px 10px; }
+.pl-barre .aide { font-size: 12px; }
+[data-ecran="bord"] .entete-ecran { display: none; }
+#bloc_carte_accueil .barre-carte { flex-wrap: nowrap; padding: 6px 10px; gap: 12px; }
+#bloc_carte_accueil .barre-carte .aide { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; font-size: 12.5px; }
+#bloc_carte_accueil .barre-carte .btn-console.mini { white-space: nowrap; }
+@media (max-width: 900px) { #bloc_carte_accueil .barre-carte { flex-wrap: wrap; } }
+/* Sur grand écran, la console s'élargit : la carte et le planning gagnent la largeur. */
+.console { max-width: 1680px; padding: 12px 16px; }
+[data-ecran="dispatch"] .entete-ecran { display: none; }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -2400,7 +2427,8 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
         <button class="btn-console mini" id="cc_recentrer">Recentrer</button>
         <span class="aide" id="cc_etat"></span>
       </div>
-      <div id="carte_accueil" class="carte-console haute"></div>
+      <div id="carte_accueil" class="carte-console haute ajuste-ecran"></div>
+      <details class="legende-repliee"><summary>Légende et mode d'emploi de la carte</summary>
       <div class="legende-carte">
         <span><span class="pastille-carte" style="background:#B3261E"></span> position
           <b>relevée</b> au GPS par l'enquêteur</span>
@@ -2429,6 +2457,7 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
         son étiquette et dans sa bulle. Une destination ne se devine pas : posez-la sur la carte en
         créant le transport, ou écrivez le nom du quartier dans l'adresse de livraison.
       </p>
+      </details>
     </div>
   </section>
 
@@ -3174,9 +3203,24 @@ function ouvrirOnglet(nom) {
 /* La première page est la carte seule ; les chiffres ont leur page, « Tableau de bord » (DGA, 15/10/2026). */
 function chargerCarte() {
   $('#bord_maj').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR').slice(0, 5);
+  ajusterAEcran();
   demarrerRafraichissementCarte();
   return chargerCarteAccueil();
 }
+
+/* La carte et le planning prennent toute la hauteur de l'écran sous les onglets (DGA,
+   15/10/2026 : « optimiser la place »). La hauteur suit la fenêtre ; la page défile
+   encore pour le reste (légende, transports en route). */
+function ajusterAEcran() {
+  [['#carte_accueil', 380], ['#dispatch_tableau .pl-cadre', 360]].forEach(function (x) {
+    var el = $(x[0]); if (!el || !el.offsetParent) { return; }
+    var haut = el.getBoundingClientRect().top + window.scrollY;
+    var h = Math.max(x[1], window.innerHeight - haut - 10);
+    if (x[0] === '#carte_accueil') { el.style.height = h + 'px'; } else { el.style.maxHeight = h + 'px'; }
+  });
+  if (ACCUEIL.carte && ACCUEIL.carte.invalidateSize) { ACCUEIL.carte.invalidateSize(); }
+}
+window.addEventListener('resize', function () { clearTimeout(window.__ajuste); window.__ajuste = setTimeout(ajusterAEcran, 150); });
 
 /* Les indicateurs du phoning (DGA, 15/10/2026) : appels, commandes, CA du jour et CA cumulé
    du mois, par opérateur. Seules comptent les données réelles, à partir du 15/10/2026 :
@@ -3243,7 +3287,11 @@ function chargerBord() {
     requete('/demandes_transport?select=id,statut,nb_unites,date_demande'),
     requete('/livraisons?select=id,statut,restant,montant,encaissement'),
     compter('/fiches_cartographie?select=id'),
-    compteurFichesJour(aujourdhui)
+    compteurFichesJour(aujourdhui),
+    /* Les transports du jour et leur coût (DGA, 15/10/2026) : les voyages du jour, plus
+       les envois dispatchés hors voyage pour aujourd'hui ; coût de revient calculé par la base. */
+    requete('/voyages?select=id,cout_revient&statut=neq.annule&date_voyage=eq.' + aujourdhui),
+    requete('/demandes_transport?select=id,cout_revient&statut=eq.dispatchee&voyage_id=is.null&date_souhaitee=eq.' + aujourdhui)
   ]).then(function (r) {
     var nbBoutiques = r[0] || 0;
     var commandesJour = (r[1] || []).length;
@@ -3251,6 +3299,8 @@ function chargerBord() {
     var livraisons = (r[3] || []).filter(function (l) { return l.statut !== 'annulee'; });
     var nbFiches = r[4] || 0;
     var fichesJour = r[5] || 0;
+    var transportsJour = (r[6] || []).concat(r[7] || []);
+    var coutJour = transportsJour.reduce(function (n, t) { return n + nombre(t.cout_revient); }, 0);
 
     var enCours = livraisons.filter(function (l) { return ['programmee', 'en_route'].indexOf(l.statut) !== -1; });
     var resteDu = livraisons.reduce(function (n, l) { return n + Math.max(0, nombre(l.montant) - nombre(l.encaissement)); }, 0);
@@ -3262,6 +3312,8 @@ function chargerBord() {
        sont toujours complètes, quel que soit l'écran. Le phoning a son bloc, au-dessus. */
     $('#bord_chiffres').innerHTML =
       carte('Commandes du jour', commandesJour, '', 'commandes') +
+      carte('Transports du jour', transportsJour.length, transportsJour.length ? 'accent' : '', 'dispatch') +
+      carte('Coût de transport du jour', formater(coutJour) + ' <small>F</small>', '', 'dispatch') +
       carte('À dispatcher', aDispatcher.length, aDispatcher.length ? 'alerte' : '', 'dispatch') +
       carte('Livraisons en cours', enCours.length, enCours.length ? 'accent' : '', 'livraisons') +
       carte('Restant à livrer', formater(restant) + ' <small>unités</small>', '', 'livraisons') +
@@ -3526,6 +3578,7 @@ function rendrePlanning(demandes, enCours) {
   /* La ligne « À dispatcher » reste collée sous l'en-tête : les tickets à placer et les camions
      se voient ensemble, sans défiler pendant qu'on glisse (DGA, 15/10/2026). */
   if (cadre) { cadre.style.setProperty('--pl-tete', ($('#dispatch_tableau thead').offsetHeight || 48) + 'px'); }
+  ajusterAEcran();
   if (cadre && defil) { cadre.scrollLeft = defil.x; cadre.scrollTop = defil.y; }
   if (ancien) { window.scrollTo(0, page); }
   brancherPlanning();
@@ -6283,7 +6336,7 @@ function chargerCatalogue2() {
 
 function preparerNouveauTransport() {
   var peut = aLeDroit(PEUT_DISPATCHER);
-  if ($('#tn_actions')) { $('#tn_actions').style.display = peut ? '' : 'none'; }
+  if ($('#tn_actions')) { $('#tn_actions').style.display = peut ? 'inline-flex' : 'none'; }
   if (!peut) { if ($('#bloc_tournee')) { $('#bloc_tournee').style.display = 'none'; } return; }
   $('#tn_ouvrir').onclick = function () {
     var b = $('#bloc_tournee');
@@ -7960,7 +8013,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-15 16:14';
+var VERSION_CONSOLE = '2026-10-15 16:23';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

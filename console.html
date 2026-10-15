@@ -2186,6 +2186,16 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .pl-ligne-file .pl-pile { max-height: 24vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
 .pl-ticket > span:not(.pl-repere):not(.pl-statut) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-ticket > b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa-erreur-champ { margin: 4px 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--rouge-pale); color: var(--rouge); font-weight: 700; font-size: 14px; }
+
+/* Messages toujours visibles (DGA, 15/10/2026) : posés en haut de l'écran, pas de la page. */
+#message { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 3000; width: min(760px, calc(100vw - 32px));
+  box-shadow: 0 10px 30px rgba(43, 28, 16, .25); font-size: 15.5px; line-height: 1.4; padding: 12px 44px 12px 16px; margin: 0; }
+#message .message-fermer { position: absolute; top: 8px; right: 10px; }
+#message.ko { border-width: 2px; font-size: 16.5px; }
+#message .message-titre { display: block; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+#message.secoue { animation: secoue .45s ease; }
+@keyframes secoue { 0%, 100% { transform: translateX(-50%); } 20%, 60% { transform: translateX(calc(-50% - 8px)); } 40%, 80% { transform: translateX(calc(-50% + 8px)); } }
 
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
@@ -2420,13 +2430,20 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
         créant le transport, ou écrivez le nom du quartier dans l'adresse de livraison.
       </p>
     </div>
-    <div class="cartes-console" id="bord_chiffres"></div>
+  </section>
 
+  <!-- ------------------------------------------------ tableau de bord -->
+  <section class="ecran-console" data-ecran="tableau">
+    <div class="entete-ecran">
+      <h2>Tableau de bord</h2>
+      <p id="tableau_maj"></p>
+    </div>
     <div class="bloc-console">
-      <h3>Activité de phoning <span class="compte" id="bord_phoning_compte"></span></h3>
+      <h3>Phoning <span class="aide" id="tb_periode"></span></h3>
+      <div class="cartes-console" id="tb_phoning_chiffres"><div class="chargement">Chargement…</div></div>
       <div id="bord_phoning" class="chargement">Chargement…</div>
     </div>
-
+    <div class="cartes-console" id="bord_chiffres"></div>
     <div class="bloc-console">
       <h3>Ce qui attend une action</h3>
       <div id="bord_actions" class="chargement">Chargement…</div>
@@ -2883,19 +2900,19 @@ var LIBELLES_ROLES = {
    MÊMES onglets — donc la même page. Le DGA l'a vu tout de suite : « c'est
    exactement la même page ». Chaque métier a désormais son écran. */
 var ONGLETS_PAR_ROLE = {
-  dga: ['bord', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
+  dga: ['bord', 'tableau', 'phoning', 'dispatch', 'camions', 'fiches', 'commandes', 'livraisons',
         'boutiques', 'documents', 'prix', 'utilisateurs', 'retours'],
-  logistique: ['bord', 'camions', 'dispatch', 'fiches', 'livraisons', 'documents', 'commandes', 'boutiques'],
+  logistique: ['bord', 'tableau', 'camions', 'dispatch', 'fiches', 'livraisons', 'documents', 'commandes', 'boutiques'],
   /* 08/10/2026 (DGA) : la comptabilité imprime les BL et factures signés et les rapproche. */
   comptable: ['documents', 'livraisons', 'commandes'],
   /* 08/10/2026 (DGA) : le phoning voit aussi les livraisons en cours et les
      camions, pour dire à un client qui appelle où en est son camion. */
-  phoning: ['bord', 'phoning', 'livraisons', 'camions', 'commandes', 'boutiques', 'fiches'],
-  superviseur: ['bord', 'phoning', 'livraisons', 'camions', 'fiches', 'commandes', 'boutiques'],
-  lecture: ['bord', 'fiches', 'commandes', 'boutiques']
+  phoning: ['bord', 'tableau', 'phoning', 'livraisons', 'camions', 'commandes', 'boutiques', 'fiches'],
+  superviseur: ['bord', 'tableau', 'phoning', 'livraisons', 'camions', 'fiches', 'commandes', 'boutiques'],
+  lecture: ['bord', 'tableau', 'fiches', 'commandes', 'boutiques']
 };
 var TITRES_ONGLETS = {
-  bord: 'Carte', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
+  bord: 'Carte', tableau: 'Tableau de bord', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
   fiches: 'Fiches de terrain',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
   prix: 'Prix', documents: 'Documents', utilisateurs: 'Utilisateurs', retours: 'Retours'
@@ -2930,8 +2947,12 @@ function message(texte, genre) {
   if (genre === 'ko') { noterErreur(texte); }
   var el = $('#message');
   el.className = 'message-console ' + (genre || 'info');
-  el.innerHTML = texte + (genre === 'ko' ? ' <button class="message-fermer" type="button" aria-label="Fermer le message">×</button>' : '');
+  /* Un blocage se voit où qu'on soit dans la page (DGA, 15/10/2026 : « quand ça bloque,
+     il faut que ce soit clairement visible pourquoi »). */
+  el.innerHTML = (genre === 'ko' ? '<b class="message-titre">⛔ Bloqué</b>' : '') + '<span>' + texte + '</span>' +
+    (genre === 'ko' ? ' <button class="message-fermer" type="button" aria-label="Fermer le message">×</button>' : '');
   el.style.display = 'block';
+  el.classList.remove('secoue'); void el.offsetWidth; if (genre === 'ko') { el.classList.add('secoue'); }
   var f = el.querySelector('.message-fermer');
   if (f) { f.onclick = function () { el.style.display = 'none'; }; }
   clearTimeout(MINUTEUR_MESSAGE);
@@ -3129,7 +3150,8 @@ function ouvrirOnglet(nom) {
   SESSION.onglet = nom;
   $$('.ecran-console').forEach(function (e) { e.classList.toggle('actif', e.dataset.ecran === nom); });
   $$('#onglets button').forEach(function (b) { b.classList.toggle('actif', b.dataset.onglet === nom); });
-  if (nom === 'bord') { chargerBord(); }
+  if (nom === 'bord') { chargerCarte(); }
+  if (nom === 'tableau') { chargerBord(); }
   if (nom === 'phoning') { chargerPhoning(); }
   if (nom === 'fiches') { chargerFiches(); }
   if (nom === 'dispatch') { chargerDispatch(); }
@@ -3149,8 +3171,67 @@ function ouvrirOnglet(nom) {
 
 /* --------------------------------------------------- tableau de bord */
 
-function chargerBord() {
+/* La première page est la carte seule ; les chiffres ont leur page, « Tableau de bord » (DGA, 15/10/2026). */
+function chargerCarte() {
   $('#bord_maj').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR').slice(0, 5);
+  demarrerRafraichissementCarte();
+  return chargerCarteAccueil();
+}
+
+/* Les indicateurs du phoning (DGA, 15/10/2026) : appels, commandes, CA du jour et CA cumulé
+   du mois, par opérateur. Seules comptent les données réelles, à partir du 15/10/2026 :
+   les essais d'avant ne remontent pas. Le CA est le montant TTC des commandes non annulées. */
+var DEBUT_KPI = '2026-10-15';
+function chargerKpiPhoning() {
+  var jour = aujourdhui(), mois = jour.slice(0, 8) + '01';
+  var depuis = mois > DEBUT_KPI ? mois : DEBUT_KPI;
+  $('#tb_periode').textContent = '— aujourd\'hui, et cumul depuis le ' + dateCourte(depuis);
+  Promise.all([
+    requete('/appels_phoning?select=operateur_nom,resultat,horodatage&horodatage=gte.' + depuis + '&limit=20000'),
+    requete('/commandes?select=operateur_nom,montant_estime,date_commande,statut&statut=neq.annulee&date_commande=gte.' + depuis + '&limit=20000')
+  ]).then(function (r) {
+    var appels = r[0] || [], cmds = r[1] || [], par = {};
+    var o = function (nom) { nom = nom || '(sans nom)'; return par[nom] = par[nom] || { nom: nom, aj: 0, cj: 0, caj: 0, am: 0, cm: 0, cam: 0 }; };
+    appels.forEach(function (a) { var x = o(a.operateur_nom); x.am++; if (String(a.horodatage).slice(0, 10) === jour) { x.aj++; } });
+    cmds.forEach(function (c) {
+      var x = o(c.operateur_nom), m = nombre(c.montant_estime);
+      x.cm++; x.cam += m; if (c.date_commande === jour) { x.cj++; x.caj += m; }
+    });
+    var lignes = Object.keys(par).map(function (k) { return par[k]; }).sort(function (a, b) { return b.cam - a.cam || b.am - a.am; });
+    var t = lignes.reduce(function (s, x) { ['aj', 'cj', 'caj', 'am', 'cm', 'cam'].forEach(function (k) { s[k] += x[k]; }); return s; },
+      { aj: 0, cj: 0, caj: 0, am: 0, cm: 0, cam: 0 });
+    var taux = function (c, a) { return String(a ? Math.round(1000 * c / a) / 10 : 0).replace('.', ','); };
+    $('#tb_phoning_chiffres').innerHTML =
+      carte('Appels du jour', formater(t.aj), '', 'phoning') +
+      carte('Commandes du jour', formater(t.cj) + ' <small>' + taux(t.cj, t.aj) + ' %</small>', t.cj ? 'accent' : '', 'commandes') +
+      carte('CA du jour', formater(t.caj) + ' <small>F</small>', '', 'commandes') +
+      carte('CA cumulé du mois', formater(t.cam) + ' <small>F</small>', 'accent', 'commandes');
+    $$('#tb_phoning_chiffres .carte-chiffre[data-vers]').forEach(function (c) { c.onclick = function () { ouvrirOnglet(c.dataset.vers); }; });
+    var td = function (v, f) { return '<td class="num">' + (f ? formater(v) + ' F' : formater(v)) + '</td>'; };
+    $('#bord_phoning').className = '';
+    $('#bord_phoning').innerHTML = lignes.length
+      ? '<div class="enveloppe"><table class="tablo tb-kpi"><thead><tr><th rowspan="2">Opérateur</th><th colspan="3" class="tb-groupe">Aujourd\'hui</th>' +
+        '<th colspan="4" class="tb-groupe">Depuis le ' + esc(dateCourte(depuis)) + '</th></tr>' +
+        '<tr><th>Appels</th><th>Commandes</th><th>CA</th><th>Appels</th><th>Commandes</th><th>CA cumulé</th><th>Taux</th></tr></thead><tbody>' +
+        lignes.map(function (x) {
+          var tx = taux(x.cm, x.am), n = parseFloat(tx.replace(',', '.'));
+          return '<tr><td><b>' + esc(x.nom) + '</b></td>' + td(x.aj) + td(x.cj) + td(x.caj, 1) + td(x.am) + td(x.cm) + td(x.cam, 1) +
+            '<td><span class="etiquette-statut ' + (n >= 15 ? 'fini' : n >= 8 ? 'cours' : 'attente') + '">' + tx + ' %</span></td></tr>';
+        }).join('') +
+        '<tr class="tb-total"><td><b>Équipe</b></td>' + td(t.aj) + td(t.cj) + td(t.caj, 1) + td(t.am) + td(t.cm) + td(t.cam, 1) +
+          '<td><b>' + taux(t.cm, t.am) + ' %</b></td></tr></tbody></table></div>' +
+        '<p class="aide">Source : appels et commandes enregistrés au poste d\'appel depuis le ' + esc(dateCourte(DEBUT_KPI)) +
+          ' (essais exclus). CA = montant TTC des commandes non annulées. Taux = commandes ÷ appels ; objectif 15 %.</p>'
+      : '<div class="vide">Aucun appel enregistré depuis le ' + esc(dateCourte(depuis)) + '.</div>';
+  }).catch(function (e) {
+    $('#tb_phoning_chiffres').innerHTML = '';
+    $('#bord_phoning').innerHTML = '<div class="message-console ko">Indicateurs du phoning indisponibles : ' + esc(e.message) + '</div>';
+  });
+}
+
+function chargerBord() {
+  $('#tableau_maj').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR').slice(0, 5);
+  chargerKpiPhoning();
   $('#bord_chiffres').innerHTML = '<div class="chargement">Chargement…</div>';
   var aujourdhui = new Date().toISOString().slice(0, 10);
 
@@ -3161,7 +3242,6 @@ function chargerBord() {
     requete('/commandes?select=id&statut=neq.annulee&date_commande=gte.' + aujourdhui),
     requete('/demandes_transport?select=id,statut,nb_unites,date_demande'),
     requete('/livraisons?select=id,statut,restant,montant,encaissement'),
-    requete('/seances_phoning?select=id,date_seance,operateur_nom,nb_appels,nb_commandes,fin_le&order=date_seance.desc&limit=60'),
     compter('/fiches_cartographie?select=id'),
     compteurFichesJour(aujourdhui)
   ]).then(function (r) {
@@ -3169,70 +3249,26 @@ function chargerBord() {
     var commandesJour = (r[1] || []).length;
     var aDispatcher = (r[2] || []).filter(function (d) { return d.statut === 'a_dispatcher'; });
     var livraisons = (r[3] || []).filter(function (l) { return l.statut !== 'annulee'; });
-    var seances = (r[4] || []);
-    var nbFiches = r[5] || 0;
-    var fichesJour = r[6] || 0;
+    var nbFiches = r[4] || 0;
+    var fichesJour = r[5] || 0;
 
     var enCours = livraisons.filter(function (l) { return ['programmee', 'en_route'].indexOf(l.statut) !== -1; });
     var resteDu = livraisons.reduce(function (n, l) { return n + Math.max(0, nombre(l.montant) - nombre(l.encaissement)); }, 0);
     var restant = livraisons.reduce(function (n, l) { return n + nombre(l.restant); }, 0);
-    var appels = seances.reduce(function (n, s) { return n + nombre(s.nb_appels); }, 0);
-    var commandesPhoning = seances.reduce(function (n, s) { return n + nombre(s.nb_commandes); }, 0);
     // Ce que les transports représentent : montant livré, et unités en attente.
     var montantTransports = livraisons.reduce(function (n, l) { return n + nombre(l.montant); }, 0);
 
     /* Huit indicateurs : la grille étant paire (4 puis 2 colonnes), les rangées
-       sont toujours complètes, quel que soit l'écran. */
+       sont toujours complètes, quel que soit l'écran. Le phoning a son bloc, au-dessus. */
     $('#bord_chiffres').innerHTML =
       carte('Commandes du jour', commandesJour, '', 'commandes') +
       carte('À dispatcher', aDispatcher.length, aDispatcher.length ? 'alerte' : '', 'dispatch') +
       carte('Livraisons en cours', enCours.length, enCours.length ? 'accent' : '', 'livraisons') +
       carte('Restant à livrer', formater(restant) + ' <small>unités</small>', '', 'livraisons') +
       carte('Reste à encaisser', formater(resteDu) + ' <small>F</small>', resteDu > 0 ? 'alerte' : '', 'livraisons') +
-      carte('Appels de phoning', appels, '', 'phoning') +
-      carte('Commandes du phoning', commandesPhoning, '', 'phoning') +
       carte('Montant des transports', formater(montantTransports) + ' <small>F</small>', '', 'livraisons') +
       carte('Fiches de terrain', formater(nbFiches) + ' <small>dont ' + fichesJour + ' auj.</small>', '', 'fiches') +
       carte('Boutiques au fichier', formater(nbBoutiques), '', 'boutiques');
-
-    /* Qui appelle, et où il en est. Le score est le taux de conversion de la
-       séance, comparé à l'objectif de 15 % retenu côté phoning. */
-    var parOperateur = {};
-    seances.forEach(function (s) {
-      var nom = s.operateur_nom || '(sans nom)';
-      var o = parOperateur[nom] || { nom: nom, appels: 0, commandes: 0, seances: 0, dernier: null };
-      o.appels += nombre(s.nb_appels);
-      o.commandes += nombre(s.nb_commandes);
-      o.seances += 1;
-      if (!o.dernier || (s.fin_le || s.date_seance) > o.dernier) { o.dernier = s.fin_le || s.date_seance; }
-      parOperateur[nom] = o;
-    });
-    var operateurs = Object.keys(parOperateur).map(function (k) { return parOperateur[k]; })
-      .sort(function (a, b) { return b.commandes - a.commandes || b.appels - a.appels; });
-
-    function ligneOperateur(o) {
-      var taux = o.appels ? Math.round(100 * o.commandes / o.appels) : 0;
-      var classe = taux >= 15 ? 'fini' : (taux >= 8 ? 'cours' : 'attente');
-      var age = o.dernier ? Math.round((Date.now() - new Date(o.dernier).getTime()) / 86400000) : null;
-      var activite = age === null ? '—'
-        : (age <= 0 ? "aujourd'hui" : (age === 1 ? 'hier' : 'il y a ' + age + ' jours'));
-      return '<tr><td><b>' + esc(o.nom) + '</b></td>' +
-        '<td class="num">' + formater(o.appels) + '</td>' +
-        '<td class="num">' + formater(o.commandes) + '</td>' +
-        '<td><span class="etiquette-statut ' + classe + '">' + taux + ' %</span></td>' +
-        '<td class="num">' + o.seances + '</td>' +
-        '<td>' + esc(activite) + '</td></tr>';
-    }
-
-    $('#bord_phoning').innerHTML = operateurs.length
-      ? '<table class="tablo"><thead><tr><th>Opérateur</th><th>Appels</th><th>Commandes</th>' +
-        '<th>Taux</th><th>Séances</th><th>Dernière activité</th></tr></thead><tbody>' +
-        operateurs.map(ligneOperateur).join('') + '</tbody></table>' +
-        '<p style="margin:10px 0 0;font-size:12.5px;color:#7A6A5B">' +
-        'Le taux est le nombre de commandes divisé par le nombre d\'appels. ' +
-        'L\'objectif retenu côté phoning est de <b>15 %</b> : au-dessus, la séance est bonne ; ' +
-        'en dessous de 8 %, il faut revoir la préparation de la file.</p>'
-      : '<div class="vide">Aucune séance de phoning enregistrée. Les séances remontent à la clôture.</div>';
 
     activerCartes();
     $('#bord_actions').innerHTML =
@@ -3240,10 +3276,6 @@ function chargerBord() {
                   aDispatcher.length ? 'Ouvrir le dispatch' : 'rien à faire', 'dispatch') +
       ligneAction('Livraisons sans encaissement', livraisons.filter(function (l) { return !nombre(l.encaissement) && nombre(l.montant); }).length,
                   'Ouvrir les livraisons', 'livraisons');
-
-    // La carte d'accueil : boutiques, camions en mouvement, destinations.
-    demarrerRafraichissementCarte();
-    return chargerCarteAccueil();
   }).catch(function (e) {
     $('#bord_chiffres').innerHTML = '';
     activerCartes();
@@ -7339,7 +7371,9 @@ function erreurLivraison() {
   var lv = PH.livraison || {}, b = PH.courant.boutique || {};
   if (!lv.date || lv.date < aujourdhui() || lv.date > jourPlus(30)) { return 'Choisissez le jour de livraison (dans les 30 jours).'; }
   if (!lv.creneau) { return 'Choisissez le créneau de livraison.'; }
-  if (b.precision_position !== 'relevee' && String(lv.repere || '').trim().length < 5) {
+  /* Le repère OU l'adresse suffit (Mory, 15/10/2026 : bloquée sans comprendre, le repère écrit
+     dans « Adresse ou quartier »). */
+  if (b.precision_position !== 'relevee' && (String(lv.repere || '').trim() + ' ' + String(lv.adresse || '').trim()).trim().length < 5) {
     return 'Écrivez un repère précis : la position du client n\'est pas relevée au GPS.';
   }
   var t = String(lv.telephone || '').replace(/\D/g, '');
@@ -7356,7 +7390,20 @@ function pageSuivante() {
           return l.quantite + ' ' + l.unite + ' de ' + l.designation; }).join(', ') + '. Confirmer ?')) { return; }
     allerA(PH.issue === 'commande' ? 'livraison' : 'valider');
   } else if (PH.page === 'livraison') {
-    var e2 = erreurLivraison(); if (e2) { message(e2, 'ko'); return; }
+    var e2 = erreurLivraison();
+    if (e2) {
+      message(e2, 'ko');
+      /* Le message se lit sous le champ à corriger, même sur un petit écran. */
+      $$('#pa_page .pa-erreur-champ').forEach(function (x) { x.remove(); });
+      var champ = /repère/.test(e2) ? $('#pa_repere') : /créneau/.test(e2) ? $('#pa_page [data-creneau]') : /jour/.test(e2) ? $('#pa_livdate') : /Téléphone/.test(e2) ? $('#pa_livtel') : null;
+      if (champ) {
+        var bloc = champ.closest('.pa-etiquette') || champ.parentNode;
+        bloc.insertAdjacentHTML('afterend', '<div class="pa-erreur-champ">⚠ ' + esc(e2) + '</div>');
+        champ.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (champ.focus) { champ.focus(); }
+      }
+      return;
+    }
     allerA('valider');
   }
 }
@@ -7417,7 +7464,7 @@ function envoyerAppel() {
     lignes: PH.issue === 'commande' ? lignesCommande().map(function (x) {
       return { sku: x.sku, quantite: x.quantite, prix_vu: x.prix_base };   // la base compare au catalogue
     }) : [],
-    livraison: PH.issue === 'commande' ? { date: lv.date, creneau: lv.creneau, repere: (lv.repere || '').trim(),
+    livraison: PH.issue === 'commande' ? { date: lv.date, creneau: lv.creneau, repere: (lv.repere || '').trim() || (lv.adresse || '').trim(),
       adresse: (lv.adresse || '').trim(), telephone: (lv.telephone || '').trim() } : null,
     date_rappel: PH.issue === 'a_rappeler' ? PH.rappel : null,
     motif_refus: PH.issue === 'refus' ? PH.refus : null,
@@ -7913,7 +7960,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-15 13:34';
+var VERSION_CONSOLE = '2026-10-15 16:14';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

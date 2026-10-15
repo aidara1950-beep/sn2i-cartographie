@@ -6702,7 +6702,7 @@ var LIBELLES_CRENEAU = { matin: 'Matin', apres_midi: 'Après-midi', soir: 'Soir'
    direction dans l'onglet Prix. Relu à chaque client : un prix changé à 10h
    s'applique au client suivant. La base refait le calcul et fige le prix. */
 function chargerCatalogue() {
-  return requete('/produits_tarifs?select=sku,nom,unite,prix_fcfa,actif,ordre&order=ordre')
+  return requete('/produits_tarifs?select=sku,nom,unite,prix_fcfa,actif,ordre,groupe_palier,palier_quantite,palier_prix_fcfa&order=ordre')
     .then(function (r) { PH.catalogue = r || []; })
     .catch(function () { PH.catalogue = PH.catalogue || []; });
 }
@@ -6975,7 +6975,9 @@ function pageDetail() {
       (offerts.length ? '<div class="pa-produits">' + offerts.map(function (p) {
         var q = PH.lignes[p.sku] || 0;
         return '<div class="pa-produit' + (q ? ' choisi' : '') + '">' +
-          '<div class="nom">' + esc(p.nom) + '<span>' + francs(p.prix_fcfa) + ' / ' + esc(p.unite) + '</span></div>' +
+          '<div class="nom">' + esc(p.nom) + '<span>' + francs(p.prix_fcfa) + ' / ' + esc(p.unite) +
+            (p.palier_prix_fcfa && p.palier_quantite ? ' · ' + francs(p.palier_prix_fcfa) + ' dès ' + p.palier_quantite : '') +
+            '</span></div>' +
           '<div class="pa-pas"><button data-moins="' + p.sku + '" aria-label="Moins">−</button>' +
           '<input inputmode="numeric" data-sku="' + p.sku + '" value="' + (q || '') + '" placeholder="0">' +
           '<button data-plus="' + p.sku + '" aria-label="Plus">+</button></div></div>';
@@ -7045,9 +7047,20 @@ function pageDetail() {
   majTotal();
 }
 
+/* Prix dégressif (DGA, 15/10/2026) : dès que la commande compte palier_quantite
+   unités d'un même groupe (ex. 5 balles, tous produits confondus), le prix de
+   chaque ligne du groupe devient palier_prix_fcfa. La base refait le même calcul. */
 function lignesCommande() {
-  return produitsCommandables().filter(function (p) { return PH.lignes[p.sku] > 0; }).map(function (p) {
-    return { sku: p.sku, designation: p.nom, unite: p.unite, quantite: PH.lignes[p.sku], prix: +p.prix_fcfa };
+  var choisis = produitsCommandables().filter(function (p) { return PH.lignes[p.sku] > 0; });
+  var parGroupe = {};
+  choisis.forEach(function (p) {
+    if (p.groupe_palier) { parGroupe[p.groupe_palier] = (parGroupe[p.groupe_palier] || 0) + PH.lignes[p.sku]; }
+  });
+  return choisis.map(function (p) {
+    var palier = p.groupe_palier && p.palier_quantite && p.palier_prix_fcfa &&
+      parGroupe[p.groupe_palier] >= +p.palier_quantite;
+    return { sku: p.sku, designation: p.nom, unite: p.unite, quantite: PH.lignes[p.sku],
+             prix: palier ? +p.palier_prix_fcfa : +p.prix_fcfa, prix_base: +p.prix_fcfa, palier: !!palier };
   });
 }
 function totalCommande() {
@@ -7059,7 +7072,7 @@ function majTotal() {
   el.innerHTML = l.length
     ? l.map(function (x) {
         return '<div><span>' + x.quantite + ' ' + esc(x.unite) + ' ' + esc(x.designation) + ' × ' + formater(x.prix) +
-          '</span><b>' + francs(x.quantite * x.prix) + '</b></div>';
+          (x.palier ? ' (prix dégressif)' : '') + '</span><b>' + francs(x.quantite * x.prix) + '</b></div>';
       }).join('') + '<div class="pa-total-ligne"><span>Total à encaisser</span><b>' + francs(totalCommande()) + '</b></div>'
     : '<div class="aide">Aucun produit saisi.</div>';
 }
@@ -7200,7 +7213,7 @@ function envoyerAppel() {
     boutique_id: PH.courant.boutique.id,
     resultat: PH.issue,
     lignes: PH.issue === 'commande' ? lignesCommande().map(function (x) {
-      return { sku: x.sku, quantite: x.quantite, prix_vu: x.prix };   // la base compare au catalogue
+      return { sku: x.sku, quantite: x.quantite, prix_vu: x.prix_base };   // la base compare au catalogue
     }) : [],
     livraison: PH.issue === 'commande' ? { date: lv.date, creneau: lv.creneau, repere: (lv.repere || '').trim(),
       adresse: (lv.adresse || '').trim(), telephone: (lv.telephone || '').trim() } : null,
@@ -7697,7 +7710,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-14 17:00';
+var VERSION_CONSOLE = '2026-10-15 12:47';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

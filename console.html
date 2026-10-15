@@ -2017,7 +2017,7 @@ table.tablo.dp-en-cours td, table.tablo.fl-flotte td, table.tablo.liv-tableau td
 .pl-bascule button { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 14px; border: 0; background: var(--carte); color: var(--principal); cursor: pointer; min-height: 40px; }
 .pl-bascule button.actif { background: var(--principal); color: #fff; }
 .pl-alerte { background: var(--ambre-pale); border: 1px solid #E8D3A8; color: var(--ambre); border-radius: var(--rayon-s); padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
-.pl-cadre { overflow: auto; max-height: 72vh; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--carte); }
+.pl-cadre { overflow: auto; max-height: calc(100vh - 190px); min-height: 320px; overscroll-behavior: contain; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--carte); }
 .pl-grille { border-collapse: separate; border-spacing: 0; min-width: 100%; }
 .pl-grille th, .pl-grille td { border-right: 1px solid var(--bord); border-bottom: 1px solid var(--bord); vertical-align: top; }
 .pl-grille thead th { position: sticky; top: 0; z-index: 3; background: var(--principal-pale); padding: 6px 8px; text-align: left; font-size: 12.5px; color: var(--principal); min-width: 150px; }
@@ -2162,6 +2162,30 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 /* Tout conteneur direct d'un tableau défile dans son cadre, même sans « .enveloppe »
    (le tableau des prix n'en avait pas : il élargissait la page à 768 px). */
 #prix_tableau, div:has(> table.tablo) { max-width: 100%; overflow-x: auto; }
+
+/* Un client appelle (0044) */
+.pa-bandeau-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pa-entrant { background: var(--accent-pale); border-color: var(--accent); color: var(--principal); font-weight: 700; }
+.ae-carte { max-width: 640px; max-height: 88vh; overflow: auto; }
+.ae-carte .sc-tete .btn-mini { margin-left: 6px; }
+.ae-inconnu { margin-top: 12px; border-top: 1px solid var(--bord); padding-top: 10px; }
+.ae-inconnu summary { font-weight: 700; cursor: pointer; color: var(--principal); }
+.pa-dernier-contact { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: var(--principal-pale); color: var(--principal); font-size: 14px; }
+.pa-dernier-contact.pa-jamais { background: var(--sable-pale); color: var(--texte-doux); }
+
+/* Planning du dispatch, lisible (DGA, 15/10/2026) : tuiles compactes, le détail au survol ou au choix. */
+.pl-case { height: auto; min-height: 54px; }
+.pl-ticket { padding: 4px 7px; margin-bottom: 4px; font-size: 12.5px; line-height: 1.3; cursor: grab; user-select: none; }
+.pl-ticket .pl-repere, .pl-ticket .pl-decaler { display: none; }
+.pl-ticket:hover .pl-repere, .pl-ticket.choisi .pl-repere { display: block; }
+.pl-ticket:hover .pl-decaler, .pl-ticket.choisi .pl-decaler { display: inline-block; }
+.pl-ticket.pl-envoi { opacity: .55; outline: 2px dashed var(--principal); cursor: progress; }
+.pl-ticket.pl-histo { opacity: .7; }
+.pl-ligne-file > th, .pl-ligne-file > td { position: sticky; top: var(--pl-tete, 48px); z-index: 2; box-shadow: 0 3px 0 var(--bord); }
+.pl-ligne-file > th { z-index: 3; }
+.pl-ligne-file .pl-pile { max-height: 24vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.pl-ticket > span:not(.pl-repere):not(.pl-statut) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-ticket > b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
@@ -2513,6 +2537,10 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
     <div class="entete-ecran">
       <h2>Commandes</h2>
       <p>Les commandes reçues du phoning et du terrain, et les transports pour les sociétés du groupe.</p>
+    </div>
+    <div class="tg-actions" id="cmd_entrant_bloc" style="display:none">
+      <button class="btn-console accent" id="cmd_entrant" type="button">＋ Nouvelle commande — un client appelle</button>
+      <span class="aide">La commande passe par le poste d'appel : cherchez le client, ou créez sa fiche.</span>
     </div>
     <div class="tg-actions" id="tg_actions" style="display:none">
       <button class="btn-console accent" id="tg_ouvrir" type="button">＋ Transport pour une société du groupe</button>
@@ -3106,7 +3134,11 @@ function ouvrirOnglet(nom) {
   if (nom === 'fiches') { chargerFiches(); }
   if (nom === 'dispatch') { chargerDispatch(); }
   if (nom === 'camions') { chargerCamions(); }
-  if (nom === 'commandes') { chargerCommandes(); }
+  if (nom === 'commandes') {
+    $('#cmd_entrant_bloc').style.display = aLeDroit(PEUT_PHONER_ACTIF) ? '' : 'none';
+    $('#cmd_entrant').onclick = ouvrirAppelEntrant;
+    chargerCommandes();
+  }
   if (nom === 'livraisons') { chargerLivraisons(); }
   if (nom === 'utilisateurs') { chargerUtilisateurs(); }
   if (nom === 'prix') { chargerPrix(); if (aLeDroit(['dga'])) { chargerSociete(); } chargerParametresTransport(); }
@@ -3344,8 +3376,12 @@ function etiqueterTableaux(racine) {
        (reaffecter_livraison) ;
      · au toucher (téléphone) : toucher le ticket, puis la case du camion. */
 
-var PLANNING = { jours: 7, choisi: null, demandes: [], places: [] };
+var PLANNING = { jours: 7, choisi: null, demandes: [], places: [], passe: false };
 try { PLANNING.jours = +(localStorage.getItem('sn2i_planning_jours') || 7) === 14 ? 14 : 7; } catch (e) { /* stockage indisponible */ }
+try { PLANNING.passe = localStorage.getItem('sn2i_planning_passe') === '1'; } catch (e) { /* stockage indisponible */ }
+/* Le passé (livré, annulé, voyage terminé) encombre la grille du jour : masqué par
+   défaut (DGA, 15/10/2026), affiché d'un bouton, et toujours quand on remonte le temps. */
+function passeVisible() { return PLANNING.passe || joursAffiches()[0] < aujourdhui(); }
 
 function jourCle(d) { return d.toISOString().slice(0, 10); }
 function joursAffiches() {
@@ -3388,7 +3424,9 @@ function ticketsDuPlanning(demandes, enCours) {
              lat: t.destination_latitude, lng: t.destination_longitude, place: true, vehicule_id: t.vehicule_id, kg: t.poids_estime_kg,
              statut: t.livraison_statut || 'programmee', arrivee: t.heure_arrivee_prevue };
   });
-  return a.concat(b).concat(ticketsVoyages()).concat(ticketsHistoriques());
+  var tous = a.concat(b).concat(ticketsVoyages()).concat(ticketsHistoriques());
+  PLANNING.nbPasse = tous.filter(function (t) { return t.historique; }).length;
+  return passeVisible() ? tous : tous.filter(function (t) { return !t.historique; });
 }
 
 /* Les livraisons closes de la fenêtre, hors voyage : ce qui a eu lieu, à sa date. */
@@ -3436,8 +3474,10 @@ function rendrePlanning(demandes, enCours) {
       '<div class="pl-bascule pl-navigation"><button data-pl-aller="-1" aria-label="Période précédente">◀ Avant</button>' +
         '<button data-pl-aller="0"' + (PLANNING.debut && PLANNING.debut !== aujourdhui() ? '' : ' class="actif"') + '>Aujourd\'hui</button>' +
         '<button data-pl-aller="1" aria-label="Période suivante">Après ▶</button></div>' +
+      (jours[0] < aujourdhui() ? '' : '<div class="pl-bascule"><button id="pl_passe" class="' + (PLANNING.passe ? 'actif' : '') + '">' +
+        (PLANNING.passe ? 'Masquer le passé' : 'Voir le passé') + (PLANNING.nbPasse ? ' (' + PLANNING.nbPasse + ')' : '') + '</button></div>') +
       (jours[0] < aujourdhui() ? '<span class="pl-passe">Du ' + esc(dateCourte(jours[0])) + ' au ' + esc(dateCourte(fin)) + ' : ce qui est passé se consulte, il ne se modifie plus.</span>' : '') +
-      '<span class="aide">Glissez un ticket sur un camion, dans la colonne de son jour. Sur téléphone : touchez le ticket, puis la case.</span></div>' +
+      '<span class="aide">Glissez un ticket sur un camion, dans la colonne de son jour (ou touchez le ticket, puis la case).</span></div>' +
     (alertes.length ? '<div class="pl-alerte">⚠ ' + alertes.join('<br>⚠ ') + '</div>' : '') +
     '<div class="pl-cadre"><table class="pl-grille"><thead><tr><th class="pl-coin">Véhicule</th>' +
       colonnes.map(function (c) { return '<th class="' + (c === 'retard' ? 'pl-retard' : (c === aujourdhui() ? 'pl-auj' : '')) + '">' + libelleJour(c) + '</th>'; }).join('') +
@@ -3446,7 +3486,16 @@ function rendrePlanning(demandes, enCours) {
     vehicules.map(function (v) { return ligneDuPlanning(v, colonnes, tickets); }).join('') +
     '</tbody></table></div>' +
     (sansPlaque ? '<p class="aide">' + sansPlaque + ' véhicule(s) actif(s) sans plaque ne figurent pas au planning : complétez-les dans « Camions et flotte ».</p>' : '');
+  var ancien = $('#dispatch_tableau .pl-cadre');
+  var defil = ancien ? { x: ancien.scrollLeft, y: ancien.scrollTop } : PLANNING.defil;
+  var page = window.scrollY;
   $('#dispatch_tableau').innerHTML = html;
+  var cadre = $('#dispatch_tableau .pl-cadre');
+  /* La ligne « À dispatcher » reste collée sous l'en-tête : les tickets à placer et les camions
+     se voient ensemble, sans défiler pendant qu'on glisse (DGA, 15/10/2026). */
+  if (cadre) { cadre.style.setProperty('--pl-tete', ($('#dispatch_tableau thead').offsetHeight || 48) + 'px'); }
+  if (cadre && defil) { cadre.scrollLeft = defil.x; cadre.scrollTop = defil.y; }
+  if (ancien) { window.scrollTo(0, page); }
   brancherPlanning();
 }
 
@@ -3467,7 +3516,7 @@ function ligneDuPlanning(v, colonnes, tickets) {
     var cap = v ? nombre(v.capacite_kg) : 0;
     var part = cap ? Math.round(100 * kg / cap) : null;
     return '<td class="pl-case' + (c === 'retard' ? ' pl-retard' : '') + '" data-pl-jour="' + c + '" data-pl-cible="' + (v ? v.id : '') + '">' +
-      ici.map(ticketHtml).join('') +
+      (v ? ici.map(ticketHtml).join('') : '<div class="pl-pile">' + ici.map(ticketHtml).join('') + '</div>') +
       (v && ici.length ? '<div class="pl-total' + (part !== null && part > 100 ? ' pl-surcharge' : '') + '">' + ici.length + ' livraison(s) · ' +
         (kg ? formater(kg) + ' kg' + (cap ? ' / ' + formater(cap) + ' (' + part + ' %)' : '') : formater(unites) + ' u.') +
         (part !== null ? '<span class="pl-jauge"><span style="width:' + Math.min(100, part) + '%"></span></span>' : '') + '</div>' : '') + '</td>';
@@ -3542,6 +3591,12 @@ function poserTicket(t, vehiculeId) {
       !window.confirm(v.immatriculation + ' serait chargé à ' + formater(charge) + ' kg pour ' + formater(v.capacite_kg) +
                       ' kg de capacité. Le charger quand même ?')) { chargerDispatch(); return; }
   var faire = function (chauffeur) {
+    /* La tuile part tout de suite dans sa case (DGA, 15/10/2026 : « déplacer une tuile fait
+       tout bugger ») ; la grille se redessine en silence, à la même place, quand la base a répondu. */
+    var el = $('.pl-ticket[data-pl-ticket="' + t.id + '"]');
+    var dest = $('.pl-case[data-pl-cible="' + v.id + '"][data-pl-jour="' + jourDuTicket(t) + '"]');
+    if (el && dest) { dest.insertBefore(el, dest.firstChild); el.classList.add('pl-envoi', 'place'); el.classList.remove('choisi'); }
+    $$('.pl-case').forEach(function (c) { c.classList.remove('pl-possible', 'pl-survol'); });
     /* 0039 : un envoi rejoint le voyage du camion ce jour-là (ou en ouvre un) ; un voyage se déplace en entier. */
     var jourCible = jourDuTicket(t) === 'retard' ? aujourdhui() : jourDuTicket(t);
     var appel = t.voyage
@@ -3583,6 +3638,23 @@ function brancherPlanning() {
     };
   });
   if ($('#pl_voir14')) { $('#pl_voir14').onclick = function () { $('[data-pl-jours="14"]').click(); }; }
+  if ($('#pl_passe')) {
+    $('#pl_passe').onclick = function () {
+      PLANNING.passe = !PLANNING.passe;
+      try { localStorage.setItem('sn2i_planning_passe', PLANNING.passe ? '1' : '0'); } catch (e) { /* sans effet */ }
+      chargerDispatch();
+    };
+  }
+  /* Glisser près d'un bord du cadre le fait défiler (le navigateur ne le fait pas
+     dans un cadre qui défile lui-même). */
+  var cadre = $('#dispatch_tableau .pl-cadre');
+  if (cadre) {
+    cadre.ondragover = function (ev) {
+      var r = cadre.getBoundingClientRect(), marge = 60, pas = 18;
+      if (ev.clientY < r.top + marge) { cadre.scrollTop -= pas; } else if (ev.clientY > r.bottom - marge) { cadre.scrollTop += pas; }
+      if (ev.clientX < r.left + 190 + marge && ev.clientX > r.left + 190) { cadre.scrollLeft -= pas; } else if (ev.clientX > r.right - marge) { cadre.scrollLeft += pas; }
+    };
+  }
   $$('[data-pl-aller]').forEach(function (b) {
     b.onclick = function () {
       var pas = +b.dataset.plAller;
@@ -3648,8 +3720,9 @@ function brancherPlanning() {
 
 function chargerDispatch() {
   preparerNouveauTransport();
-  $('#dispatch_tableau').innerHTML = '<div class="chargement">Chargement…</div>';
-  $('#dispatch_en_cours').innerHTML = '<div class="chargement">Chargement…</div>';
+  /* Rafraîchir ne vide plus l'écran : la grille reste en place, à sa position, jusqu'à la nouvelle. */
+  if (!$('#dispatch_tableau .pl-cadre')) { $('#dispatch_tableau').innerHTML = '<div class="chargement">Chargement…</div>'; }
+  if (!$('#dispatch_en_cours table')) { $('#dispatch_en_cours').innerHTML = '<div class="chargement">Chargement…</div>'; }
   Promise.all([
     requete('/demandes_transport?select=*&statut=eq.a_dispatcher&order=date_souhaitee.asc.nullsfirst,date_demande.asc&limit=200'),
     requete('/v_flotte_gestion?select=*&order=immatriculation'),
@@ -4345,6 +4418,10 @@ function brancherSuiviClient(idZone) {
       zone.innerHTML = clients && clients.length ? (clients.length >= 8 ? '<p class="aide">8 premiers clients trouvés : ' +
           'précisez le numéro ou le nom.</p>' : '') + clients.map(carteSuiviClient).join('')
         : '<div class="vide">Aucun client trouvé pour « ' + esc(q.value) + ' ».</div>';
+      zone.querySelectorAll('[data-entrant]').forEach(function (b) {
+        b.onclick = function () { prendreClientEntrant(b.dataset.entrant); };
+      });
+      if (idZone === 'ae' && aLeDroit(PEUT_PHONER_ACTIF)) { zone.insertAdjacentHTML('beforeend', formulaireClientInconnu(q.value)); brancherClientInconnu(); }
     }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
   };
   ok.onclick = lancer;
@@ -4362,7 +4439,9 @@ function etapesSuivi(c) {
 function carteSuiviClient(cl) {
   var cmds = cl.commandes || [];
   return '<div class="sc-client"><div class="sc-tete"><b>' + esc(cl.nom) + '</b> · ' + esc(telephoneLisible(cl.telephone)) +
-    ' · ' + esc(cl.zone || '—') + '</div>' +
+    ' · ' + esc(cl.zone || '—') +
+    (cl.id && aLeDroit(PEUT_PHONER_ACTIF) ? ' <button class="btn-mini accent" data-entrant="' + esc(cl.id) + '">＋ Prendre sa commande</button>' : '') +
+    '</div>' +
     (cmds.length ? cmds.map(function (c) {
       var phrase = /^livree/.test(c.livraison_statut || '') ? 'Livrée' + (c.arrivee_le ? ' à ' + heureLocale(c.arrivee_le) : '') + '.'
         : c.livraison_statut === 'echec' ? 'La livraison a échoué : voir la logistique.'
@@ -6485,7 +6564,8 @@ var LIBELLES_MOTIF = {
   rappel_du: 'Rappel convenu', commande_a_suivre: 'A déjà commandé',
   nouvelle_fiche: 'Nouvelle fiche, jamais appelée', jamais_appelee: 'Jamais appelée',
   a_relancer: 'Pas de commande récente', injoignable: 'Appels sans réponse',
-  refus_anterieur: 'A déjà refusé', numero_invalide: 'Numéro signalé invalide'
+  refus_anterieur: 'A déjà refusé', numero_invalide: 'Numéro signalé invalide',
+  appel_entrant: '📞 Le client appelle (hors file)'
 };
 var MOTIFS_PASSAGE = [
   { cle: 'numero_absent', libelle: 'Le numéro ne répond pas au format, impossible d\'appeler' },
@@ -6603,9 +6683,11 @@ function afficherAccueilPoste(bilan) {
         '<p>Vous appelez sous votre nom : <b>' + esc(SESSION.profil.nom) + '</b>. ' +
           'Objectif de la séance : ' + OBJECTIF_APPELS + ' appels, ' + OBJECTIF_CONVERSION +
           ' % de commandes.</p>' + file +
-        '<button class="pa-btn pa-principal" id="pa_ouvrir">▶ Commencer à appeler</button>' +
+        '<button class="pa-btn pa-principal" id="pa_ouvrir">▶ Commencer à appeler</button> ' +
+        '<button class="pa-btn pa-entrant" id="pa_entrant_accueil">📞 Un client appelle</button>' +
       '</div>';
     $('#pa_ouvrir').onclick = ouvrirSeance;
+    $('#pa_entrant_accueil').onclick = ouvrirAppelEntrant;
   });
 }
 
@@ -6632,7 +6714,9 @@ function prendreSuivant() {
       $('#ph_poste').innerHTML =
         '<div class="pa-accueil"><h3>File terminée</h3><p>' + esc((r && r.message) || 'Plus aucun client.') +
         '</p><button class="pa-btn" id="pa_reessayer">Vérifier à nouveau</button> ' +
+        '<button class="pa-btn pa-entrant" id="pa_entrant_fin">📞 Un client appelle</button> ' +
         '<button class="pa-btn pa-discret" id="pa_cloturer_fin">Clôturer ma séance</button></div>';
+      $('#pa_entrant_fin').onclick = ouvrirAppelEntrant;
       $('#pa_reessayer').onclick = prendreSuivant;
       $('#pa_cloturer_fin').onclick = cloturerSeance;
       return;
@@ -6656,25 +6740,34 @@ function prendreSuivant() {
 /* La réservation tient 15 minutes : tant que l'opérateur est sur le client, on
    la prolonge. Si elle a été perdue (poste resté ouvert trop longtemps), la
    base sert un autre client : on le dit au lieu de saisir sur le mauvais. */
+/* Deux postes ne montrent jamais le même numéro (DGA, 15/10/2026) : un écran mis
+   en veille garde son client affiché alors que sa réservation a pu expirer et
+   passer à un collègue. On revérifie donc aussi au retour sur l'écran, et un
+   client perdu disparaît de l'écran (numéro masqué si une saisie est en cours). */
+function verifierReservation() {
+  if (!PH.seance || !PH.courant || !PH.courant.boutique || PH.envoi) { return; }
+  rpc('prendre_client_suivant', { p_seance: PH.seance.id }).then(function (r) {
+    if (r && !r.fin && r.boutique && PH.courant && r.boutique.id !== PH.courant.boutique.id) {
+      if (PH.page === 'client' && !PH.issue) {
+        message('La réservation du client précédent avait expiré : voici le client qui vous est réservé.', 'ko');
+        PH.courant = null; prendreSuivant();
+      } else {
+        /* Une saisie est en cours : on la garde, mais le numéro ne s'affiche
+           plus. L'envoi passe si aucun collègue n'a repris ce client ; sinon la base le dira. */
+        var t = $('#pa_appeler'); if (t) { t.outerHTML = '<span class="aide">Numéro masqué : réservation expirée.</span>'; }
+        message('Votre réservation de ' + esc(PH.courant.boutique.nom || 'ce client') + ' a expiré (poste resté ' +
+                'inactif). Votre saisie est gardée : envoyez-la maintenant.', 'ko');
+      }
+    }
+  }).catch(function () { /* hors réseau : on réessaiera au prochain tour */ });
+}
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && SESSION && SESSION.onglet === 'phoning') { verifierReservation(); }
+});
 function demarrerMinuteurs() {
   arreterMinuteurs();
   PH.minuteur = setInterval(majChrono, 1000);
-  PH.prolongation = setInterval(function () {
-    if (!PH.seance || !PH.courant || PH.envoi) { return; }
-    rpc('prendre_client_suivant', { p_seance: PH.seance.id }).then(function (r) {
-      if (r && !r.fin && r.boutique && PH.courant && r.boutique.id !== PH.courant.boutique.id) {
-        if (PH.page === 'client' && !PH.issue) {
-          message('La réservation du client précédent avait expiré : voici le client qui vous est réservé.', 'ko');
-          PH.courant = null; prendreSuivant();
-        } else {
-          /* Une saisie est en cours : on la garde. L'envoi passe si aucun
-             collègue n'a repris ce client ; sinon la base le dira. */
-          message('Votre réservation de ' + esc(PH.courant.boutique.nom || 'ce client') + ' a expiré (poste resté ' +
-                  'inactif). Votre saisie est gardée : envoyez-la maintenant.', 'ko');
-        }
-      }
-    }).catch(function () { /* hors réseau : on réessaiera au prochain tour */ });
-  }, PROLONGER_MS);
+  PH.prolongation = setInterval(verifierReservation, PROLONGER_MS);
 }
 function arreterMinuteurs() {
   if (PH.minuteur) { clearInterval(PH.minuteur); PH.minuteur = null; }
@@ -6684,6 +6777,87 @@ function majChrono() {
   var el = $('#pa_chrono'); if (!el || !PH.debut) { return; }
   var s = Math.floor((Date.now() - PH.debut) / 1000);
   el.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+}
+
+/* ------------------------------------------------ un client appelle (0044)
+
+   Demande du DGA (15/10/2026) : « le phoning a le cas des clients qui les
+   appellent directement pour créer une commande ». Une commande naît toujours
+   d'un appel : l'opérateur cherche le client (ou crée sa fiche), le prend hors
+   file, et suit le parcours habituel. Le client de la file qu'il tenait y
+   retourne ; après l'envoi, le poste reprend la file. */
+
+function assurerSeance() {
+  if (PH.seance) { return Promise.resolve(PH.seance); }
+  return requete('/seances_phoning?select=*&date_seance=eq.' + aujourdhui() +
+                 '&operateur_id=eq.' + encodeURIComponent(SESSION.profil.id) + '&fin_le=is.null&order=debut_le.desc&limit=1')
+    .then(function (r) { return (r && r[0]) || rpc('ouvrir_seance'); })
+    .then(function (s) { PH.seance = s; return s; });
+}
+
+function ouvrirAppelEntrant() {
+  if (!aLeDroit(PEUT_PHONER_ACTIF)) { message('Seuls les opérateurs de phoning et la direction prennent une commande.', 'ko'); return; }
+  var ancienne = $('#ae_boite'); if (ancienne) { ancienne.remove(); }
+  var boite = document.createElement('div');
+  boite.className = 'pl-boite'; boite.id = 'ae_boite';
+  boite.innerHTML = '<div class="pl-boite-carte ae-carte"><h3>📞 Un client appelle</h3>' +
+    '<p class="aide">Son téléphone (6 chiffres suffisent) ou son nom. Pas trouvé : créez sa fiche en dessous.</p>' +
+    blocSuiviClient('ae') +
+    '<div class="pa-actions"><button class="pa-btn pa-discret" id="ae_fermer">Fermer</button></div></div>';
+  document.body.appendChild(boite);
+  brancherSuiviClient('ae');
+  $('#ae_fermer').onclick = function () { boite.remove(); };
+  boite.onclick = function (ev) { if (ev.target === boite) { boite.remove(); } };
+  $('#ae_q').focus();
+}
+
+function formulaireClientInconnu(saisie) {
+  var chiffres = String(saisie || '').replace(/\D/g, '');
+  return '<details class="ae-inconnu" id="ae_inconnu"' + (/\d{6}/.test(chiffres) ? ' open' : '') + '>' +
+    '<summary>Client inconnu : créer sa fiche</summary>' +
+    '<label class="pa-etiquette">Nom du client ou de la boutique<input class="pa-champ" id="ae_nom" value="' +
+      (/\d/.test(saisie || '') ? '' : esc(saisie || '')) + '"></label>' +
+    '<label class="pa-etiquette">Téléphone<input class="pa-champ" id="ae_tel" inputmode="tel" value="' + esc(chiffres.slice(-9)) + '" placeholder="77 123 45 67"></label>' +
+    '<label class="pa-etiquette">Zone<select class="pa-champ" id="ae_zone"><option value="">— choisir —</option></select></label>' +
+    '<label class="pa-etiquette">Repère (quartier, à côté de…)<input class="pa-champ" id="ae_repere"></label>' +
+    '<button class="pa-btn pa-principal" id="ae_creer">Créer la fiche et prendre sa commande</button></details>';
+}
+function brancherClientInconnu() {
+  requete('/zones?select=id,nom&order=nom').then(function (z) {
+    var sel = $('#ae_zone'); if (!sel) { return; }
+    sel.innerHTML = '<option value="">— choisir —</option>' + (z || []).map(function (x) {
+      return '<option value="' + esc(x.id) + '">' + esc(x.nom) + '</option>';
+    }).join('');
+  }).catch(function () { /* la zone reste facultative */ });
+  $('#ae_creer').onclick = function () {
+    var b = this, nom = $('#ae_nom').value.trim(), tel = $('#ae_tel').value.replace(/\D/g, '');
+    if (nom.length < 2) { message('Écrivez le nom du client.', 'ko'); return; }
+    if (tel.length < 9) { message('Le téléphone a 9 chiffres.', 'ko'); return; }
+    b.disabled = true;
+    assurerSeance().then(function (s) {
+      return rpc('creer_client_entrant', { p_seance: s.id, p_nom: nom, p_telephone: tel,
+        p_zone: $('#ae_zone').value || null, p_repere: $('#ae_repere').value.trim() || null });
+    }).then(function (r) {
+      if (r.existait) { message('Ce téléphone est déjà celui d\'un client : sa fiche est reprise, sans doublon.', 'info'); }
+      prendreClientEntrant(r.id);
+    }).catch(function (e) { b.disabled = false; message('Fiche non créée : ' + esc(e.message), 'ko'); });
+  };
+}
+
+function prendreClientEntrant(boutiqueId) {
+  if (PH.courant && PH.issue && PH.courant.boutique && PH.courant.boutique.id !== boutiqueId &&
+      !window.confirm('Une saisie est en cours pour ' + (PH.courant.boutique.nom || 'un client') +
+                      '. L\'abandonner pour prendre le client qui appelle ?')) { return; }
+  assurerSeance().then(function (s) {
+    return Promise.all([rpc('prendre_client_entrant', { p_seance: s.id, p_boutique: boutiqueId }), chargerCatalogue()]);
+  }).then(function (res) {
+    var boite = $('#ae_boite'); if (boite) { boite.remove(); }
+    PH.courant = res[0];
+    PH.page = 'client'; PH.issue = null; PH.lignes = {}; PH.rappel = ''; PH.refus = '';
+    PH.commentaire = ''; PH.cle = nouvelleCle(); PH.debut = Date.now(); PH.etapeScript = 0;
+    PH.livraison = null;
+    if (SESSION.onglet !== 'phoning') { ouvrirOnglet('phoning'); } else { afficherPoste(); }
+  }).catch(function (e) { message('Client non pris : ' + esc(e.message), 'ko'); });
 }
 
 /* ------------------------------------------------------------ le poste */
@@ -6731,7 +6905,8 @@ function afficherPoste() {
         '<span><b>' + formater(c.restants) + '</b> restant(s)</span>' +
         '<span title="Durée de traitement du client">⏱ <b id="pa_chrono">0:00</b></span>' +
       '</div>' +
-      '<button class="pa-btn pa-discret pa-petit" id="pa_cloturer">Clôturer la séance</button>' +
+      '<div class="pa-bandeau-actions"><button class="pa-btn pa-petit pa-entrant" id="pa_entrant">📞 Un client appelle</button>' +
+      '<button class="pa-btn pa-discret pa-petit" id="pa_cloturer">Clôturer la séance</button></div>' +
     '</div>' +
     '<div class="pa-jauge"><div style="width:' + Math.min(100, Math.round(100 * appels / OBJECTIF_APPELS)) + '%"></div></div>' +
     '<ol class="pa-etapes">' + pages.map(function (p, i) {
@@ -6740,6 +6915,7 @@ function afficherPoste() {
     }).join('') + '</ol>' +
     '<div class="pa-page" id="pa_page"></div>';
   $('#pa_cloturer').onclick = cloturerSeance;
+  $('#pa_entrant').onclick = ouvrirAppelEntrant;
   ({ client: pageClient, issue: pageIssue, detail: pageDetail, livraison: pageLivraison,
      valider: pageValider })[PH.page]();
   brancherSouffleur();
@@ -6802,6 +6978,22 @@ function brancherSouffleur() {
   }
 }
 
+/* La dernière prise de contact, en tête de fiche (DGA, 15/10/2026) : le dernier
+   appel enregistré en base, avec son issue et l'opérateur. Avant la mise en service
+   (08/10/2026), l'ancien fichier de phoning ne porte pas de date fiable : on cite
+   seulement son onglet, sans en déduire de date. */
+function dernierContact(c) {
+  var a = (c.derniers_appels || [])[0], h = c.historique || {};
+  if (a && a.horodatage) {
+    var jours = Math.floor((new Date(aujourdhui() + 'T00:00:00Z') - new Date(String(a.horodatage).slice(0, 10) + 'T00:00:00Z')) / 86400000);
+    return '<div class="pa-dernier-contact"><b>Dernier contact :</b> ' + esc(dateCourte(a.horodatage)) + ' à ' + esc(new Date(a.horodatage).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Dakar' }).slice(0, 5)) +
+      ' (' + (jours <= 0 ? 'aujourd\'hui' : jours === 1 ? 'hier' : 'il y a ' + jours + ' jours') + ') · ' +
+      esc(libelleIssue(a.resultat)) + (a.operateur ? ' · ' + esc(a.operateur) : '') + '</div>';
+  }
+  return '<div class="pa-dernier-contact pa-jamais"><b>Dernier contact :</b> aucun appel enregistré depuis le 08/10/2026' +
+    (h.source_onglet ? ' · ancien fichier de phoning, onglet « ' + esc(h.source_onglet) + ' » (sans date)' : '') + '</div>';
+}
+
 /* Page 1 — le client */
 function pageClient() {
   var c = PH.courant, b = c.boutique || {}, f = c.file || {}, h = c.historique || {};
@@ -6817,7 +7009,7 @@ function pageClient() {
     '<div class="pa-carte">' +
       '<div class="pa-motif">' + esc((typeof MOTIFS_LIBELLES !== 'undefined' && MOTIFS_LIBELLES[f.motif]) ||
         LIBELLES_MOTIF[f.motif] || f.motif || 'File du jour') +
-        (monRole() === 'dga' ? ' <span>rang ' + esc(f.rang) + ' · score ' + esc(f.score) + '</span>' : '') + '</div>' +
+        (monRole() === 'dga' && f.rang ? ' <span>rang ' + esc(f.rang) + ' · score ' + esc(f.score) + '</span>' : '') + '</div>' +
       (f.pour_le && f.pour_le < aujourdhui() ? '<div class="message-console ko">File du ' + esc(dateCourte(f.pour_le)) +
         ' : celle d\'aujourd\'hui n\'a pas été préparée hier soir. Prévenez la direction.</div>' : '') +
       '<div class="pa-identite">' +
@@ -6828,17 +7020,21 @@ function pageClient() {
           (b.enseigne && b.enseigne !== b.nom ? '<div class="pa-enseigne">' + esc(b.enseigne) + '</div>' : '') +
           '<div class="aide">' + esc(b.zone || '—') + ' · ' + esc(b.secteur || '—') + ' · ' + esc(b.statut_crm || '—') + '</div>' +
           (b.adresse_repere ? '<div class="aide">Repère : ' + esc(b.adresse_repere) + '</div>' : '') +
+          dernierContact(c) +
         '</div>' +
       '</div>' +
       '<a class="pa-appeler" href="tel:+221' + esc(tel) + '" id="pa_appeler">📞 ' + esc(telephoneLisible(b.telephone)) + '</a>' +
       (b.telephone_2 ? '<div class="aide">Second numéro : <a href="tel:+221' +
         esc(String(b.telephone_2).replace(/\D/g, '').slice(-9)) + '">' + esc(telephoneLisible(b.telephone_2)) + '</a></div>' : '') +
-      '<div class="pa-pourquoi"><b>Pourquoi l\'appeler :</b> ' + esc(monRole() === 'dga' ? (f.pourquoi || '—') : String(f.pourquoi || '—').replace(/\s*\([+-]\d+\)/g, '')) + '</div>' +
+      (c.entrant ? '<div class="pa-pourquoi"><b>Le client appelle :</b> prenez sa demande ; une commande suit le même parcours.</div>' :
+      '<div class="pa-pourquoi"><b>Pourquoi l\'appeler :</b> ' + esc(monRole() === 'dga' ? (f.pourquoi || '—') : String(f.pourquoi || '—').replace(/\s*\([+-]\d+\)/g, '')) + '</div>') +
     '</div>' +
     souffleur([0, 1, 2]) +
     '<div class="pa-actions pa-actions-client">' +
-      '<button class="pa-btn pa-discret" id="pa_passer">Passer ce client</button>' +
-      '<button class="pa-btn pa-principal" id="pa_vers_issue" data-focus>J\'ai appelé → issue de l\'appel <kbd>Entrée</kbd></button>' +
+      (c.entrant ? '<button class="pa-btn pa-discret" id="pa_rendre">Annuler — retour à la file</button>'
+                 : '<button class="pa-btn pa-discret" id="pa_passer">Passer ce client</button>') +
+      '<button class="pa-btn pa-principal" id="pa_vers_issue" data-focus>' +
+        (c.entrant ? 'Prendre sa demande → issue' : 'J\'ai appelé → issue de l\'appel') + ' <kbd>Entrée</kbd></button>' +
     '</div>' +
     '<div id="pa_passage"></div>' +
     '<div class="pa-carte">' +
@@ -6857,7 +7053,13 @@ function pageClient() {
       blocPosition(b) +
     '</div>';
   $('#pa_vers_issue').onclick = function () { allerA('issue'); };
-  $('#pa_passer').onclick = afficherPassage;
+  if ($('#pa_passer')) { $('#pa_passer').onclick = afficherPassage; }
+  if ($('#pa_rendre')) {
+    $('#pa_rendre').onclick = function () {
+      rpc('rendre_client_entrant', { p_seance: PH.seance.id }).catch(function () { /* la réservation expire seule */ })
+        .then(function () { PH.courant = null; prendreSuivant(); });
+    };
+  }
   brancherPosition(b);
   chargerPhotoClient(b);
 }
@@ -7221,7 +7423,8 @@ function envoyerAppel() {
     motif_refus: PH.issue === 'refus' ? PH.refus : null,
     commentaire: PH.commentaire.trim() || null,
     duree_secondes: PH.debut ? Math.round((Date.now() - PH.debut) / 1000) : null,
-    confirmer_doublon: !!PH.confirmerDoublon
+    confirmer_doublon: !!PH.confirmerDoublon,
+    entrant: !!PH.courant.entrant
   } }).then(function (r) {
     PH.envoi = false; PH.confirmerDoublon = false;
     PH.seance.nb_appels = r.nb_appels; PH.seance.nb_commandes = r.nb_commandes;
@@ -7710,7 +7913,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-15 12:47';
+var VERSION_CONSOLE = '2026-10-15 13:34';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

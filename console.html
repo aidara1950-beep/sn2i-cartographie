@@ -2307,7 +2307,7 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
   .pl-ticket { font-size: 13px; padding: 7px 8px; margin-bottom: 6px; }
   .pl-ticket .pl-repere { max-width: none; }
   .pl-grille.pl-mobile .pl-rangee-vide { display: none; }
-  .pl-grille.pl-mobile.choix .pl-rangee-vide { display: table-row; }
+  .pl-grille.pl-mobile.pl-choix .pl-rangee-vide { display: table-row; }
   .pl-ligne-file .pl-pile { max-height: 36vh; }
   .pl-aide-mobile { margin: 6px 0 0; font-size: 12px; }
   .pl-alerte { font-size: 13px; padding: 6px 10px; }
@@ -4010,7 +4010,7 @@ function choisirTicket(id) {
   var t = (PLANNING.tickets || []).filter(function (x) { return x.id === id; })[0];
   PLANNING.choisi = t || null;
   $$('.pl-ticket').forEach(function (e) { e.classList.toggle('choisi', !!t && e.dataset.plTicket === id); });
-  var grille = $('.pl-grille'); if (grille) { grille.classList.toggle('choix', !!t); }
+  var grille = $('.pl-grille'); if (grille) { grille.classList.toggle('pl-choix', !!t); }
   /* Au toucher, le détail s'affiche en bas à l'écran tant que le ticket est choisi ; au poste, c'est le survol. */
   var tuile = t ? $('.pl-ticket[data-pl-ticket="' + id + '"]') : null;
   if (tuile && !survolPossible()) { montrerBulle(tuile, true); } else { cacherBulle(); }
@@ -8511,7 +8511,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 14:54';
+var VERSION_CONSOLE = '2026-10-16 14:55';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

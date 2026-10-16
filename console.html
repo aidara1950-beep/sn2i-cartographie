@@ -2372,6 +2372,9 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .pl-ticket.pl-nouveau { animation: pl-clignote 1s ease-in-out 4; }
 @media (prefers-reduced-motion: reduce) { .pl-ticket.pl-nouveau { animation: none; outline: 3px solid var(--vert); } }
 
+.pl-ticket .pl-sous { font-size: 12px; color: var(--texte) !important; }
+.pl-ticket.choisi .pl-sous { white-space: normal; }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -3929,7 +3932,7 @@ function ligneDuPlanning(v, colonnes, tickets) {
     var part = cap ? Math.round(100 * kg / cap) : null;
     return '<td class="pl-case' + (c === 'retard' ? ' pl-retard' : '') + (c < aujourdhui() && c !== 'retard' ? ' pl-jour-passe' : '') + '" data-pl-jour="' + c + '" data-pl-cible="' + (v ? v.id : '') + '">' +
       (v ? ici.map(ticketHtml).join('') : '<div class="pl-pile">' + ici.map(ticketHtml).join('') + '</div>') +
-      (v && ici.length ? '<div class="pl-total' + (part !== null && part > 100 ? ' pl-surcharge' : '') + '">' + ici.length + ' livraison(s) · ' +
+      (v && ici.length ? '<div class="pl-total' + (part !== null && part > 100 ? ' pl-surcharge' : '') + '">' + ici.reduce(function (n, t) { return n + (t.voyage ? t.envois : 1); }, 0) + ' livraison(s) · ' +
         (kg ? formater(kg) + ' kg' + (cap ? ' / ' + formater(cap) + ' (' + part + ' %)' : '') : formater(unites) + ' u.') +
         (part !== null ? '<span class="pl-jauge"><span style="width:' + Math.min(100, part) + '%"></span></span>' : '') + '</div>' : '') + '</td>';
   }).join('');
@@ -3950,9 +3953,10 @@ function ticketHtml(t) {
   if (t.voyage) {
     return '<div class="pl-ticket pl-voyage' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + (t.avalider ? ' pl-avalider' : '') + '"' + (bloque ? '' : ' draggable="true"') +
       ' data-pl-ticket="' + t.id + '">' +
-      '<b>🚚 ' + esc(t.clients && t.clients.length ? t.clients.join(', ') : t.numero) + '</b>' +
-      '<span>' + t.envois + (t.envois > 1 ? ' envois' : ' envoi') + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') + '</span>' +
-      '<span class="pl-num">' + esc(t.numero) + '</span>' +
+      '<b>🚚 ' + t.envois + (t.envois > 1 ? ' livraisons' : ' livraison') + '</b>' +
+      /* Chaque livraison du voyage sur sa ligne : rien ne se cache derrière un nom tronqué (DGA, 16/10/2026). */
+      (t.detailEnvois || []).map(function (e) { return '<span class="pl-sous">• ' + esc(e.nom) + (e.kg ? ' · ' + formater(e.kg) + ' kg' : '') + '</span>'; }).join('') +
+      '<span class="pl-num">' + esc(t.numero) + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') + '</span>' +
       (t.par ? '<span class="pl-par" title="Créé par ' + esc(t.par) + '">👤 ' + esc(auteurCourt(t.par)) + '</span>' : '') +
       valider + (bloque && !t.avalider ? '<span class="pl-statut">🚚 en route</span>' : '') +
       '<span class="pl-repere">' + t.resume + '</span>' +
@@ -4337,8 +4341,9 @@ function ticketsVoyages() {
     var envois = {}; (v.arrets || []).forEach(function (a) { a.mouvements.forEach(function (m) { envois[m.demande_id] = 1; }); });
     var clients = Object.keys(envois).map(function (id) { return ((DISPATCH.envois || {})[id] || {}).pour; }).filter(Boolean)
       .filter(function (n, i, a) { return a.indexOf(n) === i; });
+    var detailEnvois = Object.keys(envois).map(function (id) { var e = (DISPATCH.envois || {})[id] || {}; return { nom: e.pour || e.numero || '?', kg: nombre(e.poids_kg), numero: e.numero }; });
     return { id: v.id, voyage: true, numero: v.numero, client: v.numero, resume: resumeVoyage(v), envois: Object.keys(envois).length,
-             clients: clients, par: v.cree_par, cree_le: v.cree_le, arrets: v.arrets || [], chauffeur_id: v.chauffeur_id,
+             clients: clients, detailEnvois: detailEnvois, par: v.cree_par, cree_le: v.cree_le, arrets: v.arrets || [], chauffeur_id: v.chauffeur_id,
              kg: v.chiffrage ? nombre(v.chiffrage.charge_max_kg) : 0, cout: v.cout_revient, date_souhaitee: v.date_voyage,
              lat: a0.latitude, lng: a0.longitude, place: !!v.vehicule_id, vehicule_id: v.vehicule_id,
              historique: v.statut === 'annule' || voyageTermine(v),
@@ -8534,7 +8539,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 15:09';
+var VERSION_CONSOLE = '2026-10-16 15:19';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

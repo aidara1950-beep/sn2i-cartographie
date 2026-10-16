@@ -2368,6 +2368,10 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 
 .pl-vehicule b .pl-tonnage { font-style: normal; color: var(--principal); font-weight: 800; }
 
+@keyframes pl-clignote { 0%, 100% { box-shadow: 0 0 0 0 rgba(31, 122, 77, 0); } 50% { box-shadow: 0 0 0 5px rgba(31, 122, 77, .55); } }
+.pl-ticket.pl-nouveau { animation: pl-clignote 1s ease-in-out 4; }
+@media (prefers-reduced-motion: reduce) { .pl-ticket.pl-nouveau { animation: none; outline: 3px solid var(--vert); } }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -3783,6 +3787,18 @@ function rendrePlanning(demandes, enCours) {
   if (ancien) { window.scrollTo(0, page); }
   brancherPlanning();
   chargerEtatsBalises();
+  montrerLigneVehicule();
+}
+/* Après un dépôt, le camion qui a reçu le ticket peut être tout en bas de la grille (les tricycles) :
+   on amène sa ligne sous les en-têtes collés et sa tuile clignote, pour qu'elle ne « disparaisse » pas (DGA, 16/10/2026). */
+function montrerLigneVehicule() {
+  var id = PLANNING.montrer; PLANNING.montrer = null;
+  var cadre = $('#dispatch_tableau .pl-cadre'), tete = id && $('.pl-vehicule[data-pl-veh="' + id + '"]');
+  if (!cadre || !tete) { return; }
+  var tr = tete.parentNode, fixe = ($('.pl-grille thead') || { offsetHeight: 0 }).offsetHeight + (($('.pl-ligne-file') || { offsetHeight: 0 }).offsetHeight);
+  cadre.scrollTop = Math.max(0, tr.offsetTop - fixe - 6);
+  $$('.pl-ticket', tr).forEach(function (e) { e.classList.add('pl-nouveau'); });
+  setTimeout(function () { $$('.pl-nouveau').forEach(function (e) { e.classList.remove('pl-nouveau'); }); }, 4000);
 }
 /* Sur téléphone comme sur poste : la grille se redessine quand l'écran change de gabarit (rotation, fenêtre). */
 if (window.matchMedia) {
@@ -4066,6 +4082,7 @@ function poserTicket(t, vehiculeId) {
         (r.sans_voyage ? ' (sans point de livraison : dispatché hors voyage, sans coût)' : (r.numero ? ' · voyage ' + esc(r.numero) + ', coût ' + francs(r.cout_revient) : '')) +
         (nombre(r.envois_places) > 1 ? ' — ses ' + (nombre(r.envois_places) - 1) + ' autre(s) remise(s) suivent' : '') + '.', 'ok');
       PLANNING.choisi = null;
+      PLANNING.montrer = v.id;   /* après le rechargement, la ligne du véhicule se montre et sa tuile clignote */
       /* Les nouveaux tronçons sont chiffrés à vol d'oiseau : la page demande les km par la route, la base refait le calcul. */
       (r.id && !r.sans_voyage ? recalculerRouteVoyage(r.id).catch(function () {}) : Promise.resolve()).then(chargerDispatch);
     }).catch(function (e) { message('Non placé : ' + esc(e.message), 'ko'); chargerDispatch(); });
@@ -8517,7 +8534,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 15:00';
+var VERSION_CONSOLE = '2026-10-16 15:09';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

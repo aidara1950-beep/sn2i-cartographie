@@ -2366,6 +2366,8 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
   .vl-ligne .dp-gestes .btn-mini { min-height: 42px; flex: 1 1 auto; }
 }
 
+.pl-vehicule b .pl-tonnage { font-style: normal; color: var(--principal); font-weight: 800; }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -3673,12 +3675,16 @@ function ticketsHistoriques() {
 function vehiculesDuPlanning() {
   var vus = {}; (PLANNING.tickets || []).forEach(function (t) { if (t.vehicule_id) { vus[t.vehicule_id] = 1; } });
   return DISPATCH.flotte.filter(function (v) { return v.immatriculation && (v.etat === 'actif' || vus[v.id]); }).sort(function (a, b) {
-    if (a.disponible !== b.disponible) { return a.disponible ? -1 : 1; }
+    /* Les camions d'abord, les tricycles tout en bas l'un après l'autre (DGA, 16/10/2026). */
     if (a.type !== b.type) { return a.type === 'camion' ? -1 : 1; }
+    /* Du plus gros au plus petit tonnage ; sans tonnage connu, après les autres camions. */
+    if (nombre(a.capacite_kg) !== nombre(b.capacite_kg)) { return nombre(b.capacite_kg) - nombre(a.capacite_kg); }
     return String(a.immatriculation).localeCompare(String(b.immatriculation));
   });
 }
 
+/* 3000 → « 3 t » ; 15000 → « 15 t » ; 3500 → « 3,5 t ». */
+function tonnageLisible(kg) { var t = Math.round(nombre(kg) / 100) / 10; return String(t).replace('.', ',') + ' t'; }
 function planningMobile() { return !!(window.matchMedia && window.matchMedia('(max-width: 700px)').matches); }
 function survolPossible() { return !!(window.matchMedia && window.matchMedia('(hover: hover)').matches); }
 /* Le nom complet de l'auteur (DGA, 16/10/2026) ; les écritures de reprise de CoS se réduisent à « CoS ». */
@@ -3888,7 +3894,7 @@ function chargerEtatsBalises() {
 
 function ligneDuPlanning(v, colonnes, tickets) {
   var tete = v
-    ? '<th class="pl-vehicule" data-pl-veh="' + v.id + '"><b>' + esc(v.immatriculation) + '</b>' +
+    ? '<th class="pl-vehicule" data-pl-veh="' + v.id + '"><b>' + esc(v.immatriculation) + (nombre(v.capacite_kg) ? '<em class="pl-tonnage"> · ' + tonnageLisible(v.capacite_kg) + '</em>' : '') + '</b>' +
         '<span>' + esc(v.type === 'tricycle' ? 'tricycle' : 'camion') + ' · ' + esc(v.chauffeur || 'sans chauffeur') + '</span>' +
         '<span class="' + (v.disponible ? 'pl-libre' : 'pl-occupe') + '">' + (v.disponible ? 'libre' : 'en livraison') + '</span>' +
         (v.a_balise ? '<span class="pl-etat" data-pl-etat="' + v.id + '">' + etatBaliseHtml(v) + '</span>' : '<span class="pl-etat pl-sans-balise">sans balise</span>') +
@@ -8511,7 +8517,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 14:55';
+var VERSION_CONSOLE = '2026-10-16 15:00';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

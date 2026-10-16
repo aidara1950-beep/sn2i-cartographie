@@ -2342,6 +2342,30 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
   .pl-vehicule .pl-etat span { font-size: 11px; }
 }
 
+/* La liste de validation : par jour, le passé non validé en rouge (DGA, 16/10/2026). */
+.vl-jour { margin-bottom: 14px; }
+.vl-jour > h4 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 6px; padding: 6px 10px; border-radius: 8px;
+  background: var(--principal-pale); color: var(--principal); font-size: 15px; }
+.vl-jour > h4 small { font-size: 12.5px; font-weight: 600; color: var(--texte-doux); }
+.vl-jour-passe > h4 { background: var(--rouge-pale); color: var(--rouge); }
+.vl-jour-passe > h4 small { color: var(--rouge); }
+.vl-bloc { border: 1px solid var(--bord); border-radius: 10px; margin-bottom: 8px; overflow: hidden; background: var(--carte); }
+.vl-voyage-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 10px; background: #F4F8FC; border-bottom: 1px solid var(--bord); font-size: 13px; }
+.vl-voyage-tete .btn-mini { margin-left: auto; }
+.vl-ligne { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(130px, .8fr) minmax(260px, 2fr); gap: 6px 14px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--sable-pale); }
+.vl-ligne:first-child { border-top: 0; }
+.vl-qui span, .vl-etat span { display: block; font-size: 12.5px; }
+.vl-passe { border-left: 4px solid var(--rouge); }
+.vl-ligne .dp-gestes { margin: 0; }
+.vl-oui { background: var(--vert); color: #fff; border-color: var(--vert); }
+.vl-heure { display: inline-block; }
+.vl-heure summary { font-size: 12.5px; cursor: pointer; color: var(--principal); padding: 6px 4px; }
+.dp-valider b { color: var(--rouge); }
+@media (max-width: 800px) {
+  .vl-ligne { grid-template-columns: 1fr; }
+  .vl-ligne .dp-gestes .btn-mini { min-height: 42px; flex: 1 1 auto; }
+}
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -2617,7 +2641,7 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
       <div id="dispatch_tableau"><div class="chargement">Chargement…</div></div>
     </div>
     <div class="bloc-console">
-      <h3>En route et à venir <span class="compte" id="dispatch_en_cours_compte">0</span></h3>
+      <h3>À valider et à venir <span class="compte" id="dispatch_en_cours_compte">0</span></h3>
       <div class="enveloppe" id="dispatch_en_cours"><div class="chargement">Chargement…</div></div>
     </div>
 
@@ -3954,7 +3978,7 @@ function detailTicket(t) {
     : (t.camion ? esc(t.camion) + (t.chauffeur ? ' · ' + esc(t.chauffeur) : '') : ''));
   if (t.voyage && t.cout) { ligne('Coût', francs(t.cout) + ' <i>(estimé)</i>'); }
   ligne(t.voyage ? 'Créé par' : 'Demandé par', t.par ? esc(String(t.par).replace(/\s*\(.*$/, '').trim() || t.par) + (t.cree_le ? ' · ' + esc(t.voyage ? heureLocale(t.cree_le) : dateCourte(t.cree_le)) : '') : '');
-  var note = t.avalider ? '<p class="pl-b-note">Jour passé, jamais clos : validez chaque livraison (livrée, partielle ou échec) dans la liste « En route et à venir », plus bas.</p>' : '';
+  var note = t.avalider ? '<p class="pl-b-note">Jour passé, jamais clos : validez chaque livraison (livrée, partielle ou échec) dans la liste « À valider et à venir », plus bas.</p>' : '';
   return '<h4>' + titre + '</h4><dl>' + l.join('') + '</dl>' + note;
 }
 function bulle() {
@@ -4179,7 +4203,7 @@ function brancherPlanning() {
       if (!PLANNING.choisi) { return; }
       if (!c.classList.contains('pl-possible')) {
         if (PLANNING.choisi.avalider || PLANNING.choisi.historique || (PLANNING.choisi.place && PLANNING.choisi.statut === 'en_route')) {
-          message(PLANNING.choisi.avalider ? 'Ce ticket est dans le passé : il se valide dans « En route et à venir », il ne se déplace plus.' : 'Ce ticket est parti ou clos : il ne se déplace plus.', 'ko');
+          message(PLANNING.choisi.avalider ? 'Ce ticket est dans le passé : il se valide dans « À valider et à venir », il ne se déplace plus.' : 'Ce ticket est parti ou clos : il ne se déplace plus.', 'ko');
         } else if (c.dataset.plJour !== jourDuTicket(PLANNING.choisi)) {
           message('Le ticket reste à son jour de livraison : posez-le dans la colonne du ' +
                   esc(jourDuTicket(PLANNING.choisi) === 'retard' ? 'retard' : dateCourte(jourDuTicket(PLANNING.choisi))) + '.', 'ko');
@@ -4212,7 +4236,8 @@ function chargerDispatch() {
     $('#dispatch_en_cours_compte').textContent = enCours.length;
     $('#dispatch_resume').innerHTML =
       '<span><b>' + DISPATCH.demandes.length + '</b> à dispatcher</span>' +
-      '<span><b>' + enCours.length + '</b> en route ou à venir</span>' +
+      '<span class="dp-valider"><b>' + enCours.filter(function (t) { return (t.date_souhaitee || aujourdhui()) < aujourdhui(); }).length + '</b> à valider</span>' +
+      '<span><b>' + enCours.length + '</b> à suivre</span>' +
       '<span><b>' + livreesAuj + '</b> livrée(s) aujourd\'hui</span>' +
       '<span><b>' + DISPATCH.flotte.filter(function (v) { return v.disponible; }).length + '</b> véhicule(s) libre(s)</span>';
 
@@ -4411,38 +4436,78 @@ function brancherCarteDemande(d) {
   };
 }
 
+/* La liste de validation (DGA, 16/10/2026) : « on ne sait même pas la date où l'on valide ».
+   Les transports sont rangés PAR JOUR, le passé non validé d'abord et en rouge, chaque jour dit combien de
+   temps il y a ; un voyage est un bloc (camion, chauffeur) ; chaque livraison se valide d'un bouton :
+   livrée, en partie, pas livrée, ou reprogrammée. */
+function jourLisible(jour) {
+  var auj = aujourdhui();
+  var long = new Date(jour + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  var ecart = Math.round((new Date(auj + 'T12:00:00Z') - new Date(jour + 'T12:00:00Z')) / 86400000);
+  if (ecart > 0) { return { passe: true, titre: long, aide: ecart === 1 ? 'hier' : 'il y a ' + ecart + ' jours' }; }
+  return { passe: false, titre: long, aide: ecart === 0 ? 'aujourd\'hui' : ecart === -1 ? 'demain' : 'dans ' + (-ecart) + ' jours' };
+}
+function ligneValidation(t, peut, jour, flotte) {
+  var passe = jour < aujourdhui(), enRoute = t.livraison_statut === 'en_route', id = t.livraison_id;
+  var v = flotte[t.vehicule_id] || {};
+  var gestes = '';
+  if (peut && id) {
+    gestes = '<div class="dp-gestes">' +
+      (!enRoute && !passe ? '<button class="btn-mini" data-geste="en_route" data-liv="' + id + '">Parti</button>' : '') +
+      '<button class="btn-mini ' + (passe || enRoute ? 'vl-oui' : '') + '" data-geste="livree" data-liv="' + id + '">✓ Livrée</button>' +
+      '<button class="btn-mini discret" data-geste="partielle" data-liv="' + id + '">En partie</button>' +
+      '<button class="btn-mini discret" data-geste="echec" data-liv="' + id + '">✗ Pas livrée</button>' +
+      (!enRoute && !t.voyage_bloc ? '<button class="btn-mini discret" data-reprog="' + t.id + '" data-reprog-nom="' + esc(t.destinataire_nom || '') + '">📅 Reprogrammer</button>' : '') +
+      (!passe ? '<details class="vl-heure"><summary>Heure d\'arrivée</summary><input type="datetime-local" class="pa-champ dp-mini" data-eta="' + id + '" value="' +
+        (t.heure_arrivee_prevue ? versChampDate(new Date(t.heure_arrivee_prevue)) : '') + '"><button class="btn-mini discret" data-geste="eta" data-liv="' + id + '">Enregistrer</button></details>' : '') +
+      '</div>';
+  }
+  return '<div class="vl-ligne' + (passe ? ' vl-passe' : '') + '">' +
+    '<div class="vl-qui"><b>' + esc(t.destinataire_nom || '—') + '</b>' +
+      '<span class="aide">' + esc(t.livraison_numero || t.numero) + (t.montant_a_encaisser ? ' · ' + francs(t.montant_a_encaisser) : '') +
+        (t.produits ? ' · ' + esc(t.produits) : '') + '</span>' +
+      (t.repere ? '<span class="aide">📍 ' + esc(t.repere) + '</span>' : '') + '</div>' +
+    '<div class="vl-etat"><span class="etiquette-statut ' + (enRoute ? 'cours' : 'attente') + '">' + esc(LIBELLES_STATUT_LIVRAISON[t.livraison_statut] || t.livraison_statut || '—') + '</span>' +
+      (t.heure_arrivee_prevue ? '<span class="aide">arrivée prévue ' + esc(heureLocale(t.heure_arrivee_prevue)) + '</span>' : '') +
+      (!t.voyage_bloc ? '<span class="aide">' + esc(t.camion || '—') + ' · ' + esc(t.chauffeur || '—') + '</span>' : '') + '</div>' +
+    gestes + '</div>';
+}
 function tableauEnCours(lignes, peut) {
   var flotte = {}; DISPATCH.flotte.forEach(function (v) { flotte[v.id] = v; });
-  return '<table class="tablo dp-en-cours carte-mobile"><thead><tr><th>Client</th><th>Camion et chauffeur</th><th>Arrivée prévue</th>' +
-    '<th>Où est le camion</th><th>Statut</th>' + (peut ? '<th>Suivi</th>' : '') + '</tr></thead><tbody>' +
-    lignes.map(function (t) {
-      var v = flotte[t.vehicule_id] || {};
-      var dest = t.destination_latitude !== null ? { lat: +t.destination_latitude, lng: +t.destination_longitude } : null;
-      var km = v.latitude !== null && v.latitude !== undefined ? distanceKm({ lat: +v.latitude, lng: +v.longitude }, dest) : null;
-      var retard = t.heure_arrivee_prevue && new Date(t.heure_arrivee_prevue) < new Date();
-      return '<tr><td><b>' + esc(t.destinataire_nom || '—') + '</b><br><span class="aide">' + esc(t.livraison_numero || t.numero) +
-          (t.montant_a_encaisser ? ' · ' + francs(t.montant_a_encaisser) : '') + '</span>' +
-          (t.repere ? '<br><span class="aide">📍 ' + esc(t.repere) + '</span>' : '') + avancementTournee(t.id) + '</td>' +
-        '<td><b>' + esc(t.camion || '—') + '</b><br>' + esc(t.chauffeur || '—') +
-          (t.chauffeur_telephone ? ' · <a href="tel:+221' + esc(String(t.chauffeur_telephone).replace(/\D/g, '').slice(-9)) + '">' +
-            esc(telephoneLisible(t.chauffeur_telephone)) + '</a>' : ' · <span class="aide">tél. à renseigner</span>') + '</td>' +
-        '<td class="num' + (retard ? ' dp-retard' : '') + '">' + esc(heureLocale(t.heure_arrivee_prevue)) +
-          (retard ? '<br><span class="aide">dépassée</span>' : '') +
-          (peut ? '<br><input type="datetime-local" class="pa-champ dp-mini" data-eta="' + t.livraison_id + '" value="' +
-            (t.heure_arrivee_prevue ? versChampDate(new Date(t.heure_arrivee_prevue)) : '') + '">' : '') + '</td>' +
-        '<td>' + (km !== null ? '<b>' + kmLisible(km) + '</b> de la destination<br>' : '') +
-          '<span class="aide">' + (v.a_balise ? 'balise ' + ageLisible(v.age_minutes) + (nombre(v.vitesse_kmh) ? ' · ' + formater(v.vitesse_kmh) + ' km/h' : ' · à l\'arrêt')
-            : 'pas de balise GPS') + '</span></td>' +
-        '<td><span class="etiquette-statut ' + (t.livraison_statut === 'en_route' ? 'cours' : 'attente') + '">' +
-          esc(LIBELLES_STATUT_LIVRAISON[t.livraison_statut] || t.livraison_statut || '—') + '</span></td>' +
-        (peut && t.livraison_id ? '<td class="dp-gestes">' +
-          (t.livraison_statut !== 'en_route' ? '<button class="btn-mini" data-geste="en_route" data-liv="' + t.livraison_id + '">Parti</button>' : '') +
-          '<button class="btn-mini" data-geste="livree" data-liv="' + t.livraison_id + '">Livrée</button>' +
-          '<button class="btn-mini discret" data-geste="partielle" data-liv="' + t.livraison_id + '">En partie</button>' +
-          '<button class="btn-mini discret" data-geste="echec" data-liv="' + t.livraison_id + '">Échec</button>' +
-          '<button class="btn-mini discret" data-geste="eta" data-liv="' + t.livraison_id + '">Enregistrer l\'heure</button></td>' : (peut ? '<td></td>' : '')) +
-      '</tr>';
-    }).join('') + '</tbody></table>';
+  var auj = aujourdhui();
+  var items = lignes.map(function (t) {
+    var e = (DISPATCH.envois || {})[t.id] || {}, vo = e.voyage_id && (DISPATCH.voyagesParId || {})[e.voyage_id];
+    return { t: t, vo: vo || null, voyage: e.voyage_id || null, jour: (vo && vo.date_voyage) || t.date_souhaitee || String(t.date_dispatch || '').slice(0, 10) || auj };
+  }).sort(function (x, y) {
+    return x.jour < y.jour ? -1 : x.jour > y.jour ? 1 : String(x.voyage || 'z' + x.t.numero) < String(y.voyage || 'z' + y.t.numero) ? -1 : 1;
+  });
+  var jours = [], parJour = {};
+  items.forEach(function (i) { if (!parJour[i.jour]) { parJour[i.jour] = []; jours.push(i.jour); } parJour[i.jour].push(i); });
+  return jours.map(function (j) {
+    var l = jourLisible(j), blocs = [], par = {};
+    parJour[j].forEach(function (i) {
+      var cle = i.voyage || ('seul-' + i.t.id);
+      if (!par[cle]) { par[cle] = { voyage: i.voyage, vo: i.vo, items: [] }; blocs.push(par[cle]); }
+      par[cle].items.push(i);
+    });
+    return '<section class="vl-jour' + (l.passe ? ' vl-jour-passe' : '') + '"><h4><span>' + (l.passe ? '⏳ À valider · ' : '') + esc(l.titre.charAt(0).toUpperCase() + l.titre.slice(1)) + '</span>' +
+      '<small>' + esc(l.aide) + ' · ' + parJour[j].length + ' livraison(s)</small></h4>' +
+      blocs.map(function (b) {
+        var premier = b.items[0].t, v = flotte[premier.vehicule_id] || {};
+        var parti = b.items.some(function (i) { return i.t.livraison_statut === 'en_route'; });
+        var tete = '';
+        if (b.voyage) {
+          b.items.forEach(function (i) { i.t.voyage_bloc = true; });
+          tete = '<div class="vl-voyage-tete"><b>🚚 ' + esc((b.vo && b.vo.numero) || ((DISPATCH.envois || {})[premier.id] || {}).voyage || 'Voyage') + '</b>' +
+            '<span>' + esc(premier.camion || '—') + ' · ' + esc(premier.chauffeur || '—') +
+            (premier.chauffeur_telephone ? ' · <a href="tel:+221' + esc(String(premier.chauffeur_telephone).replace(/\D/g, '').slice(-9)) + '">' + esc(telephoneLisible(premier.chauffeur_telephone)) + '</a>' : ' · <i>tél. à renseigner</i>') + '</span>' +
+            (peut && b.vo && !parti ? '<button class="btn-mini discret" data-reprog-voyage="' + b.vo.id + '" data-vehicule="' + esc(b.vo.vehicule_id || '') + '">📅 Reprogrammer le voyage</button>' : '') + '</div>';
+        } else if (!b.items[0].t.voyage_bloc) {
+          b.items[0].t.voyage_bloc = false;
+        }
+        return '<div class="vl-bloc' + (b.voyage ? ' vl-voyage' : '') + '">' + tete + b.items.map(function (i) { return ligneValidation(i.t, peut, j, flotte); }).join('') + '</div>';
+      }).join('') + '</section>';
+  }).join('');
 }
 
 var MOTIFS_ECHEC = ['Client absent', 'Client a refusé la marchandise', 'Adresse ou repère introuvable', 'Panne du véhicule',
@@ -4464,6 +4529,34 @@ function boite(titre, corps, libelleOk, surOk) {
 }
 
 function brancherEnCours() {
+  /* Reprogrammer : une nouvelle date (aujourd'hui à 30 jours) ; le voyage entier ou la seule livraison. */
+  $$('[data-reprog]').forEach(function (b) {
+    b.onclick = function () {
+      boite('Reprogrammer la livraison de ' + (b.dataset.reprogNom || 'ce client'),
+        '<label class="pa-etiquette">Nouvelle date<input type="date" class="pa-champ" data-b="date" min="' + aujourdhui() + '" max="' + jourPlus(30) + '" value="' + jourPlus(1) + '"></label>' +
+        '<label class="pa-etiquette">Pourquoi ?<input class="pa-champ" data-b="motif" placeholder="Ex. client absent, camion en panne"></label>' +
+        '<p class="aide">La livraison garde son camion ; l\'heure d\'arrivée est à refixer.</p>', 'Reprogrammer', function (bx) {
+          var dt = bx.querySelector('[data-b="date"]').value, mo = bx.querySelector('[data-b="motif"]').value.trim();
+          if (!dt || mo.length < 3) { message('Choisissez la date et écrivez pourquoi.', 'ko'); return false; }
+          rpc('changer_date_livraison', { p_demande: b.dataset.reprog, p_date: dt, p_motif: mo })
+            .then(function () { message('Livraison reprogrammée au ' + esc(dateCourte(dt)) + '.', 'ok'); rechargerSuivi(); })
+            .catch(function (e) { message('Non reprogrammée : ' + esc(e.message), 'ko'); });
+        });
+    };
+  });
+  $$('[data-reprog-voyage]').forEach(function (b) {
+    b.onclick = function () {
+      boite('Reprogrammer le voyage',
+        '<label class="pa-etiquette">Nouvelle date<input type="date" class="pa-champ" data-b="date" min="' + aujourdhui() + '" max="' + jourPlus(30) + '" value="' + jourPlus(1) + '"></label>' +
+        '<p class="aide">Tout le voyage change de jour, avec ses livraisons et son camion.</p>', 'Reprogrammer', function (bx) {
+          var dt = bx.querySelector('[data-b="date"]').value;
+          if (!dt) { message('Choisissez la date.', 'ko'); return false; }
+          rpc('deplacer_voyage', { p_voyage: b.dataset.reprogVoyage, p_vehicule: b.dataset.vehicule, p_jour: dt, p_chauffeur: null })
+            .then(function () { message('Voyage reprogrammé au ' + esc(dateCourte(dt)) + '.', 'ok'); rechargerSuivi(); })
+            .catch(function (e) { message('Non reprogrammé : ' + esc(e.message), 'ko'); });
+        });
+    };
+  });
   $$('[data-geste]').forEach(function (b) {
     b.onclick = function () {
       var id = b.dataset.liv, geste = b.dataset.geste;
@@ -8404,7 +8497,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 14:35';
+var VERSION_CONSOLE = '2026-10-16 14:44';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

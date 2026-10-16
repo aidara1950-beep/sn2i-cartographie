@@ -5188,6 +5188,16 @@ function chargerZones() {
 var BOUTIQUES_PAGE = 0;
 var BOUTIQUES_TAILLE = 100;
 
+/* Un numéro tapé comme on le dicte (« 77 123 45 67 », « +221 77-123… ») ne se
+   trouvait pas : la base porte « +2217XXXXXXXX », sans espace (DGA, 16/10/2026).
+   Saisie faite de chiffres et de séparateurs, au moins 6 chiffres : on ne garde
+   que les 9 derniers chiffres. Sinon : null, la recherche reste textuelle. */
+function chiffresTelephone(texte) {
+  if (!/^[\d\s+().\-\/]+$/.test(texte)) { return null; }
+  var chiffres = texte.replace(/\D/g, '');
+  return chiffres.length >= 6 ? chiffres.slice(-9) : null;
+}
+
 function chercherBoutiques(page) {
   var texte = ($('#bout_recherche') ? $('#bout_recherche').value : '').trim();
   var zone = ($('#bout_zone') ? $('#bout_zone').value : '').trim();
@@ -5196,7 +5206,9 @@ function chercherBoutiques(page) {
   BOUTIQUES_PAGE = (typeof page === 'number' && page >= 0) ? page : 0;
   var filtres = '';
   if (zone) { filtres += '&zone=eq.' + encodeURIComponent(zone); }
-  if (texte) {
+  if (texte && chiffresTelephone(texte)) {
+    filtres += '&telephone=ilike.' + encodeURIComponent('*' + chiffresTelephone(texte) + '*');
+  } else if (texte) {
     var motif = encodeURIComponent('*' + texte + '*');
     filtres += '&or=(nom.ilike.' + motif + ',telephone.ilike.' + motif +
                ',secteur.ilike.' + motif + ',code.ilike.' + motif + ')';
@@ -5308,7 +5320,9 @@ function chargerBoutiques() {
   var texte = $('#bout_recherche').value.trim();
   var zone = $('#bout_zone').value;
   var filtres = [];
-  if (texte) {
+  if (texte && chiffresTelephone(texte)) {
+    filtres.push('or=(telephone.ilike.*' + chiffresTelephone(texte) + '*,telephone_2.ilike.*' + chiffresTelephone(texte) + '*)');
+  } else if (texte) {
     var t = encodeURIComponent(texte);
     filtres.push('or=(nom.ilike.*' + t + '*,telephone.ilike.*' + t + '*,secteur_commercial.ilike.*' + t + '*)');
   }
@@ -8497,7 +8511,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 14:44';
+var VERSION_CONSOLE = '2026-10-16 14:54';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

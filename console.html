@@ -2626,7 +2626,7 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
   <!-- -------------------------------------------------------- camions -->
   <section class="ecran-console" data-ecran="camions">
     <div class="entete-ecran">
-      <h2>Camions et flotte</h2>
+      <h2>Flotte</h2>
       <p id="camions_sous">Positions relevées chez le fournisseur GPS, toutes les quinze minutes.</p>
     </div>
     <div class="bloc-console">
@@ -3059,7 +3059,7 @@ var ONGLETS_PAR_ROLE = {
   lecture: ['bord', 'tableau', 'fiches', 'commandes', 'boutiques']
 };
 var TITRES_ONGLETS = {
-  bord: 'Carte', tableau: 'Tableau de bord', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Camions',
+  bord: 'Carte', tableau: 'Tableau de bord', phoning: 'Phoning', dispatch: 'Dispatch', camions: 'Flotte',
   fiches: 'Fiches de terrain',
   commandes: 'Commandes', livraisons: 'Livraisons', boutiques: 'Boutiques',
   prix: 'Prix', documents: 'Documents', utilisateurs: 'Utilisateurs', retours: 'Retours'
@@ -3738,7 +3738,7 @@ function rendrePlanning(demandes, enCours) {
     vehicules.map(function (v) { return ligneDuPlanning(v, colonnes, tickets); }).join('') +
     '</tbody></table></div>' +
     (mobile ? '<p class="aide pl-aide-mobile">Touchez un ticket : il affiche son détail, puis les camions où le poser. Les camions sans livraison ce jour-là n\'apparaissent qu\'à ce moment.</p>' : '') +
-    (sansPlaque ? '<p class="aide">' + sansPlaque + ' véhicule(s) actif(s) sans plaque ne figurent pas au planning : complétez-les dans « Camions et flotte ».</p>' : '');
+    (sansPlaque ? '<p class="aide">' + sansPlaque + ' véhicule(s) actif(s) sans plaque ne figurent pas au planning : complétez-les dans « Flotte ».</p>' : '');
   var ancien = $('#dispatch_tableau .pl-cadre');
   var defil = ancien ? { x: ancien.scrollLeft, y: ancien.scrollTop } : PLANNING.defil;
   var page = window.scrollY;
@@ -8404,7 +8404,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 14:02';
+var VERSION_CONSOLE = '2026-10-16 14:35';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

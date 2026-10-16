@@ -2375,6 +2375,14 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .pl-ticket .pl-sous { font-size: 12px; color: var(--texte) !important; }
 .pl-ticket.choisi .pl-sous { white-space: normal; }
 
+.pl-sortir { font: inherit; font-size: 11px; font-weight: 700; margin-left: 4px; padding: 1px 6px; border: 1px solid var(--bord); border-radius: 6px; background: var(--carte); color: var(--principal); cursor: pointer; }
+.pl-sortir:hover { background: var(--accent-pale); }
+@media (max-width: 700px) { .pl-sortir { min-height: 32px; padding: 2px 10px; font-size: 12px; } }
+
+.pl-ticket > span.pl-sous { display: flex; align-items: center; gap: 4px; overflow: visible; }
+.pl-sous-nom { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-sous .pl-sortir { flex: 0 0 auto; margin-left: 0; }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -3955,7 +3963,9 @@ function ticketHtml(t) {
       ' data-pl-ticket="' + t.id + '">' +
       '<b>🚚 ' + t.envois + (t.envois > 1 ? ' livraisons' : ' livraison') + '</b>' +
       /* Chaque livraison du voyage sur sa ligne : rien ne se cache derrière un nom tronqué (DGA, 16/10/2026). */
-      (t.detailEnvois || []).map(function (e) { return '<span class="pl-sous">• ' + esc(e.nom) + (e.kg ? ' · ' + formater(e.kg) + ' kg' : '') + '</span>'; }).join('') +
+      (t.detailEnvois || []).map(function (e) {
+        return '<span class="pl-sous"><span class="pl-sous-nom">• ' + esc(e.nom) + (e.kg ? ' · ' + formater(e.kg) + ' kg' : '') + '</span>' +
+          (t.detailEnvois.length > 1 && !bloque ? '<button type="button" class="pl-sortir" data-pl-sortir="' + e.id + '" data-pl-sortir-nom="' + esc(e.nom) + '" title="Sortir cette livraison du voyage" aria-label="Sortir ' + esc(e.nom) + ' du voyage">↩ sortir</button>' : '') + '</span>'; }).join('') +
       '<span class="pl-num">' + esc(t.numero) + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') + '</span>' +
       (t.par ? '<span class="pl-par" title="Créé par ' + esc(t.par) + '">👤 ' + esc(auteurCourt(t.par)) + '</span>' : '') +
       valider + (bloque && !t.avalider ? '<span class="pl-statut">🚚 en route</span>' : '') +
@@ -4175,6 +4185,15 @@ function brancherPlanning() {
       chargerDispatch();
     };
   });
+  /* Sortir une livraison d'un voyage : elle revient « à dispatcher », à son jour, prête à être donnée à un autre véhicule. */
+  $$('[data-pl-sortir]').forEach(function (b) {
+    b.onclick = function (ev) {
+      ev.stopPropagation(); b.disabled = true;
+      rpc('retirer_envoi', { p_envoi: b.dataset.plSortir })
+        .then(function () { message(esc(b.dataset.plSortirNom || 'La livraison') + ' est sortie du voyage : elle est de nouveau dans « À dispatcher ».', 'ok'); chargerDispatch(); })
+        .catch(function (e) { b.disabled = false; message('Non sortie : ' + esc(e.message), 'ko'); });
+    };
+  });
   $$('[data-pl-voyage]').forEach(function (b) {
     b.onclick = function (ev) { ev.stopPropagation(); ouvrirVoyage(b.dataset.plVoyage); };
   });
@@ -4341,7 +4360,7 @@ function ticketsVoyages() {
     var envois = {}; (v.arrets || []).forEach(function (a) { a.mouvements.forEach(function (m) { envois[m.demande_id] = 1; }); });
     var clients = Object.keys(envois).map(function (id) { return ((DISPATCH.envois || {})[id] || {}).pour; }).filter(Boolean)
       .filter(function (n, i, a) { return a.indexOf(n) === i; });
-    var detailEnvois = Object.keys(envois).map(function (id) { var e = (DISPATCH.envois || {})[id] || {}; return { nom: e.pour || e.numero || '?', kg: nombre(e.poids_kg), numero: e.numero }; });
+    var detailEnvois = Object.keys(envois).map(function (id) { var e = (DISPATCH.envois || {})[id] || {}; return { id: id, nom: e.pour || e.numero || '?', kg: nombre(e.poids_kg), numero: e.numero }; });
     return { id: v.id, voyage: true, numero: v.numero, client: v.numero, resume: resumeVoyage(v), envois: Object.keys(envois).length,
              clients: clients, detailEnvois: detailEnvois, par: v.cree_par, cree_le: v.cree_le, arrets: v.arrets || [], chauffeur_id: v.chauffeur_id,
              kg: v.chiffrage ? nombre(v.chiffrage.charge_max_kg) : 0, cout: v.cout_revient, date_souhaitee: v.date_voyage,
@@ -8539,7 +8558,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 15:19';
+var VERSION_CONSOLE = '2026-10-16 15:24';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

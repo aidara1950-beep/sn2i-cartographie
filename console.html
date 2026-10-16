@@ -2224,6 +2224,107 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .console { max-width: 1680px; padding: 12px 16px; }
 [data-ecran="dispatch"] .entete-ecran { display: none; }
 
+
+/* ============================================================ planning du dispatch — lisibilité (DGA, 16/10/2026) */
+/* Poste : une largeur égale par jour, la semaine entière sans défiler de côté ; le détail au survol, pas dans la tuile. */
+.pl-grille { table-layout: fixed; width: 100%; min-width: calc(150px + var(--pl-n, 7) * 128px); }
+.pl-grille thead th, .pl-case { min-width: 0; }
+.pl-grille thead th { width: auto; }
+.pl-grille .pl-coin, .pl-grille .pl-vehicule { width: 150px; min-width: 150px !important; max-width: 150px; }
+.pl-vehicule span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-ticket { overflow: hidden; }
+.pl-ticket .pl-repere, .pl-ticket .pl-decaler { display: none; }
+.pl-ticket:hover .pl-repere { display: none; }
+.pl-ticket:hover .pl-decaler { display: none; }
+.pl-ticket.choisi .pl-repere { display: block; white-space: normal; max-width: none; }
+.pl-ticket.choisi .pl-decaler { display: inline-block; }
+.pl-ticket.choisi > b, .pl-ticket.choisi > span:not(.pl-repere) { white-space: normal; }
+.pl-ticket.pl-voyage { border-left-color: var(--bleu); background: #F4F8FC; }
+.pl-ticket.pl-voyage > span:nth-of-type(1) { font-size: 12px; }
+.pl-jour-passe { background-image: linear-gradient(rgba(68,42,25,.035), rgba(68,42,25,.035)); }
+.pl-grille thead th.pl-jour-passe { color: var(--texte-doux); }
+.pl-nbvalider { display: block; color: var(--rouge) !important; font-weight: 800 !important; }
+/* À valider : le passé qui n'a jamais été clos reste à sa date, en rouge. */
+.pl-ticket.pl-avalider { border-left-color: var(--rouge); background: var(--rouge-pale); cursor: pointer; }
+.pl-statut.pl-valider { color: var(--rouge); font-weight: 800; }
+.pl-alerte { padding: 6px 12px; margin-bottom: 6px; font-size: 13.5px; }
+.pl-alerte-valider { background: var(--rouge-pale); border-color: var(--rouge-bord); color: var(--rouge); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.pl-alerte-valider .btn-mini { min-height: 32px; padding: 4px 10px; }
+.pl-par { color: var(--principal) !important; font-size: 11.5px; }
+.pl-alerte-valider b { font-weight: 800; }
+/* Le détail au survol (poste) ou en bas d'écran (toucher). */
+#pl_bulle { position: fixed; z-index: 2500; display: none; width: 340px; max-width: calc(100vw - 16px); background: var(--carte); color: var(--texte);
+  border: 1px solid var(--bord); border-radius: 12px; padding: 12px 14px; box-shadow: 0 14px 34px rgba(43, 28, 16, .28); font-size: 13.5px; line-height: 1.4; pointer-events: none; }
+#pl_bulle.visible { display: block; }
+#pl_bulle h4 { margin: 0 0 8px; font-size: 14.5px; color: var(--principal); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+#pl_bulle dl { margin: 0; }
+#pl_bulle dl > div { display: grid; grid-template-columns: 84px 1fr; gap: 8px; padding: 3px 0; border-top: 1px solid var(--sable-pale); }
+#pl_bulle dt { color: var(--texte-doux); font-size: 12px; }
+#pl_bulle dd { margin: 0; overflow-wrap: anywhere; }
+#pl_bulle .pl-b { font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--sable-pale); color: var(--principal); }
+#pl_bulle .pl-b-rouge { background: var(--rouge-pale); color: var(--rouge); }
+#pl_bulle .pl-b-bleu { background: #E3EEF9; color: var(--bleu); }
+#pl_bulle .pl-b-ambre { background: var(--ambre-pale); color: var(--ambre); }
+#pl_bulle .pl-b-note { margin: 8px 0 0; padding: 6px 8px; border-radius: 8px; background: var(--rouge-pale); color: var(--rouge); font-size: 12.5px; }
+#pl_bulle.en-bas { left: 0; right: 0; bottom: 0; top: auto; width: auto; max-width: none; max-height: 44vh; overflow: auto; border-radius: 14px 14px 0 0; pointer-events: auto; padding-right: 44px; }
+#pl_bulle .pl-b-fermer { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border: 1px solid var(--bord); border-radius: 50%; background: var(--carte); font-size: 16px; cursor: pointer; }
+/* Pastilles des jours (téléphone). */
+.pl-jours { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin: 0 -2px; scrollbar-width: none; }
+.pl-jours::-webkit-scrollbar { display: none; }
+.pl-jours button { flex: 0 0 auto; font: inherit; font-size: 13px; font-weight: 700; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--bord);
+  background: var(--carte); color: var(--principal); cursor: pointer; white-space: nowrap; }
+.pl-jours button i { font-style: normal; margin-left: 6px; font-size: 12px; background: var(--sable-pale); border-radius: 999px; padding: 1px 7px; }
+.pl-jours button.actif { background: var(--principal); color: #fff; border-color: var(--principal); }
+.pl-jours button.actif i { background: rgba(255,255,255,.25); }
+.pl-jours button.pl-rouge { border-color: var(--rouge); color: var(--rouge); }
+.pl-jours button.pl-rouge.actif { background: var(--rouge); color: #fff; }
+.pl-jours button.pl-retard-p { background: var(--rouge-pale); }
+
+@media (max-width: 700px) {
+  /* En-tête et onglets : une ligne chacun, le planning remonte dans l'écran. */
+  .bandeau-console { padding: 6px 10px; margin-bottom: 6px; flex-wrap: nowrap; align-items: center; }
+  .bandeau-console .titre small { display: none; }
+  .bandeau-console .logo img { max-height: 24px; }
+  .bandeau-console .titre { font-size: 14px; }
+  .bandeau-console .qui { width: auto; margin-left: auto; gap: 8px; }
+  .bandeau-console .moi { display: none; }
+  .onglets-console { flex-wrap: nowrap; overflow-x: auto; margin-bottom: 8px; padding-bottom: 2px; scrollbar-width: none; }
+  .onglets-console::-webkit-scrollbar { display: none; }
+  .onglets-console button { flex: 0 0 auto; white-space: nowrap; min-height: 40px; }
+  [data-ecran="dispatch"] #tn_actions { display: inline-block; margin: 0 6px 6px 0; }
+  [data-ecran="dispatch"] .dp-resume { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 12px; padding: 6px 10px; margin: 0 0 8px; border-radius: 12px; font-size: 12.5px; white-space: nowrap; }
+  [data-ecran="dispatch"] .dp-resume span { flex: 0 0 auto; }
+  [data-ecran="dispatch"] .bloc-console { padding: 8px; }
+  [data-ecran="dispatch"] .bloc-console > h3 { font-size: 15px; margin-bottom: 6px; }
+  .pl-barre { gap: 6px; }
+  .pl-barre .pl-bascule { flex: 1 1 auto; }
+  .pl-barre .pl-bascule button { padding: 6px 10px; font-size: 12.5px; flex: 1 1 auto; }
+  /* Un seul jour : le véhicule à gauche, ses tickets à droite, en pleine largeur. */
+  .pl-grille.pl-mobile { min-width: 0; }
+  .pl-grille.pl-mobile .pl-coin, .pl-grille.pl-mobile .pl-vehicule { width: 92px; min-width: 92px !important; max-width: 92px; padding: 6px; font-size: 11.5px; }
+  .pl-grille.pl-mobile thead th { min-width: 0; }
+  .pl-cadre { max-height: calc(100vh - 230px); min-height: 260px; }
+  .pl-ticket { font-size: 13px; padding: 7px 8px; margin-bottom: 6px; }
+  .pl-ticket .pl-repere { max-width: none; }
+  .pl-grille.pl-mobile .pl-rangee-vide { display: none; }
+  .pl-grille.pl-mobile.choix .pl-rangee-vide { display: table-row; }
+  .pl-ligne-file .pl-pile { max-height: 36vh; }
+  .pl-aide-mobile { margin: 6px 0 0; font-size: 12px; }
+  .pl-alerte { font-size: 13px; padding: 6px 10px; }
+  .pl-alerte-valider .btn-mini { min-height: 38px; flex: 1 1 auto; }
+  .pl-barre .pl-navigation { flex: 1 1 auto; }
+  .pl-barre .pl-navigation button { flex: 1 1 auto; min-height: 40px; padding: 4px 6px; font-size: 12.5px; white-space: nowrap; }
+  #pl_bulle.en-bas { max-height: 36vh; padding-top: 10px; }
+  #pl_bulle.en-bas dl > div { padding: 2px 0; }
+  .pl-barre > .pl-bascule:not(.pl-navigation) { flex: 0 0 auto; }
+  .pl-barre > .pl-bascule:not(.pl-navigation) button { min-height: 40px; }
+  .pl-passe { font-size: 12px; }
+  [data-ecran="dispatch"] .bloc-console > h3:has(#dispatch_compte) { display: none; }
+  #message { top: 8px; }
+}
+
+.pl-num { font-size: 11.5px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -3486,10 +3587,14 @@ function libelleJour(cle) {
    le montre, sinon il revient au jour (placé) ou à « En retard » (à placer). */
 function jourDuTicket(t) {
   var j = t.date_souhaitee || t.date_demande || aujourdhui();
-  if (j >= aujourdhui() || t.historique) { return j; }
-  if (!t.place) { return 'retard'; }
-  return joursAffiches().indexOf(j) !== -1 ? j : aujourdhui();
+  /* Un ticket placé dont le jour est passé y RESTE (DGA, 16/10/2026 : « laisser dans le passé, avoir
+     une alerte pour aller les valider ») : il ne remonte plus sur aujourd'hui. Seul un ticket
+     encore à placer, lui, passe en « En retard ». */
+  if (j >= aujourdhui() || t.historique || t.place) { return j; }
+  return 'retard';
 }
+/* Un ticket placé, dont le jour est passé, qui n'est ni clos ni annulé : il attend d'être validé. */
+function aValider(t) { return !t.historique && t.place && (t.date_souhaitee || aujourdhui()) < aujourdhui(); }
 
 function ticketsDuPlanning(demandes, enCours) {
   var enVoyage = function (id) { var e = (DISPATCH.envois || {})[id]; return !!(e && e.voyage_id && (DISPATCH.voyagesParId || {})[e.voyage_id]); };
@@ -3500,15 +3605,16 @@ function ticketsDuPlanning(demandes, enCours) {
     return { id: d.id, numero: d.numero, client: d.destinataire_nom + (nombre(ev.remises_groupe) > 1 ? ' · remise d\'un envoi réparti (' + ev.remises_groupe + ')' : ''), montant: d.montant_a_encaisser, unites: d.nb_unites,
              produits: d.produits, creneau: d.creneau, repere: d.repere || d.adresse_livraison, date_souhaitee: d.date_souhaitee,
              date_demande: d.date_demande, lat: d.latitude, lng: d.longitude, precision: d.precision_position, kg: d.poids_estime_kg,
-             place: false, vehicule_id: null, statut: 'a_dispatcher' };
+             place: false, vehicule_id: null, statut: 'a_dispatcher', par: d.demandeur_nom, cree_le: d.date_demande, tel: d.telephone_livraison };
   });
   var b = (enCours || []).map(function (t) {
     return { id: t.id, numero: t.numero, client: t.destinataire_nom, montant: t.montant_a_encaisser, unites: t.nb_unites,
              produits: t.produits, creneau: t.creneau, repere: t.repere || t.adresse_livraison, date_souhaitee: t.date_souhaitee,
              lat: t.destination_latitude, lng: t.destination_longitude, place: true, vehicule_id: t.vehicule_id, kg: t.poids_estime_kg,
-             statut: t.livraison_statut || 'programmee', arrivee: t.heure_arrivee_prevue };
+             statut: t.livraison_statut || 'programmee', arrivee: t.heure_arrivee_prevue, tel: t.telephone_livraison, camion: t.camion, chauffeur: t.chauffeur };
   });
   var tous = a.concat(b).concat(ticketsVoyages()).concat(ticketsHistoriques());
+  tous.forEach(function (t) { t.avalider = aValider(t); });
   PLANNING.nbPasse = tous.filter(function (t) { return t.historique; }).length;
   return passeVisible() ? tous : tous.filter(function (t) { return !t.historique; });
 }
@@ -3532,47 +3638,94 @@ function vehiculesDuPlanning() {
   });
 }
 
+function planningMobile() { return !!(window.matchMedia && window.matchMedia('(max-width: 700px)').matches); }
+function survolPossible() { return !!(window.matchMedia && window.matchMedia('(hover: hover)').matches); }
+/* Le nom complet de l'auteur (DGA, 16/10/2026) ; les écritures de reprise de CoS se réduisent à « CoS ». */
+function auteurCourt(s) {
+  s = String(s || '').replace(/\s*\(.*$/, '').trim();
+  return /^CoS/i.test(s) ? 'CoS' : s;
+}
+function libelleJourCourt(cle) {
+  if (cle === 'retard') { return 'En retard'; }
+  var noms = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  return (cle === aujourdhui() ? 'Auj.' : cle === jourPlus(1) ? 'Dem.' : noms[new Date(cle + 'T12:00:00Z').getUTCDay()]) + ' ' + cle.slice(8, 10) + '/' + cle.slice(5, 7);
+}
+
 function rendrePlanning(demandes, enCours) {
+  PLANNING.derniers = [demandes, enCours];
   var tickets = ticketsDuPlanning(demandes, enCours);
   PLANNING.tickets = tickets;
+  var mobile = planningMobile();
   var jours = joursAffiches(), fin = jours[jours.length - 1];
   var retard = tickets.filter(function (t) { return !t.place && jourDuTicket(t) === 'retard'; });
   var avecAujourdhui = jours.indexOf(aujourdhui()) !== -1;
-  var colonnes = (retard.length && avecAujourdhui ? ['retard'] : []).concat(jours);
+  var toutes = (retard.length && avecAujourdhui ? ['retard'] : []).concat(jours);
+  /* Sur téléphone : un seul jour à la fois, choisi par les pastilles (DGA, 16/10/2026). */
+  if (mobile && toutes.indexOf(PLANNING.jourM) === -1) { PLANNING.jourM = avecAujourdhui ? aujourdhui() : jours[0]; }
+  var colonnes = mobile ? [PLANNING.jourM] : toutes;
   var plusTard = tickets.filter(function (t) { var j = jourDuTicket(t); return !t.place && j !== 'retard' && j > fin; })
     .sort(function (a, b) { return jourDuTicket(a) < jourDuTicket(b) ? -1 : 1; });
+  var valider = tickets.filter(function (t) { return t.avalider; });
+  var validerHors = valider.filter(function (t) { return jours.indexOf(jourDuTicket(t)) === -1; });
   var vehicules = vehiculesDuPlanning();
   var sansPlaque = DISPATCH.flotte.filter(function (v) { return v.etat === 'actif' && !v.immatriculation; }).length;
 
-  /* L'alerte : ce qui reste à placer et qu'on ne voit pas. */
+  /* Les alertes : ce qui reste à valider (jour passé, jamais clos) et ce qui reste à placer sans qu'on le voie. */
   var alertes = [];
-  if (retard.length) { alertes.push('<b>' + retard.length + '</b> demande(s) en retard, non dispatchée(s) : colonne « En retard »' + (avecAujourdhui ? '' : ' (revenez à aujourd\'hui)')); }
+  if (retard.length && !mobile) { alertes.push('<b>' + retard.length + '</b> demande(s) en retard, non dispatchée(s) : colonne « En retard »' + (avecAujourdhui ? '' : ' (revenez à aujourd\'hui)')); }
   if (plusTard.length) {
     alertes.push('<b>' + plusTard.length + '</b> demande(s) à dispatcher après le ' + esc(dateCourte(fin)) +
       ', la prochaine le <b>' + esc(dateCourte(jourDuTicket(plusTard[0]))) + '</b>' +
       (PLANNING.jours === 7 ? ' — <button class="btn-mini" id="pl_voir14">Voir 14 jours</button>' : ''));
   }
-  var html = '<div class="pl-barre"><div class="pl-bascule">' +
-      '<button class="' + (PLANNING.jours === 7 ? 'actif' : '') + '" data-pl-jours="7">1 semaine</button>' +
-      '<button class="' + (PLANNING.jours === 14 ? 'actif' : '') + '" data-pl-jours="14">2 semaines</button></div>' +
+  var alerteValider = '';
+  if (valider.length) {
+    var plusAncien = valider.map(jourDuTicket).sort()[0];
+    var nbVoy = valider.filter(function (t) { return t.voyage; }).length;
+    alerteValider = '<div class="pl-alerte pl-alerte-valider"><span>⏳ <b>' + valider.length + '</b> ' + (nbVoy === valider.length ? 'voyage(s)' : 'voyage(s) ou livraison(s)') +
+      ' du passé <b>à valider</b> (depuis le ' + esc(dateCourte(plusAncien).slice(0, 5)) + ')</span>' +
+      (validerHors.length ? '<button class="btn-mini" id="pl_valider" data-pl-vers="' + plusAncien + '">Les voir</button>' : '') +
+      '<button class="btn-mini" id="pl_liste_valider">Liste de validation ↓</button></div>';
+  }
+  var pastilles = '';
+  if (mobile) {
+    pastilles = '<div class="pl-jours" role="tablist">' + toutes.map(function (c) {
+      var ici = tickets.filter(function (t) { return jourDuTicket(t) === c; });
+      var nv = ici.filter(function (t) { return t.avalider; }).length;
+      return '<button type="button" role="tab" data-pl-jourm="' + c + '" class="' + (c === PLANNING.jourM ? 'actif' : '') + (nv ? ' pl-rouge' : '') + (c === 'retard' ? ' pl-retard-p' : '') + '">' +
+        esc(libelleJourCourt(c)) + (ici.length ? '<i>' + ici.length + '</i>' : '') + '</button>';
+    }).join('') + '</div>';
+  }
+  var html = '<div class="pl-barre">' +
+      (mobile ? '' : '<div class="pl-bascule">' +
+        '<button class="' + (PLANNING.jours === 7 ? 'actif' : '') + '" data-pl-jours="7">1 semaine</button>' +
+        '<button class="' + (PLANNING.jours === 14 ? 'actif' : '') + '" data-pl-jours="14">2 semaines</button></div>') +
       '<div class="pl-bascule pl-navigation"><button data-pl-aller="-1" aria-label="Période précédente">◀ Avant</button>' +
         '<button data-pl-aller="0"' + (PLANNING.debut && PLANNING.debut !== aujourdhui() ? '' : ' class="actif"') + '>Aujourd\'hui</button>' +
         '<button data-pl-aller="1" aria-label="Période suivante">Après ▶</button></div>' +
       (jours[0] < aujourdhui() ? '' : '<div class="pl-bascule"><button id="pl_passe" class="' + (PLANNING.passe ? 'actif' : '') + '">' +
-        (PLANNING.passe ? 'Masquer le passé' : 'Voir le passé') + (PLANNING.nbPasse ? ' (' + PLANNING.nbPasse + ')' : '') + '</button></div>') +
-      (jours[0] < aujourdhui() ? '<span class="pl-passe">Du ' + esc(dateCourte(jours[0])) + ' au ' + esc(dateCourte(fin)) + ' : ce qui est passé se consulte, il ne se modifie plus.</span>' : '') +
-      '<span class="aide">Glissez un ticket sur un camion, dans la colonne de son jour (ou touchez le ticket, puis la case).</span></div>' +
+        (PLANNING.passe ? (mobile ? 'Masquer' : 'Masquer le passé') : (mobile ? 'Passé' : 'Voir le passé')) + (PLANNING.nbPasse ? ' (' + PLANNING.nbPasse + ')' : '') + '</button></div>') +
+      (jours[0] < aujourdhui() ? '<span class="pl-passe">Du ' + esc(dateCourte(jours[0])) + ' au ' + esc(dateCourte(fin)) + ' : ce qui est passé se consulte' +
+        (valider.length ? ' ; ce qui est en rouge reste à valider' : ', il ne se modifie plus') + '.</span>' : '') +
+      (mobile ? '' : '<span class="aide">Glissez un ticket sur un camion, dans la colonne de son jour. Survolez-le pour son détail.</span>') + '</div>' +
+    pastilles + alerteValider +
     (alertes.length ? '<div class="pl-alerte">⚠ ' + alertes.join('<br>⚠ ') + '</div>' : '') +
-    '<div class="pl-cadre"><table class="pl-grille"><thead><tr><th class="pl-coin">Véhicule</th>' +
-      colonnes.map(function (c) { return '<th class="' + (c === 'retard' ? 'pl-retard' : (c === aujourdhui() ? 'pl-auj' : '')) + '">' + libelleJour(c) + '</th>'; }).join('') +
+    '<div class="pl-cadre"><table class="pl-grille' + (mobile ? ' pl-mobile' : '') + '" style="--pl-n:' + colonnes.length + '"><thead><tr><th class="pl-coin">Véhicule</th>' +
+      colonnes.map(function (c) {
+        var nv = tickets.filter(function (t) { return t.avalider && jourDuTicket(t) === c; }).length;
+        return '<th class="' + (c === 'retard' ? 'pl-retard' : (c === aujourdhui() ? 'pl-auj' : (c < aujourdhui() ? 'pl-jour-passe' : ''))) + '">' + libelleJour(c) +
+          (nv ? '<span class="pl-nbvalider">⏳ ' + nv + ' à valider</span>' : '') + '</th>';
+      }).join('') +
     '</tr></thead><tbody>' +
     ligneDuPlanning(null, colonnes, tickets) +
     vehicules.map(function (v) { return ligneDuPlanning(v, colonnes, tickets); }).join('') +
     '</tbody></table></div>' +
+    (mobile ? '<p class="aide pl-aide-mobile">Touchez un ticket : il affiche son détail, puis les camions où le poser. Les camions sans livraison ce jour-là n\'apparaissent qu\'à ce moment.</p>' : '') +
     (sansPlaque ? '<p class="aide">' + sansPlaque + ' véhicule(s) actif(s) sans plaque ne figurent pas au planning : complétez-les dans « Camions et flotte ».</p>' : '');
   var ancien = $('#dispatch_tableau .pl-cadre');
   var defil = ancien ? { x: ancien.scrollLeft, y: ancien.scrollTop } : PLANNING.defil;
   var page = window.scrollY;
+  cacherBulle();
   $('#dispatch_tableau').innerHTML = html;
   var cadre = $('#dispatch_tableau .pl-cadre');
   /* La ligne « À dispatcher » reste collée sous l'en-tête : les tickets à placer et les camions
@@ -3583,6 +3736,19 @@ function rendrePlanning(demandes, enCours) {
   if (ancien) { window.scrollTo(0, page); }
   brancherPlanning();
 }
+/* Sur téléphone comme sur poste : la grille se redessine quand l'écran change de gabarit (rotation, fenêtre). */
+if (window.matchMedia) {
+  var gabaritPlanning = planningMobile();
+  window.addEventListener('resize', function () {
+    clearTimeout(window.__gabaritPlanning);
+    window.__gabaritPlanning = setTimeout(function () {
+      if (planningMobile() !== gabaritPlanning) {
+        gabaritPlanning = planningMobile();
+        if (PLANNING.derniers && $('#dispatch_tableau .pl-cadre')) { rendrePlanning(PLANNING.derniers[0], PLANNING.derniers[1]); }
+      }
+    }, 200);
+  });
+}
 
 function ligneDuPlanning(v, colonnes, tickets) {
   var tete = v
@@ -3592,52 +3758,113 @@ function ligneDuPlanning(v, colonnes, tickets) {
         '<span class="pl-distance" data-pl-dist="' + v.id + '"></span></th>'
     : '<th class="pl-vehicule pl-file"><b>À dispatcher</b><span>' +
         tickets.filter(function (t) { return !t.place; }).length + ' ticket(s) en attente</span></th>';
-  return '<tr class="' + (v ? '' : 'pl-ligne-file') + '">' + tete + colonnes.map(function (c) {
+  var occupee = false;
+  var cases = colonnes.map(function (c) {
     var ici = tickets.filter(function (t) {
       return jourDuTicket(t) === c && (v ? (t.place && t.vehicule_id === v.id) : !t.place);
     });
+    if (ici.length) { occupee = true; }
     var unites = ici.reduce(function (n, t) { return n + nombre(t.unites); }, 0);
     var kg = ici.reduce(function (n, t) { return n + nombre(t.kg); }, 0);
     var cap = v ? nombre(v.capacite_kg) : 0;
     var part = cap ? Math.round(100 * kg / cap) : null;
-    return '<td class="pl-case' + (c === 'retard' ? ' pl-retard' : '') + '" data-pl-jour="' + c + '" data-pl-cible="' + (v ? v.id : '') + '">' +
+    return '<td class="pl-case' + (c === 'retard' ? ' pl-retard' : '') + (c < aujourdhui() && c !== 'retard' ? ' pl-jour-passe' : '') + '" data-pl-jour="' + c + '" data-pl-cible="' + (v ? v.id : '') + '">' +
       (v ? ici.map(ticketHtml).join('') : '<div class="pl-pile">' + ici.map(ticketHtml).join('') + '</div>') +
       (v && ici.length ? '<div class="pl-total' + (part !== null && part > 100 ? ' pl-surcharge' : '') + '">' + ici.length + ' livraison(s) · ' +
         (kg ? formater(kg) + ' kg' + (cap ? ' / ' + formater(cap) + ' (' + part + ' %)' : '') : formater(unites) + ' u.') +
         (part !== null ? '<span class="pl-jauge"><span style="width:' + Math.min(100, part) + '%"></span></span>' : '') + '</div>' : '') + '</td>';
-  }).join('') + '</tr>';
+  }).join('');
+  return '<tr class="' + (v ? (occupee ? '' : 'pl-rangee-vide') : 'pl-ligne-file') + '">' + tete + cases + '</tr>';
 }
 
 var LIB_HISTO = { livree: '✓ livrée', livree_partielle: '✓ livrée en partie', echec: '✗ échec', annulee: '– annulée', annule: '– voyage annulé', termine: '✓ voyage terminé' };
 function ticketHtml(t) {
   if (t.historique) {
-    return '<div class="pl-ticket place bloque pl-histo pl-' + esc(t.statut) + '" data-pl-ticket="' + t.id + '" title="' + esc(t.numero || '') + '">' +
-      '<b>' + esc(t.voyage ? '🚚 ' + t.numero : (t.client || 'Client')) + '</b>' +
-      (t.voyage ? '<span class="pl-repere">' + t.resume + '</span>' : '<span>' + esc(t.numero || '') + (t.montant ? ' · ' + francs(t.montant) : '') + '</span>') +
-      '<span class="pl-statut">' + esc(LIB_HISTO[t.statut] || t.statut) + '</span>' +
+    return '<div class="pl-ticket place bloque pl-histo pl-' + esc(t.statut) + '" data-pl-ticket="' + t.id + '">' +
+      '<b>' + esc(t.voyage ? '🚚 ' + (t.clients && t.clients.length ? t.clients.join(', ') : t.numero) : (t.client || 'Client')) + '</b>' +
+      (t.voyage ? '<span class="pl-num">' + esc(t.numero) + '</span><span>' + esc(LIB_HISTO[t.statut] || t.statut) + (t.par ? ' · 👤 ' + esc(auteurCourt(t.par)) : '') + '</span>'
+                : '<span>' + esc(t.numero || '') + (t.montant ? ' · ' + francs(t.montant) : '') + ' · ' + esc(LIB_HISTO[t.statut] || t.statut) + '</span>') +
       (t.voyage ? '<button class="pl-decaler" data-pl-voyage="' + t.id + '">Voir le voyage</button>' : '') + '</div>';
   }
-  var bloque = t.place && t.statut === 'en_route';
+  var bloque = (t.place && t.statut === 'en_route') || t.avalider;
+  var valider = t.avalider ? '<span class="pl-statut pl-valider">⏳ à valider</span>' : '';
   if (t.voyage) {
-    return '<div class="pl-ticket pl-voyage' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + '"' + (bloque ? '' : ' draggable="true"') +
-      ' data-pl-ticket="' + t.id + '" title="' + esc(t.numero + ' : ' + t.resume.replace(/&[a-z#0-9]+;/g, ' ')) + '">' +
-      '<b>🚚 ' + esc(t.numero) + '</b><span>' + t.envois + ' envoi(s)' + (t.kg ? ' · au plus ' + formater(t.kg) + ' kg' : '') +
-        (t.cout ? ' · ' + francs(t.cout) : '') + '</span>' +
+    return '<div class="pl-ticket pl-voyage' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + (t.avalider ? ' pl-avalider' : '') + '"' + (bloque ? '' : ' draggable="true"') +
+      ' data-pl-ticket="' + t.id + '">' +
+      '<b>🚚 ' + esc(t.clients && t.clients.length ? t.clients.join(', ') : t.numero) + '</b>' +
+      '<span>' + t.envois + (t.envois > 1 ? ' envois' : ' envoi') + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') + '</span>' +
+      '<span class="pl-num">' + esc(t.numero) + '</span>' +
+      (t.par ? '<span class="pl-par" title="Créé par ' + esc(t.par) + '">👤 ' + esc(auteurCourt(t.par)) + '</span>' : '') +
+      valider + (bloque && !t.avalider ? '<span class="pl-statut">🚚 en route</span>' : '') +
       '<span class="pl-repere">' + t.resume + '</span>' +
-      (bloque ? '<span class="pl-statut">🚚 en route</span>' : '') +
       '<button class="pl-decaler" data-pl-voyage="' + t.id + '">Ouvrir le voyage</button></div>';
   }
-  var detail = [t.numero, t.produits, t.repere, t.creneau ? LIBELLES_CRENEAU[t.creneau] : '', t.arrivee ? 'arrivée ' + heureLocale(t.arrivee) : '']
-    .filter(Boolean).join(' · ');
-  return '<div class="pl-ticket' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + '"' +
-    (bloque ? '' : ' draggable="true"') + ' data-pl-ticket="' + t.id + '" title="' + esc(detail) + '">' +
+  return '<div class="pl-ticket' + (t.place ? ' place' : '') + (bloque ? ' bloque' : '') + (t.avalider ? ' pl-avalider' : '') + '"' +
+    (bloque ? '' : ' draggable="true"') + ' data-pl-ticket="' + t.id + '">' +
     '<b>' + esc(t.client || 'Client') + '</b>' +
-    '<span>' + (t.montant ? francs(t.montant) + ' · ' : '') + formater(t.unites) + ' u.' + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') +
+    '<span>' + formater(t.unites) + ' u.' + (t.kg ? ' · ' + formater(t.kg) + ' kg' : '') +
       (t.creneau ? ' · ' + esc(LIBELLES_CRENEAU[t.creneau] || '') : '') + '</span>' +
+    (t.numero ? '<span class="pl-num">' + esc(t.numero) + '</span>' : '') +
+    (t.par ? '<span class="pl-par" title="Demandé par ' + esc(t.par) + '">👤 ' + esc(auteurCourt(t.par)) + '</span>' : '') +
     (t.repere ? '<span class="pl-repere">📍 ' + esc(t.repere) + '</span>' : '') +
-    (t.place ? '<span class="pl-statut">' + (bloque ? '🚚 en route' : 'programmée' + (t.arrivee ? ' · ' + esc(heureLocale(t.arrivee)) : '')) + '</span>' : '') +
+    valider + (t.place && !t.avalider ? '<span class="pl-statut">' + (bloque ? '🚚 en route' : 'programmée' + (t.arrivee ? ' · ' + esc(heureLocale(t.arrivee)) : '')) + '</span>' : '') +
     (bloque ? '' : '<button class="pl-decaler" data-pl-decaler="' + t.id + '" title="Changer la date de livraison" aria-label="Changer la date de livraison">📅 Décaler</button>') +
   '</div>';
+}
+
+/* Le détail d'un ticket, au survol (poste) ou au toucher (téléphone) : ce qu'on n'a pas besoin d'ouvrir
+   pour lire (DGA, 16/10/2026). Tout vient de ce que la page a déjà chargé. */
+function detailTicket(t) {
+  var l = [], j = jourDuTicket(t);
+  var ligne = function (k, v) { if (v) { l.push('<div><dt>' + k + '</dt><dd>' + v + '</dd></div>'); } };
+  var veh = t.vehicule_id ? DISPATCH.flotte.filter(function (x) { return x.id === t.vehicule_id; })[0] : null;
+  var jourLong = j === 'retard' ? 'en retard (jour passé)' : new Date(j + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  var etat = t.avalider ? '<span class="pl-b pl-b-rouge">⏳ À valider</span>'
+    : t.historique ? '<span class="pl-b">' + esc(LIB_HISTO[t.statut] || t.statut) + '</span>'
+    : t.statut === 'en_route' ? '<span class="pl-b pl-b-bleu">🚚 En route</span>'
+    : t.place ? '<span class="pl-b pl-b-bleu">Programmé</span>' : '<span class="pl-b pl-b-ambre">À dispatcher</span>';
+  var titre = (t.voyage ? '🚚 ' + esc(t.numero) : esc(t.client || 'Client')) + ' ' + etat;
+  ligne('Jour', esc(jourLong));
+  if (t.voyage) {
+    ligne('Pour', esc((t.clients || []).join(', ')));
+    ligne('Parcours', t.resume);
+    ligne('Charge', t.kg ? 'jusqu\'à ' + formater(t.kg) + ' kg · ' + t.envois + ' envoi(s)' : t.envois + ' envoi(s)');
+  } else {
+    ligne('Numéro', esc(t.numero));
+    ligne('Produits', esc(t.produits || '') + (t.unites ? ' · ' + formater(t.unites) + ' u.' : '') + (t.kg ? ' · ' + formater(t.kg) + ' kg' : ''));
+    ligne('À encaisser', t.montant ? francs(t.montant) : '');
+    ligne('Créneau', t.creneau ? esc(LIBELLES_CRENEAU[t.creneau] || t.creneau) : '');
+    ligne('Où', esc(t.repere || ''));
+    ligne('Téléphone', t.tel ? esc(telephoneLisible(t.tel)) : '');
+  }
+  ligne('Véhicule', veh ? esc(veh.immatriculation) + ' · ' + esc(veh.type === 'tricycle' ? 'tricycle' : 'camion') + ' · ' + esc(veh.chauffeur || 'sans chauffeur')
+    : (t.camion ? esc(t.camion) + (t.chauffeur ? ' · ' + esc(t.chauffeur) : '') : ''));
+  if (t.voyage && t.cout) { ligne('Coût', francs(t.cout) + ' <i>(estimé)</i>'); }
+  ligne(t.voyage ? 'Créé par' : 'Demandé par', t.par ? esc(String(t.par).replace(/\s*\(.*$/, '').trim() || t.par) + (t.cree_le ? ' · ' + esc(t.voyage ? heureLocale(t.cree_le) : dateCourte(t.cree_le)) : '') : '');
+  var note = t.avalider ? '<p class="pl-b-note">Jour passé, jamais clos : validez chaque livraison (livrée, partielle ou échec) dans la liste « En route et à venir », plus bas.</p>' : '';
+  return '<h4>' + titre + '</h4><dl>' + l.join('') + '</dl>' + note;
+}
+function bulle() {
+  var b = $('#pl_bulle');
+  if (!b) { b = document.createElement('div'); b.id = 'pl_bulle'; b.setAttribute('role', 'tooltip'); document.body.appendChild(b); }
+  return b;
+}
+function cacherBulle() { clearTimeout(PLANNING.tBulle); var b = $('#pl_bulle'); if (b) { b.className = ''; b.innerHTML = ''; } }
+function montrerBulle(el, enBas) {
+  var t = (PLANNING.tickets || []).filter(function (x) { return x.id === el.dataset.plTicket; })[0];
+  if (!t) { return; }
+  var b = bulle();
+  b.innerHTML = (enBas ? '<button type="button" class="pl-b-fermer" aria-label="Fermer">✕</button>' : '') + detailTicket(t);
+  b.className = 'visible' + (enBas ? ' en-bas' : '');
+  if (enBas) {
+    b.style.left = b.style.top = '';
+    b.querySelector('.pl-b-fermer').onclick = function () { choisirTicket(null); };
+    return;
+  }
+  var r = el.getBoundingClientRect(), w = b.offsetWidth, h = b.offsetHeight, V = document.documentElement;
+  var x = r.right + 8; if (x + w > V.clientWidth - 8) { x = Math.max(8, r.left - w - 8); }
+  var y = Math.min(Math.max(8, r.top), Math.max(8, V.clientHeight - h - 8));
+  b.style.left = x + 'px'; b.style.top = y + 'px';
 }
 
 /* Le ticket choisi (glissé ou touché) : seules les cases de SON jour s'allument,
@@ -3646,8 +3873,12 @@ function choisirTicket(id) {
   var t = (PLANNING.tickets || []).filter(function (x) { return x.id === id; })[0];
   PLANNING.choisi = t || null;
   $$('.pl-ticket').forEach(function (e) { e.classList.toggle('choisi', !!t && e.dataset.plTicket === id); });
+  var grille = $('.pl-grille'); if (grille) { grille.classList.toggle('choix', !!t); }
+  /* Au toucher, le détail s'affiche en bas à l'écran tant que le ticket est choisi ; au poste, c'est le survol. */
+  var tuile = t ? $('.pl-ticket[data-pl-ticket="' + id + '"]') : null;
+  if (tuile && !survolPossible()) { montrerBulle(tuile, true); } else { cacherBulle(); }
   $$('.pl-case').forEach(function (c) {
-    var ok = !!t && !t.historique && c.dataset.plJour === jourDuTicket(t) && (c.dataset.plJour === 'retard' || c.dataset.plJour >= aujourdhui()) &&
+    var ok = !!t && !t.historique && !t.avalider && !(t.place && t.statut === 'en_route') && c.dataset.plJour === jourDuTicket(t) && (c.dataset.plJour === 'retard' || c.dataset.plJour >= aujourdhui()) &&
       c.dataset.plCible && c.dataset.plCible !== (t.vehicule_id || '');
     c.classList.toggle('pl-possible', ok);
   });
@@ -3723,6 +3954,21 @@ function brancherPlanning() {
     };
   });
   if ($('#pl_voir14')) { $('#pl_voir14').onclick = function () { $('[data-pl-jours="14"]').click(); }; }
+  /* À valider : se rendre à la date du plus ancien, ou à la liste où se fait la validation. */
+  if ($('#pl_valider')) {
+    $('#pl_valider').onclick = function () { PLANNING.debut = $('#pl_valider').dataset.plVers; PLANNING.jourM = PLANNING.debut; chargerDispatch(); };
+  }
+  if ($('#pl_liste_valider')) {
+    $('#pl_liste_valider').onclick = function () {
+      var l = $('#dispatch_en_cours'); if (l) { l.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    };
+  }
+  $$('[data-pl-jourm]').forEach(function (b) {
+    b.onclick = function () {
+      PLANNING.jourM = b.dataset.plJourm; PLANNING.choisi = null;
+      if (PLANNING.derniers) { rendrePlanning(PLANNING.derniers[0], PLANNING.derniers[1]); }
+    };
+  });
   if ($('#pl_passe')) {
     $('#pl_passe').onclick = function () {
       PLANNING.passe = !PLANNING.passe;
@@ -3733,6 +3979,24 @@ function brancherPlanning() {
   /* Glisser près d'un bord du cadre le fait défiler (le navigateur ne le fait pas
      dans un cadre qui défile lui-même). */
   var cadre = $('#dispatch_tableau .pl-cadre');
+  if (cadre && survolPossible()) {
+    var tuileSous = function (ev) { return ev.target && ev.target.closest ? ev.target.closest('.pl-ticket') : null; };
+    cadre.onmouseover = function (ev) {
+      var e = tuileSous(ev);
+      if (!e || e === PLANNING.survol || PLANNING.glisse) { return; }
+      PLANNING.survol = e; clearTimeout(PLANNING.tBulle);
+      PLANNING.tBulle = setTimeout(function () { montrerBulle(e, false); }, 220);
+    };
+    cadre.onmouseout = function (ev) {
+      var e = tuileSous(ev), vers = ev.relatedTarget && ev.relatedTarget.closest ? ev.relatedTarget.closest('.pl-ticket') : null;
+      if (!e || vers === e) { return; }
+      PLANNING.survol = null; cacherBulle();
+    };
+    cadre.addEventListener('scroll', function () { PLANNING.survol = null; cacherBulle(); });
+    cadre.addEventListener('dblclick', function (ev) {
+      var e = tuileSous(ev); if (e && e.classList.contains('pl-voyage')) { cacherBulle(); ouvrirVoyage(e.dataset.plTicket); }
+    });
+  }
   if (cadre) {
     cadre.ondragover = function (ev) {
       var r = cadre.getBoundingClientRect(), marge = 60, pas = 18;
@@ -3769,13 +4033,22 @@ function brancherPlanning() {
   });
   var peut = aLeDroit(PEUT_DISPATCHER);
   $$('.pl-ticket').forEach(function (e) {
-    if (!peut || e.classList.contains('bloque')) { e.removeAttribute('draggable'); return; }
+    if (!peut || e.classList.contains('bloque')) {
+      /* Ni glissé ni posé, mais le toucher affiche son détail. */
+      e.removeAttribute('draggable');
+      e.onclick = function (ev) {
+        ev.stopPropagation();
+        choisirTicket(PLANNING.choisi && PLANNING.choisi.id === e.dataset.plTicket ? null : e.dataset.plTicket);
+      };
+      return;
+    }
     e.ondragstart = function (ev) {
+      PLANNING.glisse = true; PLANNING.survol = null; cacherBulle();
       ev.dataTransfer.setData('text/plain', e.dataset.plTicket);
       ev.dataTransfer.effectAllowed = 'move';
       choisirTicket(e.dataset.plTicket);
     };
-    e.ondragend = function () { $$('.pl-case').forEach(function (c) { c.classList.remove('pl-survol'); }); };
+    e.ondragend = function () { PLANNING.glisse = false; $$('.pl-case').forEach(function (c) { c.classList.remove('pl-survol'); }); };
     e.onclick = function (ev) {
       ev.stopPropagation();
       choisirTicket(PLANNING.choisi && PLANNING.choisi.id === e.dataset.plTicket ? null : e.dataset.plTicket);
@@ -3792,7 +4065,9 @@ function brancherPlanning() {
     c.onclick = function () {
       if (!PLANNING.choisi) { return; }
       if (!c.classList.contains('pl-possible')) {
-        if (c.dataset.plJour !== jourDuTicket(PLANNING.choisi)) {
+        if (PLANNING.choisi.avalider || PLANNING.choisi.historique || (PLANNING.choisi.place && PLANNING.choisi.statut === 'en_route')) {
+          message(PLANNING.choisi.avalider ? 'Ce ticket est dans le passé : il se valide dans « En route et à venir », il ne se déplace plus.' : 'Ce ticket est parti ou clos : il ne se déplace plus.', 'ko');
+        } else if (c.dataset.plJour !== jourDuTicket(PLANNING.choisi)) {
           message('Le ticket reste à son jour de livraison : posez-le dans la colonne du ' +
                   esc(jourDuTicket(PLANNING.choisi) === 'retard' ? 'retard' : dateCourte(jourDuTicket(PLANNING.choisi))) + '.', 'ko');
         }
@@ -3844,7 +4119,7 @@ function chargerDispatch() {
 function voyagesDuDispatch() {
   DISPATCH.voyages = []; DISPATCH.voyagesParId = {}; DISPATCH.envois = {}; DISPATCH.historique = [];
   var jours = joursAffiches(), d0 = jours[0], d1 = jours[jours.length - 1];
-  var debutVoyages = d0 < jourPlus(-14) ? d0 : jourPlus(-14);
+  var debutVoyages = d0 < jourPlus(-45) ? d0 : jourPlus(-45);
   return Promise.all([
     requete('/voyages?select=*&date_voyage=gte.' + debutVoyages + '&order=date_voyage,numero&limit=400'),
     requete('/v_envois?select=*&limit=1000'),
@@ -3852,7 +4127,7 @@ function voyagesDuDispatch() {
             '&statut=in.(livree,livree_partielle,echec)&date_livraison=gte.' + d0 + '&date_livraison=lte.' + d1 + '&limit=500')
   ]).then(function (r) {
     /* Les voyages en cours, et dans la fenêtre affichée tous les voyages (annulés et terminés compris). */
-    DISPATCH.voyages = (r[0] || []).filter(function (v) { return (v.statut === 'planifie' && v.date_voyage >= jourPlus(-14)) || (v.date_voyage >= d0 && v.date_voyage <= d1); });
+    DISPATCH.voyages = (r[0] || []).filter(function (v) { return (v.statut === 'planifie' && v.date_voyage >= jourPlus(-45)) || (v.date_voyage >= d0 && v.date_voyage <= d1); });
     (r[1] || []).forEach(function (e) { DISPATCH.envois[e.id] = e; });
     DISPATCH.historique = r[2] || [];
     DISPATCH.voyages.forEach(function (v) { v.arrets = []; DISPATCH.voyagesParId[v.id] = v; });
@@ -3899,7 +4174,10 @@ function ticketsVoyages() {
   return (DISPATCH.voyages || []).map(function (v) {
     var a0 = (v.arrets || [])[0] || {};
     var envois = {}; (v.arrets || []).forEach(function (a) { a.mouvements.forEach(function (m) { envois[m.demande_id] = 1; }); });
+    var clients = Object.keys(envois).map(function (id) { return ((DISPATCH.envois || {})[id] || {}).pour; }).filter(Boolean)
+      .filter(function (n, i, a) { return a.indexOf(n) === i; });
     return { id: v.id, voyage: true, numero: v.numero, client: v.numero, resume: resumeVoyage(v), envois: Object.keys(envois).length,
+             clients: clients, par: v.cree_par, cree_le: v.cree_le, arrets: v.arrets || [], chauffeur_id: v.chauffeur_id,
              kg: v.chiffrage ? nombre(v.chiffrage.charge_max_kg) : 0, cout: v.cout_revient, date_souhaitee: v.date_voyage,
              lat: a0.latitude, lng: a0.longitude, place: !!v.vehicule_id, vehicule_id: v.vehicule_id,
              historique: v.statut === 'annule' || voyageTermine(v),
@@ -7424,7 +7702,7 @@ function erreurLivraison() {
   var lv = PH.livraison || {}, b = PH.courant.boutique || {};
   if (!lv.date || lv.date < aujourdhui() || lv.date > jourPlus(30)) { return 'Choisissez le jour de livraison (dans les 30 jours).'; }
   if (!lv.creneau) { return 'Choisissez le créneau de livraison.'; }
-  /* Le repère OU l'adresse suffit (Mory, 15/10/2026 : bloquée sans comprendre, le repère écrit
+  /* Le repère OU l'adresse suffit (phoning, 15/10/2026 : bloquée sans comprendre, le repère écrit
      dans « Adresse ou quartier »). */
   if (b.precision_position !== 'relevee' && (String(lv.repere || '').trim() + ' ' + String(lv.adresse || '').trim()).trim().length < 5) {
     return 'Écrivez un repère précis : la position du client n\'est pas relevée au GPS.';
@@ -8013,7 +8291,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-15 16:23';
+var VERSION_CONSOLE = '2026-10-16 13:43';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

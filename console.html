@@ -2383,6 +2383,40 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
 .pl-sous-nom { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-sous .pl-sortir { flex: 0 0 auto; margin-left: 0; }
 
+/* ------------------------------------------------ passe de design du poste d'appel (DGA, 20/10/2026)
+   Le travail à gauche, le script à droite toujours visible ; le bouton d'action collé en bas ;
+   les étiquettes sur une ligne ; les produits lisibles ; rien ne recouvre les boutons. */
+[data-ecran="phoning"] .entete-ecran p { display: none; }
+[data-ecran="phoning"] .entete-ecran { margin-bottom: 6px; }
+.pa-zone { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; margin-top: 12px; }
+.pa-zone.pa-sans-cote { grid-template-columns: minmax(0, 1fr); }
+.pa-cote { position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow: auto; }
+.pa-cote .pa-souffleur { margin: 0; }
+.pa-cote .pa-dire { font-size: 15px; }
+@media (max-width: 1100px) {
+  .pa-zone { grid-template-columns: minmax(0, 1fr); }
+  .pa-cote { position: static; max-height: none; }
+}
+.pa-page .pa-actions {
+  position: sticky; bottom: 0; z-index: 6; background: var(--carte); margin: 12px -4px 0; padding: 10px 4px;
+  border-top: 1px solid var(--bord); box-shadow: 0 -6px 12px rgba(43, 28, 16, .06);
+}
+.pa-page .pa-actions .pa-principal { min-height: 52px; font-size: 16px; padding: 0 22px; }
+.pa-etapes li.actif { box-shadow: 0 2px 0 var(--accent); }
+.pa-etiquette { display: block; }
+.pa-etiquette > .pa-champ, .pa-etiquette > select, .pa-etiquette > textarea, .pa-etiquette > input { display: block; margin-top: 6px; }
+.req { font-weight: 800; margin-left: 2px; }
+.pa-produits { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.pa-produit { padding: 8px 8px 8px 12px; }
+.pa-produit .nom { flex: 1; min-width: 0; line-height: 1.3; }
+.pa-produit .nom span { margin-top: 2px; font-size: 12.5px; }
+/* « Un avis ? » : un onglet discret sur le bord droit, qui ne recouvre plus aucun bouton. */
+.ra-bouton { top: 45%; bottom: auto !important; right: 0 !important; writing-mode: vertical-rl; transform: rotate(180deg);
+  border-radius: 0 10px 10px 0 !important; padding: 12px 6px !important; font-size: 13px !important; }
+.pa-total-barre { margin-left: auto; font-size: 15px; color: var(--texte-doux); white-space: nowrap; }
+.pa-total-barre b { color: var(--principal); font-size: 19px; margin-left: 4px; }
+.pa-total-barre + .pa-principal { margin-left: 0 !important; }
+
 /* ---------------------------------------- transports du groupe (0033) */
 .tg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
 .tg-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; margin: 10px 0; }
@@ -2696,12 +2730,12 @@ table.tablo td.num, table.tablo .num { white-space: nowrap; }
       <h2>Phoning</h2>
       <p id="ph_sous">Un client à la fois.</p>
     </div>
+    <div class="bloc-console" id="ph_consultation" style="display:none"></div>
+    <div class="bloc-console pa-poste" id="ph_poste"><div class="chargement">Chargement…</div></div>
     <details class="bloc-console sc-bloc" id="ph_suivi">
       <summary><b>☎ Un client appelle — où en est sa commande, où est le camion ?</b></summary>
       <div id="ph_suivi_contenu"></div>
     </details>
-    <div class="bloc-console" id="ph_consultation" style="display:none"></div>
-    <div class="bloc-console pa-poste" id="ph_poste"><div class="chargement">Chargement…</div></div>
     <div class="bloc-console" id="ph_supervision" style="display:none">
       <h3>L'équipe et la file</h3>
       <div id="ph_supervision_contenu"></div>
@@ -7552,11 +7586,15 @@ function afficherPoste() {
       return '<li class="' + (i < rang ? 'fait' : (i === rang ? 'actif' : '')) + '"><span>' + (i + 1) +
         '</span>' + p[1] + '</li>';
     }).join('') + '</ol>' +
-    '<div class="pa-page" id="pa_page"></div>';
+    '<div class="pa-zone" id="pa_zone"><div class="pa-page" id="pa_page"></div><aside class="pa-cote" id="pa_cote"></aside></div>';
   $('#pa_cloturer').onclick = cloturerSeance;
   $('#pa_entrant').onclick = ouvrirAppelEntrant;
   ({ client: pageClient, issue: pageIssue, detail: pageDetail, livraison: pageLivraison,
      valider: pageValider })[PH.page]();
+  /* Passe de design (DGA, 20/10/2026) : le travail à gauche, ce qu'il faut dire à droite, toujours
+     visible ; sur un écran étroit, le script passe sous le travail. */
+  var so = $('#pa_page .pa-souffleur');
+  if (so) { $('#pa_cote').appendChild(so); } else { $('#pa_zone').classList.add('pa-sans-cote'); }
   brancherSouffleur();
   majChrono();
   demarrerMinuteurs();
@@ -7853,6 +7891,7 @@ function pageDetail() {
       esc(PH.commentaire) + '</textarea></label>' +
     '</div>' +
     '<div class="pa-actions"><button class="pa-btn pa-discret" id="pa_retour">← Issue</button>' +
+    (PH.issue === 'commande' ? '<span class="pa-total-barre" id="pa_total_barre"></span>' : '') +
     '<button class="pa-btn pa-principal" id="pa_vers_valider">' +
       (PH.issue === 'commande' ? 'Livraison →' : 'Vérifier avant d\'envoyer →') + '</button></div>';
 
@@ -7908,6 +7947,8 @@ function totalCommande() {
   return lignesCommande().reduce(function (n, l) { return n + l.quantite * l.prix; }, 0);
 }
 function majTotal() {
+  var barre = $('#pa_total_barre');
+  if (barre) { barre.innerHTML = lignesCommande().length ? 'Total <b>' + francs(totalCommande()) + '</b>' : ''; }
   var el = $('#pa_total'); if (!el) { return; }
   var l = lignesCommande();
   el.innerHTML = l.length
@@ -8567,7 +8608,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-20 16:08';
+var VERSION_CONSOLE = '2026-10-20 16:23';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);

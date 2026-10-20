@@ -5033,11 +5033,15 @@ function brancherSuiviClient(idZone) {
     rpc('suivi_client', { p_recherche: q.value }).then(function (clients) {
       zone.innerHTML = clients && clients.length ? (clients.length >= 8 ? '<p class="aide">8 premiers clients trouvés : ' +
           'précisez le numéro ou le nom.</p>' : '') + clients.map(carteSuiviClient).join('')
-        : '<div class="vide">Aucun client trouvé pour « ' + esc(q.value) + ' ».</div>';
+        : '<div class="message-console ko">Aucun client trouvé pour « ' + esc(q.value) + ' ». Vérifiez le numéro, ou créez sa fiche ci-dessous.</div>';
       zone.querySelectorAll('[data-entrant]').forEach(function (b) {
         b.onclick = function () { prendreClientEntrant(b.dataset.entrant); };
       });
-      if (idZone === 'ae' && aLeDroit(PEUT_PHONER_ACTIF)) { zone.insertAdjacentHTML('beforeend', formulaireClientInconnu(q.value)); brancherClientInconnu(); }
+      /* Rien trouvé : créer le client et prendre sa commande, depuis toute recherche (DGA, 20/10/2026). */
+      if (aLeDroit(PEUT_PHONER_ACTIF)) {
+        zone.insertAdjacentHTML('beforeend', formulaireClientInconnu(q.value, idZone, !(clients && clients.length)));
+        brancherClientInconnu(idZone);
+      }
     }).catch(function (e) { zone.innerHTML = '<div class="message-console ko">' + esc(e.message) + '</div>'; });
   };
   ok.onclick = lancer;
@@ -5256,9 +5260,12 @@ function chercherBoutiques(page) {
   if (texte && chiffresTelephone(texte)) {
     filtres += '&telephone=ilike.' + encodeURIComponent('*' + chiffresTelephone(texte) + '*');
   } else if (texte) {
-    var motif = encodeURIComponent('*' + texte + '*');
-    filtres += '&or=(nom.ilike.' + motif + ',telephone.ilike.' + motif +
-               ',secteur.ilike.' + motif + ',code.ilike.' + motif + ')';
+    /* Chaque mot, dans n'importe quel ordre (DGA, 20/10/2026 : « Diouf Grossiste » ne trouvait rien). */
+    var mots = texte.split(/\s+/).filter(function (m) { return m.length; }).slice(0, 5).map(function (m) {
+      var x = encodeURIComponent('*' + m.replace(/[(),*]/g, '') + '*');
+      return 'or(nom.ilike.' + x + ',telephone.ilike.' + x + ',secteur.ilike.' + x + ',code.ilike.' + x + ')';
+    });
+    if (mots.length) { filtres += '&and=(' + mots.join(',') + ')'; }
   }
   var chemin = '/v_boutiques_geo?select=code,nom,telephone,zone,secteur,precision_position,' +
                'statut_crm,potentiel_kg_mois,nb_commandes,latitude&order=nom' +
@@ -7441,32 +7448,34 @@ function ouvrirAppelEntrant() {
   $('#ae_q').focus();
 }
 
-function formulaireClientInconnu(saisie) {
+function formulaireClientInconnu(saisie, z, ouvert) {
+  z = z || 'ae';
   var chiffres = String(saisie || '').replace(/\D/g, '');
-  return '<details class="ae-inconnu" id="ae_inconnu"' + (/\d{6}/.test(chiffres) ? ' open' : '') + '>' +
-    '<summary>Client inconnu : créer sa fiche</summary>' +
-    '<label class="pa-etiquette">Nom du client ou de la boutique<input class="pa-champ" id="ae_nom" value="' +
+  return '<details class="ae-inconnu" id="' + z + '_inconnu"' + (ouvert || /\d{6}/.test(chiffres) ? ' open' : '') + '>' +
+    '<summary>' + (ouvert ? '＋ Créer ce client et prendre sa commande' : 'Client inconnu : créer sa fiche') + '</summary>' +
+    '<label class="pa-etiquette">Nom du client ou de la boutique<input class="pa-champ" id="' + z + '_nom" value="' +
       (/\d/.test(saisie || '') ? '' : esc(saisie || '')) + '"></label>' +
-    '<label class="pa-etiquette">Téléphone<input class="pa-champ" id="ae_tel" inputmode="tel" value="' + esc(chiffres.slice(-9)) + '" placeholder="77 123 45 67"></label>' +
-    '<label class="pa-etiquette">Zone<select class="pa-champ" id="ae_zone"><option value="">— choisir —</option></select></label>' +
-    '<label class="pa-etiquette">Repère (quartier, à côté de…)<input class="pa-champ" id="ae_repere"></label>' +
-    '<button class="pa-btn pa-principal" id="ae_creer">Créer la fiche et prendre sa commande</button></details>';
+    '<label class="pa-etiquette">Téléphone<input class="pa-champ" id="' + z + '_tel" inputmode="tel" value="' + esc(chiffres.slice(-9)) + '" placeholder="77 123 45 67"></label>' +
+    '<label class="pa-etiquette">Zone<select class="pa-champ" id="' + z + '_zone"><option value="">— choisir —</option></select></label>' +
+    '<label class="pa-etiquette">Repère (quartier, à côté de…)<input class="pa-champ" id="' + z + '_repere"></label>' +
+    '<button class="pa-btn pa-principal" id="' + z + '_creer">Créer la fiche et prendre sa commande</button></details>';
 }
-function brancherClientInconnu() {
+function brancherClientInconnu(z) {
+  z = z || 'ae';
   requete('/zones?select=id,nom&order=nom').then(function (z) {
-    var sel = $('#ae_zone'); if (!sel) { return; }
+    var sel = $('#' + z + '_zone'); if (!sel) { return; }
     sel.innerHTML = '<option value="">— choisir —</option>' + (z || []).map(function (x) {
       return '<option value="' + esc(x.id) + '">' + esc(x.nom) + '</option>';
     }).join('');
   }).catch(function () { /* la zone reste facultative */ });
-  $('#ae_creer').onclick = function () {
-    var b = this, nom = $('#ae_nom').value.trim(), tel = $('#ae_tel').value.replace(/\D/g, '');
+  $('#' + z + '_creer').onclick = function () {
+    var b = this, nom = $('#' + z + '_nom').value.trim(), tel = $('#' + z + '_tel').value.replace(/\D/g, '');
     if (nom.length < 2) { message('Écrivez le nom du client.', 'ko'); return; }
     if (tel.length < 9) { message('Le téléphone a 9 chiffres.', 'ko'); return; }
     b.disabled = true;
     assurerSeance().then(function (s) {
       return rpc('creer_client_entrant', { p_seance: s.id, p_nom: nom, p_telephone: tel,
-        p_zone: $('#ae_zone').value || null, p_repere: $('#ae_repere').value.trim() || null });
+        p_zone: $('#' + z + '_zone').value || null, p_repere: $('#' + z + '_repere').value.trim() || null });
     }).then(function (r) {
       if (r.existait) { message('Ce téléphone est déjà celui d\'un client : sa fiche est reprise, sans doublon.', 'info'); }
       prendreClientEntrant(r.id);
@@ -8558,7 +8567,7 @@ function chargerPhotoDuBac(nom, idImage) {
    avec ce qu'il faut pour le reproduire : l'onglet, les derniers messages
    d'erreur affichés, l'écran, la version de la page. */
 
-var VERSION_CONSOLE = '2026-10-16 15:24';
+var VERSION_CONSOLE = '2026-10-20 16:08';
 var ERREURS_VUES = [];
 function noterErreur(texte) {
   var t = String(texte || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
